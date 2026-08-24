@@ -84,7 +84,7 @@ export function FloatingPetals({ count = 28 }: { count?: number }) {
         size: 10 + Math.random() * 16,
         drift: 20 + Math.random() * 60,
         duration: 14 + Math.random() * 14,
-        tone: ["#e8a4b4", "#f6c9d4", "#d98aa0", "#fbdbe2"][i % 4],
+        tone: (["#e8a4b4", "#f6c9d4", "#d98aa0", "#fbdbe2"][i % 4] as string),
       })),
     [count],
   );
