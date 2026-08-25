@@ -33,13 +33,13 @@ export const WhatsAppShareSection: React.FC<WhatsAppShareSectionProps> = ({ invi
       className="w-full max-w-xl mx-auto my-6 px-3"
     >
       <Card3D className="text-center py-8 px-6 sm:px-10">
-        <span className="font-label text-xs uppercase tracking-[0.3em] text-[#9a7080] block mb-2">
+        <span className="font-label text-xs uppercase tracking-[0.3em] text-[#b592a0] block mb-2">
           Share Invitation
         </span>
-        <h4 className="font-display text-lg sm:text-xl font-bold text-[#2d1a22] mb-2">
+        <h4 className="font-display text-lg sm:text-xl font-bold text-[#4a3038] mb-2">
           Pass Along the Joy
         </h4>
-        <p className="font-body text-xs text-[#9a7080] mb-6 max-w-sm mx-auto">
+        <p className="font-body text-xs text-[#b592a0] mb-6 max-w-sm mx-auto">
           Share this personal wedding invitation link directly with family and friends via WhatsApp.
         </p>
 

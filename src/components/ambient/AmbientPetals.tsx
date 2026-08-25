@@ -16,7 +16,7 @@ interface Petal {
 export const AmbientPetals: React.FC = () => {
   // Exactly 28 floating rose petals as specified in the template
   const petals: Petal[] = useMemo(() => {
-    const colors = ['#f4c2c2', '#e8a4b4', '#fcd5ce', '#fad2e1', '#f8bbd0', '#ffccd5'];
+    const colors = ['#f4c2c2', '#f7c1d0', '#fcd5ce', '#fad2e1', '#fbd0de', '#ffccd5'];
     return Array.from({ length: 28 }).map((_, i) => ({
       id: i,
       left: Math.random() * 100, // percentage across screen width

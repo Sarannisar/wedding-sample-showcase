@@ -8,7 +8,7 @@ interface CornerBracketsProps {
 }
 
 export const CornerBrackets: React.FC<CornerBracketsProps> = ({
-  color = '#c59b6d',
+  color = '#f2b8c6',
   size = 20,
   weight = 1.2,
   offset = 8,

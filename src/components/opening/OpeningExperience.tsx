@@ -139,15 +139,15 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
       onClick={() => {
         if (!isStarted) startCinematicSequence();
       }}
-      className={`fixed inset-0 z-40 flex flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-[#fff5f7] via-[#fdf0f3] to-[#fdf9f5] select-none ${
+      className={`fixed inset-0 z-40 flex flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-[#fff5f9] via-[#fff2f6] to-[#fffafc] select-none ${
         !isStarted ? 'cursor-pointer' : ''
       }`}
     >
       {/* Soft Romantic Ambient Light Blooms */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[550px] h-[550px] rounded-full bg-[#e8a4b4]/25 blur-[100px] animate-pulse-slow" />
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[550px] h-[550px] rounded-full bg-[#f7c1d0]/25 blur-[100px] animate-pulse-slow" />
         <div className="absolute bottom-10 left-10 w-72 h-72 rounded-full bg-[#fcd5ce]/30 blur-[80px]" />
-        <div className="absolute top-10 right-10 w-72 h-72 rounded-full bg-[#f8bbd0]/25 blur-[80px]" />
+        <div className="absolute top-10 right-10 w-72 h-72 rounded-full bg-[#fbd0de]/25 blur-[80px]" />
       </div>
 
       {/* 3D Scene Root - Full Screen on Mobile */}
@@ -186,20 +186,20 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
                 e.stopPropagation();
                 startCinematicSequence();
               }}
-              className="group relative px-8 py-3.5 rounded-full bg-white/95 backdrop-blur-md border border-[#b05570]/35 shadow-2xl hover:shadow-3xl active:scale-95 transition-all duration-300 flex items-center gap-3 cursor-pointer"
+              className="group relative px-8 py-3.5 rounded-full bg-white/95 backdrop-blur-md border border-[#e08aa3]/35 shadow-2xl hover:shadow-3xl active:scale-95 transition-all duration-300 flex items-center gap-3 cursor-pointer"
             >
-              <span className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-[#e8a4b4] to-[#b05570] opacity-30 group-hover:opacity-60 blur-xs transition-opacity" />
+              <span className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-[#f7c1d0] to-[#e08aa3] opacity-30 group-hover:opacity-60 blur-xs transition-opacity" />
 
-              <span className="relative font-label text-xs sm:text-sm uppercase tracking-[0.25em] text-[#b05570] font-semibold">
+              <span className="relative font-label text-xs sm:text-sm uppercase tracking-[0.25em] text-[#e08aa3] font-semibold">
                 Tap Anywhere to Open
               </span>
-              <span className="relative text-sm text-[#b05570] group-hover:translate-x-1 transition-transform">
+              <span className="relative text-sm text-[#e08aa3] group-hover:translate-x-1 transition-transform">
                 ✦
               </span>
             </button>
 
             {guestName && (
-              <span className="font-body text-xs text-[#7d334a] font-medium italic drop-shadow-sm bg-white/80 backdrop-blur-xs px-3 py-0.5 rounded-full">
+              <span className="font-body text-xs text-[#b05570] font-medium italic drop-shadow-sm bg-white/80 backdrop-blur-xs px-3 py-0.5 rounded-full">
                 Warmly welcoming {guestName}
               </span>
             )}
@@ -216,7 +216,7 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
                 e.stopPropagation();
                 handleEnterInvitation();
               }}
-              className="group px-8 py-3.5 rounded-full bg-gradient-to-r from-[#b05570] to-[#7d334a] text-white shadow-2xl hover:shadow-3xl active:scale-95 transition-all duration-300 flex items-center gap-3 cursor-pointer"
+              className="group px-8 py-3.5 rounded-full bg-gradient-to-r from-[#e08aa3] to-[#b05570] text-white shadow-2xl hover:shadow-3xl active:scale-95 transition-all duration-300 flex items-center gap-3 cursor-pointer"
             >
               <span className="font-label text-xs sm:text-sm uppercase tracking-[0.25em] font-semibold text-white">
                 Scroll to Explore Invitation
@@ -225,7 +225,7 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
                 ↓
               </span>
             </button>
-            <span className="font-label text-[11px] uppercase tracking-widest text-[#7d334a] font-bold animate-bounce bg-white/70 px-3 py-0.5 rounded-full shadow-xs">
+            <span className="font-label text-[11px] uppercase tracking-widest text-[#b05570] font-bold animate-bounce bg-white/70 px-3 py-0.5 rounded-full shadow-xs">
               ↓ Scroll Down ↓
             </span>
           </motion.div>

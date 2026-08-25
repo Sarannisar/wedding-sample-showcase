@@ -15,14 +15,14 @@ export const MonogramReveal: React.FC<MonogramRevealProps> = ({ opacity, scale }
         transform: `scale(${scale})`,
       }}
     >
-      <div className="flex flex-col items-center text-center max-w-xs -mt-10 bg-white/80 backdrop-blur-md p-6 rounded-3xl border border-[#b05570]/20 shadow-2xl">
+      <div className="flex flex-col items-center text-center max-w-xs -mt-10 bg-white/80 backdrop-blur-md p-6 rounded-3xl border border-[#e08aa3]/20 shadow-2xl">
         {/* Simpler, Modern Luxury S&S Monogram Emblem */}
         <div className="relative mb-3 flex items-center justify-center">
           {/* Luminous Warm Glow */}
-          <div className="absolute inset-0 w-28 h-28 rounded-full bg-[#f8bbd0]/40 blur-xl animate-pulse-slow pointer-events-none" />
+          <div className="absolute inset-0 w-28 h-28 rounded-full bg-[#fbd0de]/40 blur-xl animate-pulse-slow pointer-events-none" />
 
           {/* Clean Circular S&S Logo */}
-          <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden drop-shadow-lg border border-[#c59b6d]/30 bg-white">
+          <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden drop-shadow-lg border border-[#f2b8c6]/30 bg-white">
             <img
               src="/assets/logo_saad_sheen_crest.jpg"
               alt="S & S Wedding Monogram"
@@ -32,24 +32,24 @@ export const MonogramReveal: React.FC<MonogramRevealProps> = ({ opacity, scale }
         </div>
 
         {/* Invitation Subtitle */}
-        <span className="font-label text-[10px] uppercase tracking-[0.35em] text-[#7d334a] font-bold mb-1">
+        <span className="font-label text-[10px] uppercase tracking-[0.35em] text-[#b05570] font-bold mb-1">
           The Wedding Celebration of
         </span>
 
         {/* Couple Names in Kaushan Script */}
-        <h1 className="font-kaushan text-2xl sm:text-3xl text-[#4a1525] font-normal leading-snug">
+        <h1 className="font-kaushan text-2xl sm:text-3xl text-[#6b2436] font-normal leading-snug">
           {weddingConfig.couple.brideFullName || 'Safiyya Ilyas'}
-          <span className="block font-serif italic text-base sm:text-lg text-[#8c6d58] my-1.5 sm:my-2">
+          <span className="block font-serif italic text-base sm:text-lg text-[#a8808e] my-1.5 sm:my-2">
             and
           </span>
           {weddingConfig.couple.groomFullName || 'Sharrafuth Najiullah'}
         </h1>
 
         {/* Golden Divider */}
-        <div className="w-20 h-[1.5px] bg-gradient-to-r from-transparent via-[#c59b6d] to-transparent my-2" />
+        <div className="w-20 h-[1.5px] bg-gradient-to-r from-transparent via-[#f2b8c6] to-transparent my-2" />
 
         {/* Wedding Date */}
-        <p className="font-label text-xs uppercase tracking-[0.2em] text-[#7d334a] font-bold">
+        <p className="font-label text-xs uppercase tracking-[0.2em] text-[#b05570] font-bold">
           {weddingConfig.event.dayAndDate}
         </p>
       </div>

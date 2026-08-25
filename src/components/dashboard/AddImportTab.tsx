@@ -89,19 +89,19 @@ export const AddImportTab: React.FC<AddImportTabProps> = ({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Left Panel: Add Single Invitee */}
-      <div className="bg-white rounded-2xl p-6 border border-[#b05570]/15 shadow-sm space-y-4 flex flex-col justify-between">
+      <div className="bg-white rounded-2xl p-6 border border-[#e08aa3]/15 shadow-sm space-y-4 flex flex-col justify-between">
         <div>
-          <div className="flex items-center gap-2 mb-4 text-[#7d334a]">
+          <div className="flex items-center gap-2 mb-4 text-[#b05570]">
             <UserPlus className="w-5 h-5" />
             <h4 className="font-display text-lg font-bold">Add Single Invitee</h4>
           </div>
-          <p className="font-body text-xs text-[#9a7080] mb-6">
+          <p className="font-body text-xs text-[#b592a0] mb-6">
             Create an individual personalized wedding invitation link.
           </p>
 
           <div className="space-y-4">
             <div>
-              <label className="block font-label text-xs uppercase tracking-wider text-[#2d1a22] font-semibold mb-1">
+              <label className="block font-label text-xs uppercase tracking-wider text-[#4a3038] font-semibold mb-1">
                 Guest / Family Name <span className="text-rose-500">*</span>
               </label>
               <input
@@ -109,12 +109,12 @@ export const AddImportTab: React.FC<AddImportTabProps> = ({
                 placeholder="e.g. Mohammed & Family"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#b05570] focus:ring-1 focus:ring-[#b05570]"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#e08aa3] focus:ring-1 focus:ring-[#e08aa3]"
               />
             </div>
 
             <div>
-              <label className="block font-label text-xs uppercase tracking-wider text-[#2d1a22] font-semibold mb-1">
+              <label className="block font-label text-xs uppercase tracking-wider text-[#4a3038] font-semibold mb-1">
                 WhatsApp Phone Number (Numbers only)
               </label>
               <input
@@ -128,9 +128,9 @@ export const AddImportTab: React.FC<AddImportTabProps> = ({
                   const numericOnly = e.target.value.replace(/\D/g, '');
                   setPhone(numericOnly);
                 }}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#b05570] focus:ring-1 focus:ring-[#b05570]"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#e08aa3] focus:ring-1 focus:ring-[#e08aa3]"
               />
-              <span className="text-[11px] text-[#9a7080] mt-1 block">
+              <span className="text-[11px] text-[#b592a0] mt-1 block">
                 Auto-formats to international format (e.g. <code>0771234567</code> → <code>+94771234567</code>).
               </span>
             </div>
@@ -138,7 +138,7 @@ export const AddImportTab: React.FC<AddImportTabProps> = ({
             <button
               onClick={handleSingleSubmit}
               disabled={!name.trim() || isSubmitting}
-              className="w-full py-3 px-6 rounded-xl bg-[#b05570] text-white font-label text-xs uppercase tracking-wider font-semibold shadow hover:bg-[#7d334a] active:scale-98 transition-all disabled:opacity-50 cursor-pointer"
+              className="w-full py-3 px-6 rounded-xl bg-[#e08aa3] text-white font-label text-xs uppercase tracking-wider font-semibold shadow hover:bg-[#b05570] active:scale-98 transition-all disabled:opacity-50 cursor-pointer"
             >
               {isSubmitting ? 'Generating...' : 'Create Invitation Link'}
             </button>
@@ -147,7 +147,7 @@ export const AddImportTab: React.FC<AddImportTabProps> = ({
 
         {/* Success Generated Box */}
         {createdInvitee && (
-          <div className="p-4 rounded-xl bg-[#fdf7f9] border border-[#b05570]/25 space-y-2 mt-4">
+          <div className="p-4 rounded-xl bg-[#fdf7f9] border border-[#e08aa3]/25 space-y-2 mt-4">
             <span className="font-label text-xs uppercase tracking-wider text-emerald-700 font-semibold flex items-center gap-1.5">
               <Check className="w-4 h-4" /> Link Generated for {createdInvitee.name}
             </span>
@@ -160,14 +160,14 @@ export const AddImportTab: React.FC<AddImportTabProps> = ({
               />
               <button
                 onClick={handleCopyLink}
-                className="p-2 rounded-lg bg-[#b05570] text-white hover:bg-[#7d334a] transition-colors cursor-pointer"
+                className="p-2 rounded-lg bg-[#e08aa3] text-white hover:bg-[#b05570] transition-colors cursor-pointer"
                 title="Copy Link"
               >
                 {copiedLink ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
               </button>
             </div>
             {createdInvitee.phone && (
-              <p className="text-[11px] text-[#7d334a]">
+              <p className="text-[11px] text-[#b05570]">
                 Saved WhatsApp number: <strong>{createdInvitee.phone}</strong>
               </p>
             )}
@@ -176,18 +176,18 @@ export const AddImportTab: React.FC<AddImportTabProps> = ({
       </div>
 
       {/* Right Panel: CSV Bulk Import */}
-      <div className="bg-white rounded-2xl p-6 border border-[#b05570]/15 shadow-sm space-y-4">
-        <div className="flex items-center gap-2 mb-2 text-[#7d334a]">
+      <div className="bg-white rounded-2xl p-6 border border-[#e08aa3]/15 shadow-sm space-y-4">
+        <div className="flex items-center gap-2 mb-2 text-[#b05570]">
           <Upload className="w-5 h-5" />
           <h4 className="font-display text-lg font-bold">Bulk CSV Import</h4>
         </div>
-        <p className="font-body text-xs text-[#9a7080]">
+        <p className="font-body text-xs text-[#b592a0]">
           Upload a spreadsheet or CSV file with guest names and phone numbers to generate unique
           links in bulk.
         </p>
 
         {/* Dashed Upload Area */}
-        <label className="relative border-2 border-dashed border-[#b05570]/30 hover:border-[#b05570] rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-colors bg-[#fdfafb]/50">
+        <label className="relative border-2 border-dashed border-[#e08aa3]/30 hover:border-[#e08aa3] rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-colors bg-[#fdfafb]/50">
           <input
             type="file"
             accept=".csv,text/csv"
@@ -195,25 +195,25 @@ export const AddImportTab: React.FC<AddImportTabProps> = ({
             disabled={isUploading}
             className="hidden"
           />
-          <FileText className="w-10 h-10 text-[#b05570]/60 mb-2" />
-          <span className="font-label text-xs uppercase tracking-wider text-[#2d1a22] font-semibold">
+          <FileText className="w-10 h-10 text-[#e08aa3]/60 mb-2" />
+          <span className="font-label text-xs uppercase tracking-wider text-[#4a3038] font-semibold">
             {isUploading ? 'Processing File...' : 'Click to Upload CSV File'}
           </span>
-          <span className="text-[11px] font-body text-[#9a7080] mt-1">
+          <span className="text-[11px] font-body text-[#b592a0] mt-1">
             Accepts CSV format with columns: <code>name</code> and <code>phone</code> (auto-converts <code>077...</code> / <code>77...</code> to <code>+94...</code>)
           </span>
         </label>
 
         {/* Import Progress Notification */}
         {csvProgress && (
-          <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 text-xs font-body text-[#2d1a22]">
+          <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 text-xs font-body text-[#4a3038]">
             {csvProgress}
           </div>
         )}
 
         {/* Sample CSV Format Code Block */}
         <div className="space-y-1.5 pt-2">
-          <span className="font-label text-[11px] uppercase tracking-wider text-[#9a7080] font-semibold">
+          <span className="font-label text-[11px] uppercase tracking-wider text-[#b592a0] font-semibold">
             Sample CSV Format
           </span>
           <pre className="p-3 rounded-xl bg-gray-900 text-gray-100 text-xs font-mono overflow-x-auto">

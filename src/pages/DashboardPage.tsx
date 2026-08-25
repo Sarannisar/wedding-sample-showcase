@@ -42,15 +42,15 @@ export const DashboardPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#fdf9f5] flex flex-col text-[#2d1a22]">
+    <div className="min-h-screen bg-[#fffafc] flex flex-col text-[#4a3038]">
       {/* Dark Theme Header Bar as specified in template */}
-      <header className="bg-[#7d334a] text-white py-4 px-4 sm:px-8 shadow-md">
+      <header className="bg-[#b05570] text-white py-4 px-4 sm:px-8 shadow-md">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
           {/* Left: Event & Honorees */}
           <div className="text-center sm:text-left">
             <div className="flex items-center gap-2 justify-center sm:justify-start">
-              <span className="text-[#e8a4b4]">🌸</span>
-              <span className="font-label text-xs uppercase tracking-widest text-[#e8a4b4] font-semibold">
+              <span className="text-[#f7c1d0]">🌸</span>
+              <span className="font-label text-xs uppercase tracking-widest text-[#f7c1d0] font-semibold">
                 {weddingConfig.event.label}
               </span>
             </div>
@@ -61,7 +61,7 @@ export const DashboardPage: React.FC = () => {
 
           {/* Right: Event Date & Badge */}
           <div className="text-center sm:text-right">
-            <span className="font-label text-xs uppercase tracking-wider text-[#e8a4b4] block">
+            <span className="font-label text-xs uppercase tracking-wider text-[#f7c1d0] block">
               Wedding Date
             </span>
             <p className="font-display text-sm font-medium">
@@ -74,12 +74,12 @@ export const DashboardPage: React.FC = () => {
       {/* Main Container */}
       <main className="max-w-6xl w-full mx-auto p-4 sm:p-8 flex-1">
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-2 border-b border-[#b05570]/20 pb-3 mb-6 overflow-x-auto">
+        <div className="flex items-center gap-2 border-b border-[#e08aa3]/20 pb-3 mb-6 overflow-x-auto">
           <button
             onClick={() => setActiveTab('overview')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-label uppercase tracking-wider font-semibold transition-all cursor-pointer ${
               activeTab === 'overview'
-                ? 'bg-[#b05570] text-white shadow'
+                ? 'bg-[#e08aa3] text-white shadow'
                 : 'text-gray-600 hover:bg-white/80'
             }`}
           >
@@ -91,7 +91,7 @@ export const DashboardPage: React.FC = () => {
             onClick={() => setActiveTab('all')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-label uppercase tracking-wider font-semibold transition-all cursor-pointer ${
               activeTab === 'all'
-                ? 'bg-[#b05570] text-white shadow'
+                ? 'bg-[#e08aa3] text-white shadow'
                 : 'text-gray-600 hover:bg-white/80'
             }`}
           >
@@ -103,7 +103,7 @@ export const DashboardPage: React.FC = () => {
             onClick={() => setActiveTab('add')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-label uppercase tracking-wider font-semibold transition-all cursor-pointer ${
               activeTab === 'add'
-                ? 'bg-[#b05570] text-white shadow'
+                ? 'bg-[#e08aa3] text-white shadow'
                 : 'text-gray-600 hover:bg-white/80'
             }`}
           >
@@ -114,8 +114,8 @@ export const DashboardPage: React.FC = () => {
 
         {/* Tab Content */}
         {loading ? (
-          <div className="py-20 text-center text-[#9a7080] font-body flex flex-col items-center gap-2">
-            <Sparkles className="w-6 h-6 animate-spin text-[#b05570]" />
+          <div className="py-20 text-center text-[#b592a0] font-body flex flex-col items-center gap-2">
+            <Sparkles className="w-6 h-6 animate-spin text-[#e08aa3]" />
             <span>Loading dashboard data...</span>
           </div>
         ) : (
@@ -135,7 +135,7 @@ export const DashboardPage: React.FC = () => {
       </main>
 
       {/* Dashboard Footer */}
-      <footer className="py-4 border-t border-[#b05570]/10 text-center text-xs text-[#9a7080] font-body">
+      <footer className="py-4 border-t border-[#e08aa3]/10 text-center text-xs text-[#b592a0] font-body">
         Wedding Invitation Management System • Safiyya & Sharrafuth
       </footer>
     </div>

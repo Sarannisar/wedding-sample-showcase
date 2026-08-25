@@ -18,7 +18,7 @@ export const WatercolorBackground: React.FC = () => {
   );
 
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 bg-[#fdf9f5]">
+    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 bg-[#fffafc]">
       {blobs.map((blob) => (
         <motion.div
           key={blob.id}
@@ -43,7 +43,7 @@ export const WatercolorBackground: React.FC = () => {
         />
       ))}
       {/* Light parchment noise overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-white/30 via-transparent to-[#fdf9f5]/80 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-b from-white/30 via-transparent to-[#fffafc]/80 pointer-events-none" />
     </div>
   );
 };

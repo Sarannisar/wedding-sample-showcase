@@ -42,7 +42,7 @@
 
 /* Luxury Paper Texture Effect */
 .paper-texture {
-  background-color: #fdfcf9;
+  background-color: #fffdfe;
   background-image: radial-gradient(rgba(197, 155, 109, 0.05) 1px, transparent 0);
   background-size: 24px 24px;
 }
@@ -76,14 +76,14 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #fdf9f5;
+  background: #fffafc;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c59b6d;
+  background: #f2b8c6;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #b0885c;
+  background: #eaa6ba;
 }

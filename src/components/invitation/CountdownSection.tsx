@@ -59,7 +59,7 @@ export const CountdownSection: React.FC = () => {
       className="w-full max-w-xl mx-auto my-6 px-3"
     >
       <Card3D className="text-center py-8 px-4 sm:px-8">
-        <span className="font-label text-[10px] uppercase tracking-[0.35em] text-[#a07855] font-semibold block mb-5">
+        <span className="font-label text-[10px] uppercase tracking-[0.35em] text-[#e79db0] font-semibold block mb-5">
           Counting Down to the Blessed Moment
         </span>
 
@@ -68,18 +68,18 @@ export const CountdownSection: React.FC = () => {
           {timeUnits.map((unit) => (
             <div
               key={unit.label}
-              className="flex flex-col items-center justify-center p-3 rounded-xl bg-[#fbf8f2]/90 border border-[#c59b6d]/30 shadow-xs"
+              className="flex flex-col items-center justify-center p-3 rounded-xl bg-[#fff6f9]/90 border border-[#f2b8c6]/30 shadow-xs"
             >
               <span
                 style={{
                   fontSize: 'clamp(26px, 6vw, 44px)',
                   lineHeight: '1.1',
                 }}
-                className="font-serif font-light text-[#9d6b47] tabular-nums"
+                className="font-serif font-light text-[#dd8ea5] tabular-nums"
               >
                 {String(unit.value).padStart(2, '0')}
               </span>
-              <span className="font-label text-[9px] sm:text-[10px] uppercase tracking-wider text-[#8c6d58] mt-1 font-semibold">
+              <span className="font-label text-[9px] sm:text-[10px] uppercase tracking-wider text-[#a8808e] mt-1 font-semibold">
                 {unit.label}
               </span>
             </div>

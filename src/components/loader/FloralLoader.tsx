@@ -12,7 +12,7 @@ export const FloralLoader: React.FC<FloralLoaderProps> = ({ onComplete }) => {
       initial={{ opacity: 1 }}
       exit={{ opacity: 0, scale: 1.04 }}
       transition={{ duration: 0.9, ease: 'easeInOut' }}
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#fdf9f5] px-4 select-none"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#fffafc] px-4 select-none"
     >
       <div className="relative flex flex-col items-center max-w-sm text-center">
         {/* Animated Drawing of the S&S Monogram Logo */}
@@ -21,7 +21,7 @@ export const FloralLoader: React.FC<FloralLoaderProps> = ({ onComplete }) => {
           <motion.div
             animate={{ scale: [1, 1.15, 1], opacity: [0.25, 0.6, 0.25] }}
             transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-            className="absolute inset-0 m-auto w-40 h-40 rounded-full bg-[#f8bbd0]/30 blur-3xl pointer-events-none"
+            className="absolute inset-0 m-auto w-40 h-40 rounded-full bg-[#fbd0de]/30 blur-3xl pointer-events-none"
           />
 
           {/* Logo Drawing Reveal with Progressive Clip-Path */}
