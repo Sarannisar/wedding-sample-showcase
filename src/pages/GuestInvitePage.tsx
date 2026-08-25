@@ -54,7 +54,7 @@ export const GuestInvitePage: React.FC = () => {
   const guestDisplayName = invitee?.name || 'Honored Guest';
 
   return (
-    <div className="relative min-h-screen w-full bg-[#fdf9f5] overflow-x-hidden text-[#2d1a22]">
+    <div className="relative min-h-screen w-full bg-[#fffafc] overflow-x-hidden text-[#4a3038]">
       {/* Ambient Watercolor Background blobs */}
       <WatercolorBackground />
 

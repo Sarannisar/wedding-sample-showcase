@@ -64,18 +64,18 @@ export const Card3D: React.FC<Card3DProps> = ({
           transformStyle: 'preserve-3d',
         }}
         className={cn(
-          'relative rounded-2xl bg-[#fdfcf9]/95 backdrop-blur-md p-6 sm:p-8',
-          'border border-[#c59b6d]/40 shadow-xl hover:shadow-2xl',
+          'relative rounded-2xl bg-[#fffdfe]/95 backdrop-blur-md p-6 sm:p-8',
+          'border border-[#f2b8c6]/40 shadow-xl hover:shadow-2xl',
           'transition-shadow duration-500 paper-texture preserve-3d',
           onClick && 'cursor-pointer active:scale-[0.99]',
           className
         )}
       >
         {/* Subtle Inset Double Line Border */}
-        <div className="absolute inset-2.5 rounded-xl border border-[#c59b6d]/20 pointer-events-none" />
+        <div className="absolute inset-2.5 rounded-xl border border-[#f2b8c6]/20 pointer-events-none" />
 
         {/* 4 Corner Double-Gold Brackets */}
-        {withCorners && <CornerBrackets color="#c59b6d" size={20} weight={1.2} offset={8} />}
+        {withCorners && <CornerBrackets color="#f2b8c6" size={20} weight={1.2} offset={8} />}
 
         {/* Shimmer Sweep */}
         {withShimmer && <ShimmerSweep />}

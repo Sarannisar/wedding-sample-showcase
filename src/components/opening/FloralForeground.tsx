@@ -13,7 +13,7 @@ export const FloralForeground: React.FC<FloralForegroundProps> = ({ progress }) 
       style={{ opacity }}
     >
       {/* Soft atmospheric glow around the door base */}
-      <div className="absolute -bottom-4 inset-x-0 h-16 bg-gradient-to-t from-[#e8a4b4]/20 to-transparent pointer-events-none" />
+      <div className="absolute -bottom-4 inset-x-0 h-16 bg-gradient-to-t from-[#f7c1d0]/20 to-transparent pointer-events-none" />
     </div>
   );
 };

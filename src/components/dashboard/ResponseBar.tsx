@@ -13,12 +13,12 @@ export const ResponseBar: React.FC<ResponseBarProps> = ({
   pendingPercent,
 }) => {
   return (
-    <div className="bg-white rounded-2xl p-6 border border-[#b05570]/15 shadow-sm space-y-4">
+    <div className="bg-white rounded-2xl p-6 border border-[#e08aa3]/15 shadow-sm space-y-4">
       <div className="flex items-center justify-between">
-        <h4 className="font-display text-base font-bold text-[#2d1a22]">
+        <h4 className="font-display text-base font-bold text-[#4a3038]">
           Response Breakdown
         </h4>
-        <span className="font-label text-xs uppercase tracking-wider text-[#9a7080]">
+        <span className="font-label text-xs uppercase tracking-wider text-[#b592a0]">
           Live RSVP Status
         </span>
       </div>
@@ -49,7 +49,7 @@ export const ResponseBar: React.FC<ResponseBarProps> = ({
       </div>
 
       {/* Legend Indicators */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pt-2 text-xs font-label uppercase tracking-wider text-[#2d1a22]">
+      <div className="flex flex-wrap items-center justify-between gap-4 pt-2 text-xs font-label uppercase tracking-wider text-[#4a3038]">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-full bg-emerald-500" />
           <span>Attending: <strong>{attendingPercent}%</strong></span>

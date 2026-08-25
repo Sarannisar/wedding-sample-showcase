@@ -37,8 +37,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ invitees }) => {
         <StatCard
           label="Total Invited"
           value={totalInvited}
-          colorClass="text-[#7d334a]"
-          icon={<Users className="w-5 h-5 text-[#b05570]" />}
+          colorClass="text-[#b05570]"
+          icon={<Users className="w-5 h-5 text-[#e08aa3]" />}
           subtext="Invited Parties"
         />
         <StatCard
@@ -65,8 +65,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ invitees }) => {
         <StatCard
           label="Total Guests"
           value={totalGuestCount}
-          colorClass="text-[#b05570]"
-          icon={<UserPlus className="w-5 h-5 text-[#b05570]" />}
+          colorClass="text-[#e08aa3]"
+          icon={<UserPlus className="w-5 h-5 text-[#e08aa3]" />}
           subtext="Attending Headcount"
         />
       </div>
@@ -79,18 +79,18 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ invitees }) => {
       />
 
       {/* Recent 8 Responses List */}
-      <div className="bg-white rounded-2xl p-6 border border-[#b05570]/15 shadow-sm">
+      <div className="bg-white rounded-2xl p-6 border border-[#e08aa3]/15 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h4 className="font-display text-base font-bold text-[#2d1a22]">
+          <h4 className="font-display text-base font-bold text-[#4a3038]">
             Recent Responses
           </h4>
-          <span className="font-label text-xs uppercase tracking-wider text-[#9a7080]">
+          <span className="font-label text-xs uppercase tracking-wider text-[#b592a0]">
             Last 8 Responses
           </span>
         </div>
 
         {respondedInvitees.length === 0 ? (
-          <div className="text-center py-8 text-[#9a7080] font-body text-sm">
+          <div className="text-center py-8 text-[#b592a0] font-body text-sm">
             No responses recorded yet. Responses will appear here live.
           </div>
         ) : (
@@ -111,10 +111,10 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ invitees }) => {
                     }`}
                   />
                   <div>
-                    <p className="font-display text-sm font-semibold text-[#2d1a22]">
+                    <p className="font-display text-sm font-semibold text-[#4a3038]">
                       {item.name}
                     </p>
-                    <p className="font-body text-xs text-[#9a7080]">
+                    <p className="font-body text-xs text-[#b592a0]">
                       {item.rsvp === 'attending'
                         ? `Attending with ${item.guest_count} ${
                             item.guest_count === 1 ? 'guest' : 'guests'

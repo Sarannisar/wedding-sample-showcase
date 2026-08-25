@@ -21,24 +21,24 @@ export const EventCardSection: React.FC = () => {
     >
       <Card3D className="text-center py-8 px-5 sm:px-9">
         {/* Venue Subtitle */}
-        <span className="font-label text-[10px] uppercase tracking-[0.35em] text-[#a07855] font-semibold block mb-2">
+        <span className="font-label text-[10px] uppercase tracking-[0.35em] text-[#e79db0] font-semibold block mb-2">
           VENUE
         </span>
 
         {/* Venue Title */}
-        <h3 className="font-serif text-2xl sm:text-3xl text-[#2d1a22] font-medium tracking-wide">
+        <h3 className="font-serif text-2xl sm:text-3xl text-[#4a3038] font-medium tracking-wide">
           {event.venue.name}
         </h3>
 
         {/* Golden Diamond Divider */}
         <div className="flex items-center justify-center gap-3 my-4">
-          <div className="w-12 h-[1px] bg-gradient-to-r from-transparent to-[#c59b6d]/50" />
-          <span className="text-[#c59b6d] text-xs">✦</span>
-          <div className="w-12 h-[1px] bg-gradient-to-l from-transparent to-[#c59b6d]/50" />
+          <div className="w-12 h-[1px] bg-gradient-to-r from-transparent to-[#f2b8c6]/50" />
+          <span className="text-[#f2b8c6] text-xs">✦</span>
+          <div className="w-12 h-[1px] bg-gradient-to-l from-transparent to-[#f2b8c6]/50" />
         </div>
 
         {/* Embedded Interactive Google Map Card */}
-        <div className="relative w-full h-56 sm:h-64 rounded-xl overflow-hidden border border-[#c59b6d]/30 shadow-inner bg-[#f4ece1] my-4">
+        <div className="relative w-full h-56 sm:h-64 rounded-xl overflow-hidden border border-[#f2b8c6]/30 shadow-inner bg-[#fdeef3] my-4">
           {/* Interactive Google Map iframe */}
           <iframe
             title="Glen Reception Hall Map"
@@ -77,7 +77,7 @@ export const EventCardSection: React.FC = () => {
         <div className="mt-4">
           <button
             onClick={handleOpenMaps}
-            className="inline-flex items-center gap-2 px-6 py-2 rounded-lg border border-[#c59b6d] bg-[#fbf8f2] text-[#8c6d58] hover:bg-[#c59b6d]/15 text-xs font-label uppercase tracking-widest font-semibold transition-all shadow-xs cursor-pointer active:scale-95"
+            className="inline-flex items-center gap-2 px-6 py-2 rounded-lg border border-[#f2b8c6] bg-[#fff6f9] text-[#a8808e] hover:bg-[#f2b8c6]/15 text-xs font-label uppercase tracking-widest font-semibold transition-all shadow-xs cursor-pointer active:scale-95"
           >
             <span>Open in Maps →</span>
           </button>

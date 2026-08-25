@@ -62,7 +62,7 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({ invitees, onDele
   return (
     <div className="space-y-4">
       {/* Search & Filter Controls */}
-      <div className="bg-white rounded-2xl p-4 border border-[#b05570]/15 shadow-sm flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+      <div className="bg-white rounded-2xl p-4 border border-[#e08aa3]/15 shadow-sm flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
         {/* Search Bar */}
         <div className="relative flex-1">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -71,7 +71,7 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({ invitees, onDele
             placeholder="Search by name or slug..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#b05570] focus:ring-1 focus:ring-[#b05570]"
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#e08aa3] focus:ring-1 focus:ring-[#e08aa3]"
           />
         </div>
 
@@ -83,7 +83,7 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({ invitees, onDele
               onClick={() => setStatusFilter(filter)}
               className={`px-3 py-1.5 rounded-full text-xs font-label uppercase tracking-wider font-semibold transition-colors shrink-0 cursor-pointer ${
                 statusFilter === filter
-                  ? 'bg-[#b05570] text-white'
+                  ? 'bg-[#e08aa3] text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -94,11 +94,11 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({ invitees, onDele
       </div>
 
       {/* Invitees Table */}
-      <div className="bg-white rounded-2xl border border-[#b05570]/15 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#e08aa3]/15 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-50/80 border-b border-gray-100 text-[11px] font-label uppercase tracking-wider text-[#9a7080]">
+              <tr className="bg-gray-50/80 border-b border-gray-100 text-[11px] font-label uppercase tracking-wider text-[#b592a0]">
                 <th className="py-3 px-4 font-semibold">Guest Name</th>
                 <th className="py-3 px-4 font-semibold hidden md:table-cell">Slug / Link</th>
                 <th className="py-3 px-4 font-semibold">RSVP Status</th>
@@ -110,7 +110,7 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({ invitees, onDele
             <tbody className="divide-y divide-gray-100 text-sm font-body">
               {filteredInvitees.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-[#9a7080] text-sm">
+                  <td colSpan={6} className="py-8 text-center text-[#b592a0] text-sm">
                     No invitees found matching your search or filter.
                   </td>
                 </tr>
@@ -118,10 +118,10 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({ invitees, onDele
                 filteredInvitees.map((invitee) => (
                   <tr key={invitee.id} className="hover:bg-gray-50/50 transition-colors">
                     {/* Name */}
-                    <td className="py-3.5 px-4 font-display font-semibold text-[#2d1a22]">
+                    <td className="py-3.5 px-4 font-display font-semibold text-[#4a3038]">
                       <div>{invitee.name}</div>
                       {invitee.phone && (
-                        <span className="text-xs font-body font-normal text-[#9a7080]">
+                        <span className="text-xs font-body font-normal text-[#b592a0]">
                           {invitee.phone}
                         </span>
                       )}
@@ -148,7 +148,7 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({ invitees, onDele
                     </td>
 
                     {/* Guest Count */}
-                    <td className="py-3.5 px-4 text-center font-display font-bold text-[#7d334a]">
+                    <td className="py-3.5 px-4 text-center font-display font-bold text-[#b05570]">
                       {invitee.rsvp === 'attending' ? invitee.guest_count : '—'}
                     </td>
 
@@ -220,7 +220,7 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({ invitees, onDele
         </div>
 
         {/* Row Count Footer */}
-        <div className="p-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between text-xs text-[#9a7080] font-label uppercase tracking-wider">
+        <div className="p-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between text-xs text-[#b592a0] font-label uppercase tracking-wider">
           <span>Total Rows: {filteredInvitees.length}</span>
           <span>Showing all filtered guests</span>
         </div>

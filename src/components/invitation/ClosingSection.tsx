@@ -16,36 +16,36 @@ export const ClosingSection: React.FC = () => {
     >
       <Card3D className="text-center py-10 px-6 sm:px-10">
         {/* Subtle Decorative Floral Icon */}
-        <div className="w-10 h-10 rounded-full bg-[#fbf8f2] border border-[#c59b6d]/40 mx-auto mb-4 flex items-center justify-center text-[#c59b6d]">
+        <div className="w-10 h-10 rounded-full bg-[#fff6f9] border border-[#f2b8c6]/40 mx-auto mb-4 flex items-center justify-center text-[#f2b8c6]">
           <span className="text-sm">❦</span>
         </div>
 
         {/* Closing Arabic Dua */}
-        <p className="font-arabic text-2xl sm:text-3xl text-[#7d334a] font-normal leading-relaxed mb-3 max-w-md mx-auto">
+        <p className="font-arabic text-2xl sm:text-3xl text-[#b05570] font-normal leading-relaxed mb-3 max-w-md mx-auto">
           {closing.arabicDua}
         </p>
 
         {/* English Translation */}
-        <p className="font-serif italic text-xs sm:text-sm text-[#5c4a42] leading-relaxed max-w-md mx-auto mb-6">
+        <p className="font-serif italic text-xs sm:text-sm text-[#6f5860] leading-relaxed max-w-md mx-auto mb-6">
           "{closing.blessing}"
         </p>
 
         {/* Cultural Ameen Calligraphy & Word */}
         <div className="space-y-1">
-          <p className="font-arabic text-2xl sm:text-3xl text-[#7d334a]">
+          <p className="font-arabic text-2xl sm:text-3xl text-[#b05570]">
             {closing.ameenArabic}
           </p>
-          <p className="font-serif text-xs tracking-widest text-[#8c6d58] uppercase font-semibold">
+          <p className="font-serif text-xs tracking-widest text-[#a8808e] uppercase font-semibold">
             {closing.ameenWord}
           </p>
         </div>
 
         {/* Bottom Couple Monogram Stamp with Kaushan font */}
-        <div className="mt-8 pt-6 border-t border-[#c59b6d]/20 flex flex-col items-center justify-center">
-          <span className="font-kaushan text-xl text-[#9d6b47] tracking-wider">
+        <div className="mt-8 pt-6 border-t border-[#f2b8c6]/20 flex flex-col items-center justify-center">
+          <span className="font-kaushan text-xl text-[#dd8ea5] tracking-wider">
             Safiyya & Sharrafuth
           </span>
-          <span className="font-label text-[10px] uppercase tracking-[0.25em] text-[#8c6d58] mt-1 font-medium">
+          <span className="font-label text-[10px] uppercase tracking-[0.25em] text-[#a8808e] mt-1 font-medium">
             12th December 2026
           </span>
         </div>
