@@ -1,0 +1,230 @@
+import React, { useState } from 'react';
+import { Invitee, RsvpStatus } from '@/lib/types';
+import { weddingConfig } from '@/config/weddingConfig';
+import { formatTimeAgo } from '@/lib/utils';
+import { Search, ExternalLink, Copy, Trash2, Check } from 'lucide-react';
+
+interface AllInviteesTabProps {
+  invitees: Invitee[];
+  onDelete: (id: string) => Promise<void>;
+}
+
+export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({ invitees, onDelete }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | RsvpStatus>('all');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  const filteredInvitees = invitees.filter((invitee) => {
+    const matchesSearch =
+      invitee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      invitee.slug.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesStatus =
+      statusFilter === 'all' ? true : invitee.rsvp === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
+
+  const getInviteUrl = (slug: string) => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    return `${origin}/invite/${slug}`;
+  };
+
+  const handleCopyLink = (invitee: Invitee) => {
+    const url = getInviteUrl(invitee.slug);
+    navigator.clipboard.writeText(url);
+    setCopiedId(invitee.id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleWhatsApp = (invitee: Invitee) => {
+    const url = getInviteUrl(invitee.slug);
+    const message = weddingConfig.whatsapp.messageTemplate
+      .replace(/GUEST_NAME/g, invitee.name)
+      .replace(/GUEST_LINK/g, url);
+
+    const phoneParam = invitee.phone
+      ? invitee.phone.replace(/[^0-9]/g, '')
+      : '';
+    const waUrl = phoneParam
+      ? `https://wa.me/${phoneParam}?text=${encodeURIComponent(message)}`
+      : `https://wa.me/?text=${encodeURIComponent(message)}`;
+
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleDelete = async (id: string) => {
+    await onDelete(id);
+    setDeleteConfirmId(null);
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Search & Filter Controls */}
+      <div className="bg-white rounded-2xl p-4 border border-[#b05570]/15 shadow-sm flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+        {/* Search Bar */}
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search by name or slug..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#b05570] focus:ring-1 focus:ring-[#b05570]"
+          />
+        </div>
+
+        {/* Filter Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+          {(['all', 'pending', 'attending', 'declined'] as const).map((filter) => (
+            <button
+              key={filter}
+              onClick={() => setStatusFilter(filter)}
+              className={`px-3 py-1.5 rounded-full text-xs font-label uppercase tracking-wider font-semibold transition-colors shrink-0 cursor-pointer ${
+                statusFilter === filter
+                  ? 'bg-[#b05570] text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {filter}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Invitees Table */}
+      <div className="bg-white rounded-2xl border border-[#b05570]/15 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-gray-50/80 border-b border-gray-100 text-[11px] font-label uppercase tracking-wider text-[#9a7080]">
+                <th className="py-3 px-4 font-semibold">Guest Name</th>
+                <th className="py-3 px-4 font-semibold hidden md:table-cell">Slug / Link</th>
+                <th className="py-3 px-4 font-semibold">RSVP Status</th>
+                <th className="py-3 px-4 font-semibold text-center">Guests</th>
+                <th className="py-3 px-4 font-semibold hidden sm:table-cell">Responded</th>
+                <th className="py-3 px-4 font-semibold text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 text-sm font-body">
+              {filteredInvitees.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-[#9a7080] text-sm">
+                    No invitees found matching your search or filter.
+                  </td>
+                </tr>
+              ) : (
+                filteredInvitees.map((invitee) => (
+                  <tr key={invitee.id} className="hover:bg-gray-50/50 transition-colors">
+                    {/* Name */}
+                    <td className="py-3.5 px-4 font-display font-semibold text-[#2d1a22]">
+                      <div>{invitee.name}</div>
+                      {invitee.phone && (
+                        <span className="text-xs font-body font-normal text-[#9a7080]">
+                          {invitee.phone}
+                        </span>
+                      )}
+                    </td>
+
+                    {/* Slug / Link */}
+                    <td className="py-3.5 px-4 hidden md:table-cell text-xs font-mono text-gray-500">
+                      /invite/{invitee.slug}
+                    </td>
+
+                    {/* RSVP Status */}
+                    <td className="py-3.5 px-4">
+                      <span
+                        className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-label uppercase tracking-wider font-semibold ${
+                          invitee.rsvp === 'attending'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : invitee.rsvp === 'declined'
+                            ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                            : 'bg-amber-50 text-amber-700 border border-amber-200'
+                        }`}
+                      >
+                        {invitee.rsvp}
+                      </span>
+                    </td>
+
+                    {/* Guest Count */}
+                    <td className="py-3.5 px-4 text-center font-display font-bold text-[#7d334a]">
+                      {invitee.rsvp === 'attending' ? invitee.guest_count : '—'}
+                    </td>
+
+                    {/* Responded Date */}
+                    <td className="py-3.5 px-4 hidden sm:table-cell text-xs text-gray-500">
+                      {formatTimeAgo(invitee.responded_at)}
+                    </td>
+
+                    {/* Actions */}
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {/* WhatsApp Action */}
+                        <button
+                          onClick={() => handleWhatsApp(invitee)}
+                          title="Share on WhatsApp"
+                          className="p-1.5 rounded-lg bg-[#25D366]/10 text-[#128C7E] hover:bg-[#25D366] hover:text-white transition-colors cursor-pointer"
+                        >
+                          <span className="text-xs font-bold font-label px-1">WA</span>
+                        </button>
+
+                        {/* View in new tab */}
+                        <a
+                          href={`/invite/${invitee.slug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Open invitation in new tab"
+                          className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+
+                        {/* Copy Link */}
+                        <button
+                          onClick={() => handleCopyLink(invitee)}
+                          title="Copy invitation link"
+                          className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors cursor-pointer"
+                        >
+                          {copiedId === invitee.id ? (
+                            <Check className="w-4 h-4 text-emerald-600" />
+                          ) : (
+                            <Copy className="w-4 h-4" />
+                          )}
+                        </button>
+
+                        {/* Delete Action */}
+                        {deleteConfirmId === invitee.id ? (
+                          <button
+                            onClick={() => handleDelete(invitee.id)}
+                            className="px-2 py-1 bg-rose-600 text-white rounded-lg text-xs font-label uppercase tracking-wider font-semibold hover:bg-rose-700 cursor-pointer"
+                          >
+                            Confirm
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setDeleteConfirmId(invitee.id)}
+                            title="Delete invitee"
+                            className="p-1.5 rounded-lg text-gray-400 hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Row Count Footer */}
+        <div className="p-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between text-xs text-[#9a7080] font-label uppercase tracking-wider">
+          <span>Total Rows: {filteredInvitees.length}</span>
+          <span>Showing all filtered guests</span>
+        </div>
+      </div>
+    </div>
+  );
+};

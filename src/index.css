@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: 'Kaushan Script';
+  src: url('/fonts/KaushanScript-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+.font-kaushan {
+  font-family: 'Kaushan Script', cursive !important;
+}
+
+:root {
+  --perspective: 1200px;
+}
+
+/* 3D Perspective Contexts */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.perspective-1200 {
+  perspective: 1200px;
+}
+
+.perspective-2000 {
+  perspective: 2000px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Luxury Paper Texture Effect */
+.paper-texture {
+  background-color: #fdfcf9;
+  background-image: radial-gradient(rgba(197, 155, 109, 0.05) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+/* Double Border & Card Styling */
+.luxury-card-border {
+  border: 1px solid rgba(197, 155, 109, 0.3);
+  position: relative;
+}
+
+.luxury-inner-border {
+  position: absolute;
+  inset: 10px;
+  border: 0.5px solid rgba(197, 155, 109, 0.2);
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Gold/Rose Glow */
+.text-glow-accent {
+  text-shadow: 0 0 16px rgba(176, 85, 112, 0.3), 0 0 32px rgba(232, 164, 180, 0.2);
+}
+
+.text-glow-gold {
+  text-shadow: 0 0 16px rgba(197, 155, 109, 0.35), 0 0 32px rgba(232, 212, 190, 0.25);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #fdf9f5;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c59b6d;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #b0885c;
+}
