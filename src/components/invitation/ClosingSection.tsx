@@ -43,7 +43,7 @@ export const ClosingSection: React.FC = () => {
         {/* Bottom Couple Monogram Stamp with Kaushan font */}
         <div className="mt-8 pt-6 border-t border-[#c59b6d]/20 flex flex-col items-center justify-center">
           <span className="font-kaushan text-xl text-[#9d6b47] tracking-wider">
-            Sharrafuth & Safiyya
+            Safiyya & Sharrafuth
           </span>
           <span className="font-label text-[10px] uppercase tracking-[0.25em] text-[#8c6d58] mt-1 font-medium">
             12th December 2026

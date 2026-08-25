@@ -18,11 +18,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ guestName }) => {
     >
       <Card3D className="text-center py-10 px-6 sm:px-10">
         {/* Bismillah Arabic Calligraphy */}
-        <div className="mb-4">
-          <p className="font-arabic text-3xl sm:text-4xl text-[#7d334a] font-normal tracking-wide leading-relaxed">
+        <div className="mb-6">
+          <p className="font-arabic text-3xl sm:text-4xl text-[#7d334a] font-normal tracking-wide leading-[1.8] sm:leading-[1.9] pb-1">
             {weddingConfig.cultural.bismillah.arabic}
           </p>
-          <p className="font-serif italic text-xs sm:text-sm text-[#8c6d58] mt-1">
+          <p className="font-serif italic text-xs sm:text-sm text-[#8c6d58] mt-3 leading-relaxed">
             "{weddingConfig.cultural.bismillah.translation}"
           </p>
         </div>
@@ -52,24 +52,28 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ guestName }) => {
         <p className="font-serif text-xs sm:text-sm text-[#5c4a42] max-w-md mx-auto my-3 leading-relaxed">
           With great joy and blessings, the families of{' '}
           <span className="font-semibold text-[#2d1a22]">{weddingConfig.hosts.primary}</span>{' '}
-          request the pleasure of your company at the wedding ceremony of their beloved daughter & son,
+          request the pleasure of your company at the wedding ceremony of their beloved daughter
         </p>
 
         {/* Flowing Couple Names in Kaushan Script */}
-        <div className="my-6 space-y-1">
-          <h2 className="font-kaushan text-4xl sm:text-5xl lg:text-6xl text-[#9d6b47] font-normal tracking-wide drop-shadow-xs">
-            {weddingConfig.couple.groom}
+        <div className="my-8 flex flex-col items-center">
+          <h2 className="font-kaushan text-4xl sm:text-5xl lg:text-6xl text-[#9d6b47] font-normal tracking-wide drop-shadow-xs leading-none">
+            {weddingConfig.couple.bride}
           </h2>
 
-          <div className="py-1">
-            <span className="font-serif italic text-lg sm:text-xl text-[#8c6d58] block font-normal">
-              and
+          <div className="mt-6 sm:mt-8 mb-3 sm:mb-4 flex items-center justify-center">
+            <span className="font-serif italic text-xl sm:text-2xl text-[#8c6d58] block font-normal tracking-wide">
+              with
             </span>
           </div>
 
-          <h2 className="font-kaushan text-4xl sm:text-5xl lg:text-6xl text-[#9d6b47] font-normal tracking-wide drop-shadow-xs">
-            {weddingConfig.couple.bride}
+          <h2 className="font-kaushan text-4xl sm:text-5xl lg:text-6xl text-[#9d6b47] font-normal tracking-wide drop-shadow-xs leading-none">
+            {weddingConfig.couple.groom}
           </h2>
+
+          <p className="font-serif italic text-xs sm:text-sm text-[#8c6d58] mt-4 font-normal tracking-wide">
+            Son of Mr. and Mrs. Najiullah
+          </p>
         </div>
 
         {/* Bottom Gold Accent */}

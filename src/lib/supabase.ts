@@ -25,7 +25,7 @@ const INITIAL_INVITEES: Invitee[] = [
     phone: '+94 77 123 4567',
     rsvp: 'attending',
     guest_count: 4,
-    notes: 'Warmest congratulations to Sharrafuth & Safiyya!',
+    notes: 'Warmest congratulations to Safiyya & Sharrafuth!',
     responded_at: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
   },

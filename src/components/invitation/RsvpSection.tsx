@@ -180,7 +180,7 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ invitee, onRsvpSuccess
                 <textarea
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  placeholder="Share a warm wish, dua, or message for Sharrafuth & Safiyya..."
+                  placeholder="Share a warm wish, dua, or message for Safiyya & Sharrafuth..."
                   rows={3}
                   className="w-full p-3 rounded-lg border border-[#c59b6d]/30 bg-white text-xs font-serif text-[#2d1a22] placeholder:text-[#9a7080]/60 focus:outline-none focus:border-[#c59b6d] resize-none"
                 />

@@ -60,7 +60,7 @@ export const ArchitecturalPortal: React.FC<ArchitecturalPortalProps> = ({
           {/* Left Half of Central S&S Logo Handle */}
           <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-r-0 border-[#c59b6d] bg-white shadow-2xl z-30 pointer-events-none flex items-center justify-center">
             <img
-              src="/assets/monogram_crest_simple.jpg"
+              src="/assets/logo_saad_sheen_crest.jpg"
               alt="S&S Logo Handle"
               className="w-full h-full object-cover scale-110"
             />
@@ -87,7 +87,7 @@ export const ArchitecturalPortal: React.FC<ArchitecturalPortalProps> = ({
           {/* Right Half of Central S&S Logo Handle */}
           <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-l-0 border-[#c59b6d] bg-white shadow-2xl z-30 pointer-events-none flex items-center justify-center">
             <img
-              src="/assets/monogram_crest_simple.jpg"
+              src="/assets/logo_saad_sheen_crest.jpg"
               alt="S&S Logo Handle"
               className="w-full h-full object-cover scale-110"
             />

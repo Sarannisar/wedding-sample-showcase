@@ -24,7 +24,7 @@ export const MonogramReveal: React.FC<MonogramRevealProps> = ({ opacity, scale }
           {/* Clean Circular S&S Logo */}
           <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden drop-shadow-lg border border-[#c59b6d]/30 bg-white">
             <img
-              src="/assets/monogram_crest_simple.jpg"
+              src="/assets/logo_saad_sheen_crest.jpg"
               alt="S & S Wedding Monogram"
               className="w-full h-full object-cover scale-105"
             />
@@ -38,11 +38,11 @@ export const MonogramReveal: React.FC<MonogramRevealProps> = ({ opacity, scale }
 
         {/* Couple Names in Kaushan Script */}
         <h1 className="font-kaushan text-2xl sm:text-3xl text-[#4a1525] font-normal leading-snug">
-          {weddingConfig.couple.groom}
-          <span className="block font-serif italic text-base sm:text-lg text-[#8c6d58] my-0.5">
-            {weddingConfig.couple.connector}
+          {weddingConfig.couple.brideFullName || 'Safiyya Ilyas'}
+          <span className="block font-serif italic text-base sm:text-lg text-[#8c6d58] my-1.5 sm:my-2">
+            and
           </span>
-          {weddingConfig.couple.bride}
+          {weddingConfig.couple.groomFullName || 'Sharrafuth Najiullah'}
         </h1>
 
         {/* Golden Divider */}

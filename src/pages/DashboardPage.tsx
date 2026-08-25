@@ -55,7 +55,7 @@ export const DashboardPage: React.FC = () => {
               </span>
             </div>
             <h1 className="font-display text-xl sm:text-2xl font-bold tracking-tight">
-              {weddingConfig.couple.groom} & {weddingConfig.couple.bride}
+              {weddingConfig.couple.bride} & {weddingConfig.couple.groom}
             </h1>
           </div>
 
@@ -136,7 +136,7 @@ export const DashboardPage: React.FC = () => {
 
       {/* Dashboard Footer */}
       <footer className="py-4 border-t border-[#b05570]/10 text-center text-xs text-[#9a7080] font-body">
-        Wedding Invitation Management System • Sharrafuth & Safiyya
+        Wedding Invitation Management System • Safiyya & Sharrafuth
       </footer>
     </div>
   );

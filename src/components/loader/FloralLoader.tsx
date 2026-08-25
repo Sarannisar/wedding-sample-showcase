@@ -37,23 +37,11 @@ export const FloralLoader: React.FC<FloralLoaderProps> = ({ onComplete }) => {
             className="relative w-full h-full flex items-center justify-center"
           >
             <img
-              src="/assets/monogram_crest_simple.png"
+              src="/assets/logo_saad_sheen_crest.png"
               alt="S&S Logo Drawing"
               className="w-full h-full object-contain filter drop-shadow-sm scale-105"
             />
           </motion.div>
-
-          {/* Traveling Drawing Light Tip */}
-          <motion.div
-            initial={{ top: '85%', left: '50%', opacity: 0 }}
-            animate={{
-              top: ['85%', '65%', '35%', '15%'],
-              left: ['50%', '35%', '65%', '50%'],
-              opacity: [0, 0.9, 1, 0],
-            }}
-            transition={{ duration: 2.2, ease: 'easeInOut' }}
-            className="absolute w-4 h-4 rounded-full bg-[#c59b6d] blur-xs shadow-md pointer-events-none"
-          />
         </div>
       </div>
     </motion.div>

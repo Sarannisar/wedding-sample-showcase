@@ -18,6 +18,9 @@ export interface WeddingConfig {
   couple: {
     groom: string;
     bride: string;
+    brideFullName?: string;
+    groomFullName?: string;
+    groomParents?: string;
     connector: string;
     monogram: string;
   };
@@ -65,14 +68,17 @@ export const weddingConfig: WeddingConfig = {
     },
   },
   hosts: {
-    primary: 'Mr. and Mrs. Ilyas',
+    primary: 'Mr. and Mrs. Illyas',
     relationText:
-      'extend their warm greetings and have the pleasure of inviting you and your family to grace the wedding ceremony of their daughter',
+      'With great joy and blessings, the families of Mr. and Mrs. Illyas request the pleasure of your company at the wedding ceremony of their beloved daughter',
   },
   couple: {
-    groom: 'Sharrafuth Najiullah',
-    bride: 'Safiyya Ilyas',
-    connector: 'and',
+    bride: 'Safiyya',
+    groom: 'Sharrafuth',
+    brideFullName: 'Safiyya Illyas',
+    groomFullName: 'Sharrafuth Najiullah',
+    groomParents: 'Mr. and Mrs. Najiullah',
+    connector: 'with',
     monogram: 'S & S',
   },
   cultural: {
@@ -94,7 +100,7 @@ export const weddingConfig: WeddingConfig = {
   },
   whatsapp: {
     messageTemplate:
-      "Assalamu Alaikum GUEST_NAME! The family of Mr. and Mrs. Ilyas cordially invite you to their daughters' Wedding Ceremony on Saturday 12th December 2026 at Glen Reception Hall from 12:30pm onwards. View your personal invitation here: GUEST_LINK",
+      "Assalamu Alaikum GUEST_NAME! The family of Mr. and Mrs. Illyas cordially invite you to their daughter Safiyya's Wedding Ceremony with Sharrafuth on Saturday 12th December 2026 at Glen Reception Hall from 12:30pm onwards. View your personal invitation here: GUEST_LINK",
   },
   theme: {
     name: 'Soft Floral',
