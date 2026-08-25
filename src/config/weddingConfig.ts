@@ -103,12 +103,12 @@ export const weddingConfig: WeddingConfig = {
       "Assalamu Alaikum GUEST_NAME! The family of Mr. and Mrs. Illyas cordially invite you to their daughter Safiyya's Wedding Ceremony with Sharrafuth on Saturday 12th December 2026 at Glen Reception Hall from 12:30pm onwards. View your personal invitation here: GUEST_LINK",
   },
   theme: {
-    name: 'Soft Floral',
-    bg: '#fdf9f5',
-    primary: '#b05570',
-    secondary: '#e8a4b4',
+    name: 'Baby Pink Pastel',
+    bg: '#fffafc',
+    primary: '#e08aa3',
+    secondary: '#f7c1d0',
     surface: '#ffffff',
-    text: '#2d1a22',
-    muted: '#9a7080',
+    text: '#4a3038',
+    muted: '#b592a0',
   },
 };
