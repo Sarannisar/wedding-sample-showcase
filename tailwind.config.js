@@ -16,8 +16,8 @@ export default {
           muted: '#b592a0',
           gold: '#f2b8c6',
           'gold-light': '#f9dde5',
-          border: 'rgba(176, 85, 112, 0.2)',
-          'border-inner': 'rgba(176, 85, 112, 0.12)',
+          border: 'rgba(224, 138, 163, 0.2)',
+          'border-inner': 'rgba(224, 138, 163, 0.12)',
         },
       },
       fontFamily: {
@@ -29,10 +29,10 @@ export default {
         arabic: ['Amiri', 'serif'],
       },
       boxShadow: {
-        'card-3d': '0 20px 40px -15px rgba(176, 85, 112, 0.15), 0 0 1px 1px rgba(176, 85, 112, 0.1)',
-        'card-hover': '0 30px 60px -15px rgba(176, 85, 112, 0.25), 0 0 1px 1px rgba(176, 85, 112, 0.2)',
-        'portal-glow': '0 0 80px 20px rgba(232, 164, 180, 0.35)',
-        'monogram-glow': '0 0 35px rgba(176, 85, 112, 0.3)',
+        'card-3d': '0 20px 40px -15px rgba(224, 138, 163, 0.15), 0 0 1px 1px rgba(224, 138, 163, 0.1)',
+        'card-hover': '0 30px 60px -15px rgba(224, 138, 163, 0.25), 0 0 1px 1px rgba(224, 138, 163, 0.2)',
+        'portal-glow': '0 0 80px 20px rgba(247, 193, 208, 0.35)',
+        'monogram-glow': '0 0 35px rgba(224, 138, 163, 0.3)',
       },
       keyframes: {
         shimmer: {

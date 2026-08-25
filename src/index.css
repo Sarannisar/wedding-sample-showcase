@@ -43,31 +43,31 @@
 /* Luxury Paper Texture Effect */
 .paper-texture {
   background-color: #fffdfe;
-  background-image: radial-gradient(rgba(197, 155, 109, 0.05) 1px, transparent 0);
+  background-image: radial-gradient(rgba(242, 184, 198, 0.05) 1px, transparent 0);
   background-size: 24px 24px;
 }
 
 /* Double Border & Card Styling */
 .luxury-card-border {
-  border: 1px solid rgba(197, 155, 109, 0.3);
+  border: 1px solid rgba(242, 184, 198, 0.3);
   position: relative;
 }
 
 .luxury-inner-border {
   position: absolute;
   inset: 10px;
-  border: 0.5px solid rgba(197, 155, 109, 0.2);
+  border: 0.5px solid rgba(242, 184, 198, 0.2);
   pointer-events: none;
   z-index: 10;
 }
 
 /* Gold/Rose Glow */
 .text-glow-accent {
-  text-shadow: 0 0 16px rgba(176, 85, 112, 0.3), 0 0 32px rgba(232, 164, 180, 0.2);
+  text-shadow: 0 0 16px rgba(224, 138, 163, 0.3), 0 0 32px rgba(247, 193, 208, 0.2);
 }
 
 .text-glow-gold {
-  text-shadow: 0 0 16px rgba(197, 155, 109, 0.35), 0 0 32px rgba(232, 212, 190, 0.25);
+  text-shadow: 0 0 16px rgba(242, 184, 198, 0.35), 0 0 32px rgba(249, 221, 229, 0.25);
 }
 
 /* Custom Scrollbar */
