@@ -2,18 +2,27 @@ import React, { useState } from 'react';
 import { Invitee, RsvpStatus } from '@/lib/types';
 import { weddingConfig } from '@/config/weddingConfig';
 import { formatTimeAgo } from '@/lib/utils';
-import { Search, ExternalLink, Copy, Trash2, Check } from 'lucide-react';
+import { exportInviteesToCsv } from '@/lib/csvHelper';
+import { Search, ExternalLink, Copy, Trash2, Check, Download, Send, X } from 'lucide-react';
 
 interface AllInviteesTabProps {
   invitees: Invitee[];
   onDelete: (id: string) => Promise<void>;
+  onMarkShared: (id: string) => Promise<void>;
 }
 
-export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({ invitees, onDelete }) => {
+export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
+  invitees,
+  onDelete,
+  onMarkShared,
+}) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | RsvpStatus>('all');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [queue, setQueue] = useState<Invitee[] | null>(null);
+  const [queueIndex, setQueueIndex] = useState(0);
 
   const filteredInvitees = invitees.filter((invitee) => {
     const matchesSearch =
@@ -38,25 +47,62 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({ invitees, onDele
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleWhatsApp = (invitee: Invitee) => {
+  const openWhatsApp = (invitee: Invitee) => {
     const url = getInviteUrl(invitee.slug);
     const message = weddingConfig.whatsapp.messageTemplate
       .replace(/GUEST_NAME/g, invitee.name)
       .replace(/GUEST_LINK/g, url);
 
-    const phoneParam = invitee.phone
-      ? invitee.phone.replace(/[^0-9]/g, '')
-      : '';
+    const phoneParam = invitee.phone ? invitee.phone.replace(/[^0-9]/g, '') : '';
     const waUrl = phoneParam
       ? `https://wa.me/${phoneParam}?text=${encodeURIComponent(message)}`
       : `https://wa.me/?text=${encodeURIComponent(message)}`;
 
     window.open(waUrl, '_blank', 'noopener,noreferrer');
+    void onMarkShared(invitee.id);
   };
 
   const handleDelete = async (id: string) => {
     await onDelete(id);
+    setSelectedIds((prev) => prev.filter((s) => s !== id));
     setDeleteConfirmId(null);
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
+    );
+  };
+
+  const allFilteredSelected =
+    filteredInvitees.length > 0 &&
+    filteredInvitees.every((i) => selectedIds.includes(i.id));
+
+  const toggleSelectAll = () => {
+    if (allFilteredSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredInvitees.map((i) => i.id));
+    }
+  };
+
+  const startQueue = () => {
+    const list = filteredInvitees.filter((i) => selectedIds.includes(i.id));
+    if (list.length === 0) return;
+    setQueue(list);
+    setQueueIndex(0);
+  };
+
+  const sendCurrentAndAdvance = () => {
+    if (!queue) return;
+    openWhatsApp(queue[queueIndex]);
+    if (queueIndex + 1 >= queue.length) {
+      setQueue(null);
+      setQueueIndex(0);
+      setSelectedIds([]);
+    } else {
+      setQueueIndex((i) => i + 1);
+    }
   };
 
   return (
@@ -91,7 +137,76 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({ invitees, onDele
             </button>
           ))}
         </div>
+
+        {/* Export CSV */}
+        <button
+          onClick={() => exportInviteesToCsv(filteredInvitees)}
+          className="flex items-center justify-center gap-2 px-3 py-2 rounded-xl border border-[#e08aa3]/30 text-[#b05570] hover:bg-[#e08aa3]/10 text-xs font-label uppercase tracking-wider font-semibold transition-colors cursor-pointer shrink-0"
+        >
+          <Download className="w-4 h-4" />
+          <span>Export CSV</span>
+        </button>
       </div>
+
+      {/* Bulk share bar */}
+      {selectedIds.length > 0 && (
+        <div className="bg-[#fff6f9] rounded-2xl p-3 px-4 border border-[#e08aa3]/25 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <span className="text-xs font-label uppercase tracking-wider text-[#b05570] font-semibold">
+            {selectedIds.length} selected
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSelectedIds([])}
+              className="px-3 py-2 rounded-xl text-xs font-label uppercase tracking-wider font-semibold text-gray-500 hover:bg-white cursor-pointer"
+            >
+              Clear
+            </button>
+            <button
+              onClick={startQueue}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#25D366] text-white text-xs font-label uppercase tracking-wider font-semibold hover:bg-[#128C7E] transition-colors cursor-pointer"
+            >
+              <Send className="w-4 h-4" />
+              <span>Start WhatsApp queue</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Queue panel */}
+      {queue && (
+        <div className="bg-white rounded-2xl p-4 border border-[#25D366]/40 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="text-center sm:text-left">
+            <p className="text-[11px] font-label uppercase tracking-wider text-[#b592a0] font-semibold">
+              Sending {queueIndex + 1} of {queue.length}
+            </p>
+            <p className="font-display text-lg font-semibold text-[#4a3038]">
+              {queue[queueIndex].name}
+            </p>
+            <p className="text-xs text-gray-500 font-body">
+              {queue[queueIndex].phone || 'No number — chat picker will open'}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setQueue(null);
+                setQueueIndex(0);
+              }}
+              className="p-2 rounded-xl text-gray-500 hover:bg-gray-100 cursor-pointer"
+              title="Cancel queue"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <button
+              onClick={sendCurrentAndAdvance}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#25D366] text-white text-xs font-label uppercase tracking-wider font-semibold hover:bg-[#128C7E] transition-colors cursor-pointer"
+            >
+              <Send className="w-4 h-4" />
+              <span>{queueIndex + 1 >= queue.length ? 'Open & Finish' : 'Open & Next'}</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Invitees Table */}
       <div className="bg-white rounded-2xl border border-[#e08aa3]/15 shadow-sm overflow-hidden">
@@ -99,10 +214,19 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({ invitees, onDele
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50/80 border-b border-gray-100 text-[11px] font-label uppercase tracking-wider text-[#b592a0]">
+                <th className="py-3 pl-4 pr-1 w-8">
+                  <input
+                    type="checkbox"
+                    checked={allFilteredSelected}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 accent-[#e08aa3] cursor-pointer"
+                  />
+                </th>
                 <th className="py-3 px-4 font-semibold">Guest Name</th>
                 <th className="py-3 px-4 font-semibold hidden md:table-cell">Slug / Link</th>
                 <th className="py-3 px-4 font-semibold">RSVP Status</th>
                 <th className="py-3 px-4 font-semibold text-center">Guests</th>
+                <th className="py-3 px-4 font-semibold hidden lg:table-cell">Sent</th>
                 <th className="py-3 px-4 font-semibold hidden sm:table-cell">Responded</th>
                 <th className="py-3 px-4 font-semibold text-right">Actions</th>
               </tr>
@@ -110,13 +234,23 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({ invitees, onDele
             <tbody className="divide-y divide-gray-100 text-sm font-body">
               {filteredInvitees.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-[#b592a0] text-sm">
+                  <td colSpan={8} className="py-8 text-center text-[#b592a0] text-sm">
                     No invitees found matching your search or filter.
                   </td>
                 </tr>
               ) : (
                 filteredInvitees.map((invitee) => (
                   <tr key={invitee.id} className="hover:bg-gray-50/50 transition-colors">
+                    {/* Select */}
+                    <td className="py-3.5 pl-4 pr-1">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(invitee.id)}
+                        onChange={() => toggleSelect(invitee.id)}
+                        className="w-4 h-4 accent-[#e08aa3] cursor-pointer"
+                      />
+                    </td>
+
                     {/* Name */}
                     <td className="py-3.5 px-4 font-display font-semibold text-[#4a3038]">
                       <div>{invitee.name}</div>
@@ -152,6 +286,20 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({ invitees, onDele
                       {invitee.rsvp === 'attending' ? invitee.guest_count : '—'}
                     </td>
 
+                    {/* Sent / Shared */}
+                    <td className="py-3.5 px-4 hidden lg:table-cell">
+                      {invitee.shared_at ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-label uppercase tracking-wider font-semibold text-[#128C7E]">
+                          <Check className="w-3.5 h-3.5" />
+                          {formatTimeAgo(invitee.shared_at)}
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-label uppercase tracking-wider text-gray-400">
+                          Not sent
+                        </span>
+                      )}
+                    </td>
+
                     {/* Responded Date */}
                     <td className="py-3.5 px-4 hidden sm:table-cell text-xs text-gray-500">
                       {formatTimeAgo(invitee.responded_at)}
@@ -162,7 +310,7 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({ invitees, onDele
                       <div className="flex items-center justify-end gap-1.5">
                         {/* WhatsApp Action */}
                         <button
-                          onClick={() => handleWhatsApp(invitee)}
+                          onClick={() => openWhatsApp(invitee)}
                           title="Share on WhatsApp"
                           className="p-1.5 rounded-lg bg-[#25D366]/10 text-[#128C7E] hover:bg-[#25D366] hover:text-white transition-colors cursor-pointer"
                         >

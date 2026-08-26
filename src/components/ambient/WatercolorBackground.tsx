@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 
 export const WatercolorBackground: React.FC = () => {
+  const prefersReducedMotion = useReducedMotion();
   // 8 soft watercolor blobs
   const blobs = useMemo(
     () => [
@@ -30,11 +31,15 @@ export const WatercolorBackground: React.FC = () => {
             left: blob.x,
             top: blob.y,
           }}
-          animate={{
-            x: [0, 40, -30, 20, 0],
-            y: [0, -50, 30, -20, 0],
-            scale: [1, 1.15, 0.95, 1.08, 1],
-          }}
+          animate={
+            prefersReducedMotion
+              ? undefined
+              : {
+                  x: [0, 40, -30, 20, 0],
+                  y: [0, -50, 30, -20, 0],
+                  scale: [1, 1.15, 0.95, 1.08, 1],
+                }
+          }
           transition={{
             duration: blob.dur,
             repeat: Infinity,

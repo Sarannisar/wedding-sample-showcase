@@ -1,3 +1,5 @@
+import { Invitee } from './types';
+
 export interface CsvInviteeRow {
   name: string;
   phone?: string;
@@ -35,3 +37,35 @@ Mohammed & Family,+94 77 123 4567
 Amina Farook,+94 71 987 6543
 Dr. Tariq Rizvi,+94 77 444 8888
 Uncle Farook,+94 76 555 1234`;
+
+export function exportInviteesToCsv(invitees: Invitee[]): void {
+  const escape = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const header = ['name', 'phone', 'slug', 'link', 'rsvp', 'guest_count', 'responded_at', 'shared_at'];
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const lines = [header.join(',')];
+
+  for (const i of invitees) {
+    lines.push(
+      [
+        i.name,
+        i.phone || '',
+        i.slug,
+        `${origin}/invite/${i.slug}`,
+        i.rsvp,
+        i.rsvp === 'attending' ? i.guest_count : 0,
+        i.responded_at || '',
+        i.shared_at || '',
+      ]
+        .map(escape)
+        .join(',')
+    );
+  }
+
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `invitees-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}

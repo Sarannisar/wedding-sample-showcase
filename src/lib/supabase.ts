@@ -218,6 +218,26 @@ export async function updateRsvp(
   return false;
 }
 
+export async function markInviteeShared(id: string): Promise<string> {
+  const sharedAt = new Date().toISOString();
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      await supabase.from('invitees').update({ shared_at: sharedAt }).eq('id', id);
+    } catch (err) {
+      console.warn('Supabase shared_at update failed, using local store:', err);
+    }
+  }
+
+  const local = getLocalInvitees();
+  const index = local.findIndex((i) => i.id === id);
+  if (index !== -1) {
+    local[index] = { ...local[index], shared_at: sharedAt };
+    saveLocalInvitees(local);
+  }
+  return sharedAt;
+}
+
 export async function deleteInvitee(id: string): Promise<boolean> {
   if (isSupabaseConfigured && supabase) {
     try {

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 
 interface Petal {
   id: number;
@@ -14,10 +14,17 @@ interface Petal {
 }
 
 export const AmbientPetals: React.FC = () => {
-  // Exactly 28 floating rose petals as specified in the template
+  const prefersReducedMotion = useReducedMotion();
+
+  // 28 petals on desktop, fewer on small screens for scroll smoothness / battery
+  const count = useMemo(() => {
+    if (typeof window === 'undefined') return 28;
+    return window.innerWidth < 640 ? 12 : 28;
+  }, []);
+
   const petals: Petal[] = useMemo(() => {
     const colors = ['#f4c2c2', '#f7c1d0', '#fcd5ce', '#fad2e1', '#fbd0de', '#ffccd5'];
-    return Array.from({ length: 28 }).map((_, i) => ({
+    return Array.from({ length: count }).map((_, i) => ({
       id: i,
       left: Math.random() * 100, // percentage across screen width
       size: 14 + Math.random() * 16, // 14px to 30px
@@ -28,7 +35,9 @@ export const AmbientPetals: React.FC = () => {
       opacity: 0.35 + Math.random() * 0.45,
       color: colors[i % colors.length],
     }));
-  }, []);
+  }, [count]);
+
+  if (prefersReducedMotion) return null;
 
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-10">

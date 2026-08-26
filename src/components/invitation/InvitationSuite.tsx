@@ -5,7 +5,7 @@ import { DateScratchCard } from './DateScratchCard';
 import { CountdownSection } from './CountdownSection';
 import { EventCardSection } from './EventCardSection';
 import { RsvpSection } from './RsvpSection';
-import { WhatsAppShareSection } from './WhatsAppShareSection';
+import { ContactSection } from './ContactSection';
 import { ClosingSection } from './ClosingSection';
 import { Invitee, RsvpStatus } from '@/lib/types';
 
@@ -52,8 +52,8 @@ export const InvitationSuite: React.FC<InvitationSuiteProps> = ({
       {/* Interactive RSVP Flow with Optional Note/Dua */}
       <RsvpSection invitee={invitee} onRsvpSuccess={onRsvpSuccess} />
 
-      {/* One-Tap WhatsApp Share */}
-      <WhatsAppShareSection invitee={invitee} />
+      {/* Directions & Family Contact */}
+      <ContactSection />
 
       {/* Closing Arabic Dua, Translation & Ameen */}
       <ClosingSection />

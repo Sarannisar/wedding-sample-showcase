@@ -9,6 +9,7 @@ export interface Invitee {
   guest_count: number;
   notes?: string | null;
   responded_at?: string | null;
+  shared_at?: string | null;
   created_at: string;
 }
 
