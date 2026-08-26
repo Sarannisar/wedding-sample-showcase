@@ -53,6 +53,30 @@ export const GuestInvitePage: React.FC = () => {
 
   const guestDisplayName = invitee?.name || 'Honored Guest';
 
+  // Per-guest page title / social preview metadata
+  useEffect(() => {
+    const title = `Invitation for ${guestDisplayName} — Safiyya & Sharrafuth`;
+    const description = `${guestDisplayName}, you are cordially invited to the wedding ceremony of Safiyya & Sharrafuth on Saturday, 12th December 2026 at Glen Reception Hall.`;
+
+    document.title = title;
+
+    const setMeta = (selector: string, attr: 'name' | 'property', key: string, content: string) => {
+      let tag = document.head.querySelector<HTMLMetaElement>(selector);
+      if (!tag) {
+        tag = document.createElement('meta');
+        tag.setAttribute(attr, key);
+        document.head.appendChild(tag);
+      }
+      tag.setAttribute('content', content);
+    };
+
+    setMeta('meta[name="description"]', 'name', 'description', description);
+    setMeta('meta[property="og:title"]', 'property', 'og:title', title);
+    setMeta('meta[property="og:description"]', 'property', 'og:description', description);
+    setMeta('meta[property="og:type"]', 'property', 'og:type', 'website');
+    setMeta('meta[name="twitter:card"]', 'name', 'twitter:card', 'summary_large_image');
+  }, [guestDisplayName]);
+
   return (
     <div className="relative min-h-screen w-full bg-[#fffafc] overflow-x-hidden text-[#4a3038]">
       {/* Ambient Watercolor Background blobs */}
