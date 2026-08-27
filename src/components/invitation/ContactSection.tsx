@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Card3D } from '@/components/common/Card3D';
 import { weddingConfig } from '@/config/weddingConfig';
-import { Navigation, Phone, Car, Shirt } from 'lucide-react';
+import { Navigation, Phone } from 'lucide-react';
 
 const CONTACTS = [
   { name: 'Illyas', phone: '0772257533' },
