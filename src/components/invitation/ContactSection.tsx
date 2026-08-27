@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Card3D } from '@/components/common/Card3D';
 import { weddingConfig } from '@/config/weddingConfig';
-import { Navigation, Phone, Car, Shirt } from 'lucide-react';
+import { Navigation, Phone } from 'lucide-react';
 
 const CONTACTS = [
   { name: 'Illyas', phone: '0772257533' },
@@ -61,31 +61,6 @@ export const ContactSection: React.FC = () => {
           ))}
         </div>
 
-        {/* Practical notes */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-4">
-          <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-white border border-[#f2b8c6]/30">
-            <Car className="w-4 h-4 text-[#e08aa3] shrink-0 mt-0.5" />
-            <div className="text-left">
-              <p className="font-label text-[10px] uppercase tracking-widest text-[#b592a0] font-semibold">
-                Parking
-              </p>
-              <p className="font-body text-xs text-[#4a3038]">
-                Free on-site parking available at the venue premises.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-white border border-[#f2b8c6]/30">
-            <Shirt className="w-4 h-4 text-[#e08aa3] shrink-0 mt-0.5" />
-            <div className="text-left">
-              <p className="font-label text-[10px] uppercase tracking-widest text-[#b592a0] font-semibold">
-                Dress Code
-              </p>
-              <p className="font-body text-xs text-[#4a3038]">
-                Modest formal attire in soft pastel tones.
-              </p>
-            </div>
-          </div>
-        </div>
 
         <button
           onClick={() => window.open(event.venue.mapsUrl, '_blank', 'noopener,noreferrer')}
