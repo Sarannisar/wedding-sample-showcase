@@ -2,7 +2,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Card3D } from '@/components/common/Card3D';
 import { weddingConfig } from '@/config/weddingConfig';
-import { Navigation } from 'lucide-react';
+import { downloadCalendarIcs } from '@/lib/calendar';
+import { Navigation, Calendar } from 'lucide-react';
 
 export const EventCardSection: React.FC = () => {
   const event = weddingConfig.event;
