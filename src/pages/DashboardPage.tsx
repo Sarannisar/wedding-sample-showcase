@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { fetchInvitees, createInvitee, deleteInvitee, markInviteeShared } from '@/lib/supabase';
+import {
+  fetchInvitees,
+  createInvitee,
+  deleteInvitee,
+  markInviteeShared,
+  updateInvitee,
+} from '@/lib/supabase';
 import { Invitee } from '@/lib/types';
 import { weddingConfig } from '@/config/weddingConfig';
 import { OverviewTab } from '@/components/dashboard/OverviewTab';
