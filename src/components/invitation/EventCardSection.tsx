@@ -74,12 +74,20 @@ export const EventCardSection: React.FC = () => {
           </div>
         </div>
 
-        {/* Clean Open in Maps Button */}
-        <div className="mt-4">
+        {/* Action Buttons */}
+        <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <button
+            onClick={downloadCalendarIcs}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-theme-primary/30 bg-theme-bg text-theme-muted hover:bg-theme-secondary-light hover:text-theme-primary-dark text-xs font-label uppercase tracking-widest font-semibold transition-all shadow-xs cursor-pointer active:scale-95"
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            <span>Add to Calendar</span>
+          </button>
           <button
             onClick={handleOpenMaps}
-            className="inline-flex items-center gap-2 px-6 py-2 rounded-lg border border-[#f2b8c6] bg-[#fff6f9] text-[#a8808e] hover:bg-[#f2b8c6]/15 text-xs font-label uppercase tracking-widest font-semibold transition-all shadow-xs cursor-pointer active:scale-95"
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl border border-theme-primary/30 bg-theme-bg text-theme-muted hover:bg-theme-secondary-light hover:text-theme-primary-dark text-xs font-label uppercase tracking-widest font-semibold transition-all shadow-xs cursor-pointer active:scale-95"
           >
+            <Navigation className="w-3.5 h-3.5" />
             <span>Open in Maps →</span>
           </button>
         </div>
