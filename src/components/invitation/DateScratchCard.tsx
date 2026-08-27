@@ -2,8 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card3D } from '@/components/common/Card3D';
 import { weddingConfig } from '@/config/weddingConfig';
+import { downloadCalendarIcs } from '@/lib/calendar';
 import confetti from 'canvas-confetti';
-import { Sparkles, Calendar } from 'lucide-react';
+import { Sparkles, Calendar, CalendarCheck } from 'lucide-react';
 
 interface DateScratchCardProps {
   onRevealed?: () => void;
@@ -197,8 +198,16 @@ export const DateScratchCard: React.FC<DateScratchCardProps> = ({
           </AnimatePresence>
         </div>
 
-        {/* Action button if guest prefers tap */}
-        {!revealed && (
+        {/* Action button if guest prefers tap, or add-to-calendar after reveal */}
+        {revealed ? (
+          <button
+            onClick={downloadCalendarIcs}
+            className="mt-4 inline-flex items-center gap-1.5 text-xs font-label uppercase tracking-widest text-[#e79db0] hover:text-[#b05570] transition-colors cursor-pointer"
+          >
+            <CalendarCheck className="w-3.5 h-3.5" />
+            <span>Add to Calendar</span>
+          </button>
+        ) : (
           <button
             onClick={triggerReveal}
             className="mt-4 inline-flex items-center gap-1.5 text-xs font-label uppercase tracking-widest text-[#e79db0] hover:text-[#b05570] transition-colors cursor-pointer"

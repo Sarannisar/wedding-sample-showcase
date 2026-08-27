@@ -238,6 +238,33 @@ export async function markInviteeShared(id: string): Promise<string> {
   return sharedAt;
 }
 
+export async function updateInvitee(
+  id: string,
+  updates: Partial<Pick<Invitee, 'name' | 'phone' | 'notes'>>
+): Promise<boolean> {
+  const local = getLocalInvitees();
+  const index = local.findIndex((i) => i.id === id);
+  if (index === -1) return false;
+
+  const cleaned: Partial<Invitee> = {};
+  if (updates.name !== undefined) cleaned.name = updates.name.trim();
+  if (updates.phone !== undefined) cleaned.phone = formatPhoneNumber(updates.phone);
+  if (updates.notes !== undefined) cleaned.notes = updates.notes?.trim() || null;
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { error } = await supabase.from('invitees').update(cleaned).eq('id', id);
+      if (error) throw error;
+    } catch (err) {
+      console.warn('Supabase update invitee failed, updating local store:', err);
+    }
+  }
+
+  local[index] = { ...local[index], ...cleaned };
+  saveLocalInvitees(local);
+  return true;
+}
+
 export async function deleteInvitee(id: string): Promise<boolean> {
   if (isSupabaseConfigured && supabase) {
     try {
