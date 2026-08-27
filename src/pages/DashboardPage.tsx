@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { fetchInvitees, createInvitee, deleteInvitee } from '@/lib/supabase';
+import { fetchInvitees, createInvitee, deleteInvitee, markInviteeShared } from '@/lib/supabase';
 import { Invitee } from '@/lib/types';
 import { weddingConfig } from '@/config/weddingConfig';
 import { OverviewTab } from '@/components/dashboard/OverviewTab';
@@ -39,6 +39,13 @@ export const DashboardPage: React.FC = () => {
   const handleDeleteInvitee = async (id: string) => {
     await deleteInvitee(id);
     setInvitees((prev) => prev.filter((i) => i.id !== id));
+  };
+
+  const handleMarkShared = async (id: string) => {
+    const sharedAt = await markInviteeShared(id);
+    setInvitees((prev) =>
+      prev.map((i) => (i.id === id ? { ...i, shared_at: sharedAt } : i))
+    );
   };
 
   return (
@@ -122,7 +129,11 @@ export const DashboardPage: React.FC = () => {
           <>
             {activeTab === 'overview' && <OverviewTab invitees={invitees} />}
             {activeTab === 'all' && (
-              <AllInviteesTab invitees={invitees} onDelete={handleDeleteInvitee} />
+              <AllInviteesTab
+                invitees={invitees}
+                onDelete={handleDeleteInvitee}
+                onMarkShared={handleMarkShared}
+              />
             )}
             {activeTab === 'add' && (
               <AddImportTab
