@@ -2,8 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card3D } from '@/components/common/Card3D';
 import { weddingConfig } from '@/config/weddingConfig';
+import { downloadCalendarIcs } from '@/lib/calendar';
 import confetti from 'canvas-confetti';
-import { Sparkles, Calendar } from 'lucide-react';
+import { Sparkles, Calendar, CalendarCheck } from 'lucide-react';
 
 interface DateScratchCardProps {
   onRevealed?: () => void;
