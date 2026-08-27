@@ -198,8 +198,16 @@ export const DateScratchCard: React.FC<DateScratchCardProps> = ({
           </AnimatePresence>
         </div>
 
-        {/* Action button if guest prefers tap */}
-        {!revealed && (
+        {/* Action button if guest prefers tap, or add-to-calendar after reveal */}
+        {revealed ? (
+          <button
+            onClick={downloadCalendarIcs}
+            className="mt-4 inline-flex items-center gap-1.5 text-xs font-label uppercase tracking-widest text-[#e79db0] hover:text-[#b05570] transition-colors cursor-pointer"
+          >
+            <CalendarCheck className="w-3.5 h-3.5" />
+            <span>Add to Calendar</span>
+          </button>
+        ) : (
           <button
             onClick={triggerReveal}
             className="mt-4 inline-flex items-center gap-1.5 text-xs font-label uppercase tracking-widest text-[#e79db0] hover:text-[#b05570] transition-colors cursor-pointer"
