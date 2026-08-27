@@ -3,7 +3,7 @@ import { Invitee } from '@/lib/types';
 import { StatCard } from './StatCard';
 import { ResponseBar } from './ResponseBar';
 import { formatTimeAgo } from '@/lib/utils';
-import { Users, UserCheck, UserX, Clock, UserPlus } from 'lucide-react';
+import { Users, UserCheck, UserX, Clock, UserPlus, Send } from 'lucide-react';
 
 interface OverviewTabProps {
   invitees: Invitee[];
@@ -16,6 +16,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ invitees }) => {
   const totalGuestCount = attendingList.reduce((acc, curr) => acc + (curr.guest_count || 1), 0);
   const declinedCount = invitees.filter((i) => i.rsvp === 'declined').length;
   const pendingCount = invitees.filter((i) => i.rsvp === 'pending').length;
+  const notSentCount = invitees.filter((i) => !i.shared_at).length;
 
   const attendingPercent = totalInvited > 0 ? Math.round((attendingCount / totalInvited) * 100) : 0;
   const declinedPercent = totalInvited > 0 ? Math.round((declinedCount / totalInvited) * 100) : 0;
@@ -33,7 +34,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ invitees }) => {
   return (
     <div className="space-y-6">
       {/* 5 Responsive Stat Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         <StatCard
           label="Total Invited"
           value={totalInvited}
@@ -68,6 +69,14 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ invitees }) => {
           colorClass="text-[#e08aa3]"
           icon={<UserPlus className="w-5 h-5 text-[#e08aa3]" />}
           subtext="Attending Headcount"
+        />
+
+        <StatCard
+          label="Not Yet Sent"
+          value={notSentCount}
+          colorClass="text-[#128C7E]"
+          icon={<Send className="w-5 h-5 text-[#25D366]" />}
+          subtext="Links not shared"
         />
       </div>
 
