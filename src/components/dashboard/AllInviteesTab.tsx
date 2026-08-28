@@ -1,7 +1,7 @@
 import React, { useState, useDeferredValue } from 'react';
 import { Invitee, RsvpStatus } from '@/lib/types';
 import { weddingConfig } from '@/config/weddingConfig';
-import { formatTimeAgo, formatPhoneNumber } from '@/lib/utils';
+import { formatTimeAgo } from '@/lib/utils';
 import { exportInviteesToCsv } from '@/lib/csvHelper';
 import {
   Search,
