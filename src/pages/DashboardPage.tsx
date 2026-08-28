@@ -156,6 +156,8 @@ export const DashboardPage: React.FC = () => {
                 invitees={invitees}
                 onDelete={handleDeleteInvitee}
                 onMarkShared={handleMarkShared}
+                onBulkMarkShared={handleBulkMarkShared}
+                onUpdateInvitee={handleUpdateInvitee}
               />
             )}
             {activeTab === 'add' && (
