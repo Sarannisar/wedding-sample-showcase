@@ -1,22 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useDeferredValue } from 'react';
 import { Invitee, RsvpStatus } from '@/lib/types';
 import { weddingConfig } from '@/config/weddingConfig';
-import { formatTimeAgo } from '@/lib/utils';
+import { formatTimeAgo, formatPhoneNumber } from '@/lib/utils';
 import { exportInviteesToCsv } from '@/lib/csvHelper';
-import { Search, ExternalLink, Copy, Trash2, Check, Download, Send, X } from 'lucide-react';
+import {
+  Search,
+  ExternalLink,
+  Copy,
+  Trash2,
+  Check,
+  Download,
+  Send,
+  X,
+  Pencil,
+  Save,
+} from 'lucide-react';
 
 interface AllInviteesTabProps {
   invitees: Invitee[];
   onDelete: (id: string) => Promise<void>;
   onMarkShared: (id: string) => Promise<void>;
+  onBulkMarkShared: (ids: string[]) => Promise<void>;
+  onUpdateInvitee: (
+    id: string,
+    updates: Partial<Pick<Invitee, 'name' | 'phone' | 'notes'>>
+  ) => Promise<void>;
 }
 
 export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
   invitees,
   onDelete,
   onMarkShared,
+  onBulkMarkShared,
+  onUpdateInvitee,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const deferredSearchQuery = useDeferredValue(searchQuery);
   const [statusFilter, setStatusFilter] = useState<'all' | RsvpStatus>('all');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -24,10 +43,17 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
   const [queue, setQueue] = useState<Invitee[] | null>(null);
   const [queueIndex, setQueueIndex] = useState(0);
 
+  // Inline editing state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+  const [savingId, setSavingId] = useState<string | null>(null);
+
   const filteredInvitees = invitees.filter((invitee) => {
     const matchesSearch =
-      invitee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      invitee.slug.toLowerCase().includes(searchQuery.toLowerCase());
+      invitee.name.toLowerCase().includes(deferredSearchQuery.toLowerCase()) ||
+      invitee.slug.toLowerCase().includes(deferredSearchQuery.toLowerCase());
 
     const matchesStatus =
       statusFilter === 'all' ? true : invitee.rsvp === statusFilter;
@@ -93,6 +119,11 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
     setQueueIndex(0);
   };
 
+  const handleBulkMarkSent = async () => {
+    if (selectedIds.length === 0) return;
+    await onBulkMarkShared(selectedIds);
+  };
+
   const sendCurrentAndAdvance = () => {
     if (!queue) return;
     openWhatsApp(queue[queueIndex]);
@@ -103,6 +134,32 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
     } else {
       setQueueIndex((i) => i + 1);
     }
+  };
+
+  const startEditing = (invitee: Invitee) => {
+    setEditingId(invitee.id);
+    setEditName(invitee.name);
+    setEditPhone(invitee.phone || '');
+    setEditNotes(invitee.notes || '');
+  };
+
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditName('');
+    setEditPhone('');
+    setEditNotes('');
+  };
+
+  const saveEditing = async (id: string) => {
+    if (!editName.trim()) return;
+    setSavingId(id);
+    await onUpdateInvitee(id, {
+      name: editName.trim(),
+      phone: editPhone || null,
+      notes: editNotes || null,
+    });
+    setSavingId(null);
+    setEditingId(null);
   };
 
   return (
@@ -148,7 +205,7 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
         </button>
       </div>
 
-      {/* Bulk share bar */}
+      {/* Bulk actions bar */}
       {selectedIds.length > 0 && (
         <div className="bg-[#fff6f9] rounded-2xl p-3 px-4 border border-[#e08aa3]/25 flex flex-col sm:flex-row items-center justify-between gap-3">
           <span className="text-xs font-label uppercase tracking-wider text-[#b05570] font-semibold">
@@ -160,6 +217,14 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
               className="px-3 py-2 rounded-xl text-xs font-label uppercase tracking-wider font-semibold text-gray-500 hover:bg-white cursor-pointer"
             >
               Clear
+            </button>
+            <button
+              onClick={handleBulkMarkSent}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl border border-[#e08aa3]/40 text-[#b05570] hover:bg-white text-xs font-label uppercase tracking-wider font-semibold transition-colors cursor-pointer"
+              title="Mark selected as sent without opening WhatsApp"
+            >
+              <Check className="w-3.5 h-3.5" />
+              <span>Mark Sent</span>
             </button>
             <button
               onClick={startQueue}
@@ -252,12 +317,45 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
                     </td>
 
                     {/* Name */}
-                    <td className="py-3.5 px-4 font-display font-semibold text-[#4a3038]">
-                      <div>{invitee.name}</div>
-                      {invitee.phone && (
-                        <span className="text-xs font-body font-normal text-[#b592a0]">
-                          {invitee.phone}
-                        </span>
+                    <td className="py-3.5 px-4">
+                      {editingId === invitee.id ? (
+                        <div className="space-y-2 min-w-[180px]">
+                          <input
+                            type="text"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-[#e08aa3]"
+                            placeholder="Name"
+                          />
+                          <input
+                            type="text"
+                            value={editPhone}
+                            onChange={(e) => setEditPhone(e.target.value)}
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs focus:outline-none focus:border-[#e08aa3]"
+                            placeholder="Phone"
+                          />
+                          <input
+                            type="text"
+                            value={editNotes}
+                            onChange={(e) => setEditNotes(e.target.value)}
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs focus:outline-none focus:border-[#e08aa3]"
+                            placeholder="Notes"
+                          />
+                        </div>
+                      ) : (
+                        <div className="font-display font-semibold text-[#4a3038]">
+                          <div>{invitee.name}</div>
+                          {invitee.phone && (
+                            <span className="text-xs font-body font-normal text-[#b592a0]">
+                              {invitee.phone}
+                            </span>
+                          )}
+                          {invitee.notes && (
+                            <p className="text-[11px] font-body text-[#a8808e] mt-1 max-w-[200px] truncate" title={invitee.notes}>
+                              {invitee.notes}
+                            </p>
+                          )}
+                        </div>
                       )}
                     </td>
 
@@ -308,6 +406,39 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
                     {/* Actions */}
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
+                        {/* Edit / Save */}
+                        {editingId === invitee.id ? (
+                          <>
+                            <button
+                              onClick={() => saveEditing(invitee.id)}
+                              disabled={savingId === invitee.id}
+                              className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors cursor-pointer disabled:opacity-50"
+                              title="Save changes"
+                            >
+                              {savingId === invitee.id ? (
+                                <span className="w-4 h-4 block animate-spin border-2 border-emerald-700/30 border-t-emerald-700 rounded-full" />
+                              ) : (
+                                <Save className="w-4 h-4" />
+                              )}
+                            </button>
+                            <button
+                              onClick={cancelEditing}
+                              className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors cursor-pointer"
+                              title="Cancel"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => startEditing(invitee)}
+                            className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors cursor-pointer"
+                            title="Edit guest"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                        )}
+
                         {/* WhatsApp Action */}
                         <button
                           onClick={() => openWhatsApp(invitee)}
