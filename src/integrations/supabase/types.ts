@@ -20,6 +20,7 @@ export type Database = {
           guest_count: number
           id: string
           name: string
+          notes: string | null
           phone: string | null
           responded_at: string | null
           rsvp: string
@@ -30,6 +31,7 @@ export type Database = {
           guest_count?: number
           id?: string
           name: string
+          notes?: string | null
           phone?: string | null
           responded_at?: string | null
           rsvp?: string
@@ -40,6 +42,7 @@ export type Database = {
           guest_count?: number
           id?: string
           name?: string
+          notes?: string | null
           phone?: string | null
           responded_at?: string | null
           rsvp?: string
