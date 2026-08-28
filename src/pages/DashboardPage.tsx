@@ -54,6 +54,23 @@ export const DashboardPage: React.FC = () => {
     );
   };
 
+  const handleBulkMarkShared = async (ids: string[]) => {
+    for (const id of ids) {
+      await handleMarkShared(id);
+    }
+  };
+
+  const handleUpdateInvitee = async (
+    id: string,
+    updates: Partial<Pick<Invitee, 'name' | 'phone' | 'notes'>>
+  ) => {
+    const success = await updateInvitee(id, updates);
+    if (!success) return;
+    setInvitees((prev) =>
+      prev.map((i) => (i.id === id ? { ...i, ...updates } : i))
+    );
+  };
+
   return (
     <div className="min-h-screen bg-[#fffafc] flex flex-col text-[#4a3038]">
       {/* Dark Theme Header Bar as specified in template */}
@@ -139,6 +156,8 @@ export const DashboardPage: React.FC = () => {
                 invitees={invitees}
                 onDelete={handleDeleteInvitee}
                 onMarkShared={handleMarkShared}
+                onBulkMarkShared={handleBulkMarkShared}
+                onUpdateInvitee={handleUpdateInvitee}
               />
             )}
             {activeTab === 'add' && (

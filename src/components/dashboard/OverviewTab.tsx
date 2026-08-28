@@ -80,12 +80,95 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ invitees }) => {
         />
       </div>
 
-      {/* Tri-color Response Rate Bar */}
-      <ResponseBar
-        attendingPercent={attendingPercent}
-        declinedPercent={declinedPercent}
-        pendingPercent={pendingPercent}
-      />
+      {/* RSVP Distribution */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <ResponseBar
+            attendingPercent={attendingPercent}
+            declinedPercent={declinedPercent}
+            pendingPercent={pendingPercent}
+          />
+        </div>
+
+        <div className="bg-white rounded-2xl p-5 border border-[#e08aa3]/15 shadow-sm flex items-center gap-5">
+          {/* Simple SVG donut chart */}
+          <svg viewBox="0 0 100 100" className="w-28 h-28 shrink-0 -rotate-90">
+            <circle cx="50" cy="50" r="40" fill="none" stroke="#f2b8c6" strokeWidth="12" opacity="0.25" />
+            {totalInvited > 0 && (
+              <>
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="40"
+                  fill="none"
+                  stroke="#10b981"
+                  strokeWidth="12"
+                  strokeDasharray={`${(attendingCount / totalInvited) * 251.2} 251.2`}
+                  strokeLinecap="round"
+                />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="40"
+                  fill="none"
+                  stroke="#f43f5e"
+                  strokeWidth="12"
+                  strokeDasharray={`${(declinedCount / totalInvited) * 251.2} 251.2`}
+                  strokeDashoffset={-(attendingCount / totalInvited) * 251.2}
+                  strokeLinecap="round"
+                />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="40"
+                  fill="none"
+                  stroke="#f59e0b"
+                  strokeWidth="12"
+                  strokeDasharray={`${(pendingCount / totalInvited) * 251.2} 251.2`}
+                  strokeDashoffset={-((attendingCount + declinedCount) / totalInvited) * 251.2}
+                  strokeLinecap="round"
+                />
+              </>
+            )}
+            <text
+              x="50"
+              y="55"
+              textAnchor="middle"
+              className="fill-[#4a3038] font-display text-[13px] font-bold"
+              transform="rotate(90 50 50)"
+            >
+              {totalInvited}
+            </text>
+          </svg>
+
+          <div className="flex-1 space-y-2">
+            <h4 className="font-display text-sm font-bold text-[#4a3038]">RSVP Distribution</h4>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs font-body">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  Attending
+                </span>
+                <span className="font-semibold text-[#4a3038]">{attendingCount}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs font-body">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-rose-500" />
+                  Declined
+                </span>
+                <span className="font-semibold text-[#4a3038]">{declinedCount}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs font-body">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-500" />
+                  Pending
+                </span>
+                <span className="font-semibold text-[#4a3038]">{pendingCount}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Recent 8 Responses List */}
       <div className="bg-white rounded-2xl p-6 border border-[#e08aa3]/15 shadow-sm">
