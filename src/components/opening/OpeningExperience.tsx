@@ -170,7 +170,6 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
           doorProgress={doorProgress}
           onClickDoor={!isStarted ? startCinematicSequence : undefined}
           isStarted={isStarted}
-          ribbonUntie={ribbonUntie}
         />
 
         {/* Monogram, Couple Names, Date Reveal */}
