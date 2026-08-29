@@ -20,6 +20,7 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
   const sceneRef = useRef<HTMLDivElement>(null);
 
   const [doorProgress, setDoorProgress] = useState(0);
+  const [ribbonUntie, setRibbonUntie] = useState(0);
   const [monogramOpacity, setMonogramOpacity] = useState(0);
   const [monogramScale, setMonogramScale] = useState(0.85);
   const [isStarted, setIsStarted] = useState(false);
@@ -48,13 +49,23 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
     });
 
     const animState = {
+      ribbon: 0,
       doors: 0,
       monoOpacity: 0,
       monoScale: 0.85,
     };
 
-    // Stage 1: Doors slide open sideways with smooth luxury acceleration/deceleration
+    // Stage 0: The satin ribbon unties itself
     tl.to(animState, {
+      ribbon: 1,
+      duration: 1.5,
+      ease: 'power2.inOut',
+      onUpdate: () => {
+        setRibbonUntie(animState.ribbon);
+      },
+    })
+      // Stage 1: Doors slide open sideways with smooth luxury acceleration/deceleration
+      .to(animState, {
         doors: 1,
         duration: 2.8,
         ease: 'power3.inOut',
@@ -170,6 +181,7 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
           doorProgress={doorProgress}
           onClickDoor={!isStarted ? startCinematicSequence : undefined}
           isStarted={isStarted}
+          ribbonUntie={ribbonUntie}
         />
 
         {/* Monogram, Couple Names, Date Reveal */}
