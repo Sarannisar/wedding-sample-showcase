@@ -7,21 +7,25 @@ import { FloralForeground } from './FloralForeground';
 
 interface OpeningExperienceProps {
   onOpenComplete: () => void;
+  onDoorsOpening?: () => void;
   guestName?: string;
 }
 
 export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
   onOpenComplete,
+  onDoorsOpening,
   guestName,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<HTMLDivElement>(null);
 
   const [doorProgress, setDoorProgress] = useState(0);
+  const [ribbonUntie, setRibbonUntie] = useState(0);
   const [monogramOpacity, setMonogramOpacity] = useState(0);
   const [monogramScale, setMonogramScale] = useState(0.85);
   const [isStarted, setIsStarted] = useState(false);
   const [isRevealed, setIsRevealed] = useState(false);
+
 
   // Mouse parallax state
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
@@ -45,20 +49,34 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
     });
 
     const animState = {
+      ribbon: 0,
       doors: 0,
       monoOpacity: 0,
       monoScale: 0.85,
     };
 
-    // Stage 1: Doors slide open sideways with smooth luxury acceleration/deceleration
+    // Stage 0: The satin ribbon unties itself
     tl.to(animState, {
-      doors: 1,
-      duration: 2.8,
-      ease: 'power3.inOut',
+      ribbon: 1,
+      duration: 1.5,
+      ease: 'power2.inOut',
       onUpdate: () => {
-        setDoorProgress(animState.doors);
+        setRibbonUntie(animState.ribbon);
       },
     })
+      // Stage 1: Doors slide open sideways with smooth luxury acceleration/deceleration
+      .to(animState, {
+        doors: 1,
+        duration: 2.8,
+        ease: 'power3.inOut',
+        onStart: () => {
+          onDoorsOpening?.();
+        },
+        onUpdate: () => {
+          setDoorProgress(animState.doors);
+        },
+      })
+
       // Stage 2: Camera pushes gently forward
       .to(
         sceneRef.current,
@@ -163,6 +181,7 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
           doorProgress={doorProgress}
           onClickDoor={!isStarted ? startCinematicSequence : undefined}
           isStarted={isStarted}
+          ribbonUntie={ribbonUntie}
         />
 
         {/* Monogram, Couple Names, Date Reveal */}

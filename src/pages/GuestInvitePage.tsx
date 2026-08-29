@@ -8,11 +8,24 @@ import { AmbientPetals } from '@/components/ambient/AmbientPetals';
 import { fetchInviteeBySlug } from '@/lib/supabase';
 import { Invitee, RsvpStatus } from '@/lib/types';
 import { AnimatePresence } from 'framer-motion';
+import { BackgroundMusic } from '@/components/audio/BackgroundMusic';
 
 export const GuestInvitePage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const [invitee, setInvitee] = useState<Invitee | null>(null);
   const [loadingStep, setLoadingStep] = useState<'loader' | 'opening' | 'invitation'>('loader');
+  const [musicStarted, setMusicStarted] = useState(false);
+
+  // Lock page scrolling until the invitation itself is on screen so the
+  // loader/door sequence and the invitation scroll consistently.
+  useEffect(() => {
+    const locked = loadingStep !== 'invitation';
+    document.body.style.overflow = locked ? 'hidden' : '';
+    if (!locked) window.scrollTo(0, 0);
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [loadingStep]);
 
   useEffect(() => {
     async function loadGuest() {
@@ -100,9 +113,10 @@ export const GuestInvitePage: React.FC = () => {
           <OpeningExperience
             key="opening"
             guestName={guestDisplayName}
+            onDoorsOpening={() => setMusicStarted(true)}
             onOpenComplete={() => {
               setLoadingStep('invitation');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+              window.scrollTo({ top: 0 });
             }}
           />
         )}
@@ -112,6 +126,9 @@ export const GuestInvitePage: React.FC = () => {
       {loadingStep === 'invitation' && (
         <InvitationSuite invitee={invitee} onRsvpSuccess={handleRsvpSuccess} />
       )}
+
+      {/* Background music with corner toggle, begins as the doors open */}
+      <BackgroundMusic active={musicStarted} />
     </div>
   );
 };

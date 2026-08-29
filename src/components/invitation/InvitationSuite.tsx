@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HeroSection } from './HeroSection';
+import { VideoSection } from './VideoSection';
+import { ScrollGuide } from './ScrollGuide';
 import { DateScratchCard } from './DateScratchCard';
 import { CountdownSection } from './CountdownSection';
 import { EventCardSection } from './EventCardSection';
@@ -24,6 +26,9 @@ export const InvitationSuite: React.FC<InvitationSuiteProps> = ({
     <div className="relative z-20 w-full min-h-screen py-10 px-2 sm:px-4 flex flex-col items-center">
       {/* Main Stationery Hero */}
       <HeroSection guestName={invitee?.name} />
+
+      {/* Personal Video Message */}
+      <VideoSection />
 
       {/* Interactive Gold Date Scratch-to-Reveal Card (with Insha Allah badge) */}
       <DateScratchCard
@@ -57,6 +62,9 @@ export const InvitationSuite: React.FC<InvitationSuiteProps> = ({
 
       {/* Closing Arabic Dua, Translation & Ameen */}
       <ClosingSection />
+
+      {/* Gentle periodic nudge to keep scrolling to the very bottom */}
+      <ScrollGuide />
     </div>
   );
 };
