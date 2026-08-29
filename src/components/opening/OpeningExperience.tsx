@@ -7,21 +7,25 @@ import { FloralForeground } from './FloralForeground';
 
 interface OpeningExperienceProps {
   onOpenComplete: () => void;
+  onDoorsOpening?: () => void;
   guestName?: string;
 }
 
 export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
   onOpenComplete,
+  onDoorsOpening,
   guestName,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<HTMLDivElement>(null);
 
   const [doorProgress, setDoorProgress] = useState(0);
+  const [ribbonUntie, setRibbonUntie] = useState(0);
   const [monogramOpacity, setMonogramOpacity] = useState(0);
   const [monogramScale, setMonogramScale] = useState(0.85);
   const [isStarted, setIsStarted] = useState(false);
   const [isRevealed, setIsRevealed] = useState(false);
+
 
   // Mouse parallax state
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
