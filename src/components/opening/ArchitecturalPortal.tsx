@@ -99,6 +99,13 @@ export const ArchitecturalPortal: React.FC<ArchitecturalPortalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Satin ribbon tied across the doors — unties before they part */}
+      {doorProgress < 0.98 && <DoorRibbon untie={ribbonUntie} />}
+
+      {/* Luminous outline tracing over the door + crest design */}
+      {!isStarted && <DoorGlowTracer fade={doorProgress} />}
     </div>
+
   );
 };
