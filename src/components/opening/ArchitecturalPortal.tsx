@@ -1,19 +1,24 @@
 import React from 'react';
+import { DoorGlowTracer } from './DoorGlowTracer';
+import { DoorRibbon } from './DoorRibbon';
 
 interface ArchitecturalPortalProps {
   doorProgress: number; // 0 (closed) to 1 (fully open)
   onClickDoor?: () => void;
   isStarted?: boolean;
+  ribbonUntie?: number; // 0 (tied) to 1 (fully untied)
 }
 
 export const ArchitecturalPortal: React.FC<ArchitecturalPortalProps> = ({
   doorProgress,
   onClickDoor,
   isStarted = false,
+  ribbonUntie = 0,
 }) => {
   // Smooth horizontal sliding transforms for the left and right doors
   const leftDoorTranslateX = -doorProgress * 102; // Slide completely to the left (-102%)
   const rightDoorTranslateX = doorProgress * 102; // Slide completely to the right (+102%)
+
 
   return (
     <div
