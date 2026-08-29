@@ -20,8 +20,8 @@ export const DoorRibbon: React.FC<DoorRibbonProps> = ({ untie }) => {
     <div className="pointer-events-none absolute inset-0 z-[45] overflow-hidden">
       {/* Horizontal satin band across the doors */}
       <div
-        className="absolute left-0 right-0 top-1/2 -translate-y-1/2 flex"
-        style={{ opacity: bandOpacity }}
+        className="absolute left-0 right-0 top-1/2 flex"
+        style={{ opacity: bandOpacity, transform: 'translateY(58px)' }}
       >
         <div
           className="h-9 sm:h-11 w-1/2 shadow-[0_6px_18px_rgba(176,85,112,0.28)] transition-none"
@@ -43,10 +43,10 @@ export const DoorRibbon: React.FC<DoorRibbonProps> = ({ untie }) => {
 
       {/* Centre bow */}
       <div
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 mt-14 sm:mt-16"
+        className="absolute left-1/2 top-1/2"
         style={{
           opacity: bowOpacity,
-          transform: `translate(-50%, -50%) scale(${bowScale}) rotate(${untie * -18}deg)`,
+          transform: `translate(-50%, 20px) scale(${bowScale}) rotate(${untie * -18}deg)`,
         }}
       >
         <svg width="150" height="110" viewBox="0 0 150 110" fill="none">
