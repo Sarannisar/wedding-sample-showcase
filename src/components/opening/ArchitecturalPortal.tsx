@@ -1,116 +1,128 @@
-import React from 'react';
+import React, { forwardRef, useImperativeHandle, useRef } from 'react';
+
+export interface ArchitecturalPortalHandle {
+  leftDoor: HTMLDivElement | null;
+  rightDoor: HTMLDivElement | null;
+}
 
 interface ArchitecturalPortalProps {
-  doorProgress: number; // 0 (closed) to 1 (fully open)
   onClickDoor?: () => void;
   isStarted?: boolean;
 }
 
-export const ArchitecturalPortal: React.FC<ArchitecturalPortalProps> = ({
-  doorProgress,
-  onClickDoor,
-  isStarted = false,
-}) => {
-  // Smooth horizontal sliding transforms for the left and right doors
-  const leftDoorTranslateX = -doorProgress * 102; // Slide completely to the left (-102%)
-  const rightDoorTranslateX = doorProgress * 102; // Slide completely to the right (+102%)
+export const ArchitecturalPortal = forwardRef<ArchitecturalPortalHandle, ArchitecturalPortalProps>(
+  ({ onClickDoor, isStarted = false }, ref) => {
+    const leftDoorRef = useRef<HTMLDivElement>(null);
+    const rightDoorRef = useRef<HTMLDivElement>(null);
 
-  return (
-    <div
-      onClick={onClickDoor}
-      className={`relative w-full h-full min-h-screen flex flex-col items-center justify-center select-none overflow-hidden ${
-        !isStarted ? 'cursor-pointer group' : ''
-      }`}
-    >
-      {/* ========================================================
-          BACKGROUND: BESPOKE WHITE & PASTEL BABY PINK PALACE SCENE
-          ======================================================== */}
-      <div className="absolute inset-0 overflow-hidden flex items-center justify-center bg-[#fff5f9]">
-        <img
-          src="/assets/fancy_garden_palace.webp"
-          alt="Royal Fairytale Garden Palace"
-          loading="eager"
-          decoding="sync"
-          fetchPriority="high"
-          className="w-full h-full object-cover object-center transform-gpu"
-        />
-      </div>
+    useImperativeHandle(ref, () => ({
+      leftDoor: leftDoorRef.current,
+      rightDoor: rightDoorRef.current,
+    }));
 
-      {/* ========================================================
-          SLIDING ROYAL PALACE DOUBLE DOORS (CLEAN, ZERO GLOW)
-          ======================================================== */}
-      <div className="absolute inset-0 z-20 flex overflow-hidden">
-        {/* LEFT DOOR SLIDING LEAF */}
-        <div
-          className="relative w-1/2 h-full transition-transform duration-75 overflow-hidden transform-gpu"
-          style={{
-            transform: `translateX(${leftDoorTranslateX}%)`,
-            willChange: 'transform',
-          }}
-        >
+    return (
+      <div
+        onClick={onClickDoor}
+        className={`relative w-full h-full min-h-screen flex flex-col items-center justify-center select-none overflow-hidden ${
+          !isStarted ? 'cursor-pointer group' : ''
+        }`}
+      >
+        {/* ========================================================
+            BACKGROUND: BESPOKE WHITE & PASTEL BABY PINK PALACE SCENE
+            ======================================================== */}
+        <div className="absolute inset-0 overflow-hidden flex items-center justify-center bg-[#fff5f9] pointer-events-none">
           <img
-            src="/assets/fancy_door_left.webp"
-            alt="Royal French Left Door"
+            src="/assets/fancy_garden_palace.webp"
+            alt="Royal Fairytale Garden Palace"
             loading="eager"
             decoding="sync"
             fetchPriority="high"
             className="w-full h-full object-cover object-center transform-gpu"
           />
-
-          {/* Left Half of Central S&S Logo Handle (Mathematically Centered & Perfectly Symmetrical) */}
-          <div
-            className="absolute right-0 top-[58%] -translate-y-1/2 pointer-events-none z-30 flex items-center justify-end"
-            style={{
-              width: '48px',
-              height: '96px',
-            }}
-          >
-            <img
-              src="/assets/door_handle_crest_left.webp"
-              alt="S&S Logo Left"
-              loading="eager"
-              decoding="sync"
-              className="w-full h-full object-contain object-right"
-            />
-          </div>
         </div>
 
-        {/* RIGHT DOOR SLIDING LEAF */}
-        <div
-          className="relative w-1/2 h-full transition-transform duration-75 overflow-hidden transform-gpu"
-          style={{
-            transform: `translateX(${rightDoorTranslateX}%)`,
-            willChange: 'transform',
-          }}
-        >
-          <img
-            src="/assets/fancy_door_right.webp"
-            alt="Royal French Right Door"
-            loading="eager"
-            decoding="sync"
-            fetchPriority="high"
-            className="w-full h-full object-cover object-center transform-gpu"
-          />
-
-          {/* Right Half of Central S&S Logo Handle (Mathematically Centered & Perfectly Symmetrical) */}
+        {/* ========================================================
+            SLIDING ROYAL PALACE DOUBLE DOORS (CLEAN, HARDWARE ACCELERATED)
+            ======================================================== */}
+        <div className="absolute inset-0 z-20 flex overflow-hidden pointer-events-none">
+          {/* LEFT DOOR SLIDING LEAF */}
           <div
-            className="absolute left-0 top-[58%] -translate-y-1/2 pointer-events-none z-30 flex items-center justify-start"
+            ref={leftDoorRef}
+            className="relative w-1/2 h-full overflow-hidden transform-gpu"
             style={{
-              width: '48px',
-              height: '96px',
+              willChange: 'transform',
+              transform: 'translate3d(0, 0, 0)',
+              backfaceVisibility: 'hidden',
             }}
           >
             <img
-              src="/assets/door_handle_crest_right.webp"
-              alt="S&S Logo Right"
+              src="/assets/fancy_door_left.webp"
+              alt="Royal French Left Door"
               loading="eager"
               decoding="sync"
-              className="w-full h-full object-contain object-left"
+              fetchPriority="high"
+              className="w-full h-full object-cover object-center transform-gpu select-none"
             />
+
+            {/* Left Half of Central S&S Logo Handle */}
+            <div
+              className="absolute right-0 top-[58%] -translate-y-1/2 pointer-events-none z-30 flex items-center justify-end"
+              style={{
+                width: '48px',
+                height: '96px',
+              }}
+            >
+              <img
+                src="/assets/door_handle_crest_left.webp"
+                alt="S&S Logo Left"
+                loading="eager"
+                decoding="sync"
+                className="w-full h-full object-contain object-right select-none"
+              />
+            </div>
+          </div>
+
+          {/* RIGHT DOOR SLIDING LEAF */}
+          <div
+            ref={rightDoorRef}
+            className="relative w-1/2 h-full overflow-hidden transform-gpu"
+            style={{
+              willChange: 'transform',
+              transform: 'translate3d(0, 0, 0)',
+              backfaceVisibility: 'hidden',
+            }}
+          >
+            <img
+              src="/assets/fancy_door_right.webp"
+              alt="Royal French Right Door"
+              loading="eager"
+              decoding="sync"
+              fetchPriority="high"
+              className="w-full h-full object-cover object-center transform-gpu select-none"
+            />
+
+            {/* Right Half of Central S&S Logo Handle */}
+            <div
+              className="absolute left-0 top-[58%] -translate-y-1/2 pointer-events-none z-30 flex items-center justify-start"
+              style={{
+                width: '48px',
+                height: '96px',
+              }}
+            >
+              <img
+                src="/assets/door_handle_crest_right.webp"
+                alt="S&S Logo Right"
+                loading="eager"
+                decoding="sync"
+                className="w-full h-full object-contain object-left select-none"
+              />
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-};
+    );
+  }
+);
+ArchitecturalPortal.displayName = 'ArchitecturalPortal';
+
 

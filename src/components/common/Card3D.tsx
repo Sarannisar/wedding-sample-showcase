@@ -53,6 +53,55 @@ export const Card3D: React.FC<Card3DProps> = ({
     y.set(0);
   };
 
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  React.useEffect(() => {
+    const vid = videoRef.current;
+    if (!vid || !bgVideoSrc) return;
+
+    vid.defaultMuted = true;
+    vid.muted = true;
+
+    // IntersectionObserver: Only play video when in viewport to eliminate mobile CPU/GPU contention
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            vid.play().catch(() => {});
+          } else {
+            vid.pause();
+          }
+        });
+      },
+      { threshold: 0.15 }
+    );
+
+    if (cardRef.current) {
+      observer.observe(cardRef.current);
+    }
+
+    // Low Power Mode / Battery Saver autoplay fallback trigger
+    const onUserInteraction = () => {
+      if (vid.paused) {
+        vid.play().catch(() => {});
+      }
+      window.removeEventListener('touchstart', onUserInteraction);
+      window.removeEventListener('scroll', onUserInteraction);
+      window.removeEventListener('click', onUserInteraction);
+    };
+
+    window.addEventListener('touchstart', onUserInteraction, { passive: true, once: true });
+    window.addEventListener('scroll', onUserInteraction, { passive: true, once: true });
+    window.addEventListener('click', onUserInteraction, { passive: true, once: true });
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('touchstart', onUserInteraction);
+      window.removeEventListener('scroll', onUserInteraction);
+      window.removeEventListener('click', onUserInteraction);
+    };
+  }, [bgVideoSrc]);
+
   return (
     <div className="perspective-1200 w-full">
       <motion.div
@@ -74,19 +123,26 @@ export const Card3D: React.FC<Card3DProps> = ({
           className
         )}
       >
-        {/* Background Animated Art Layer */}
+        {/* Background Hardware-Accelerated Video Layer */}
         {bgVideoSrc && (
           <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none rounded-2xl">
-            <picture className="w-full h-full">
-              <source srcSet="/assets/invite_card_bg_animation.webp" type="image/webp" />
-              <img
-                src="/assets/invite_card_bg_animation.webp"
-                alt="Illustrated Couple Background Animation"
-                loading="eager"
-                decoding="sync"
-                className="w-full h-full object-cover object-center opacity-65"
-              />
-            </picture>
+            <video
+              ref={videoRef}
+              src={bgVideoSrc}
+              poster="/assets/invite_card_bg_poster.webp"
+              autoPlay
+              loop
+              muted
+              playsInline
+              preload="auto"
+              disablePictureInPicture
+              disableRemotePlayback
+              className="w-full h-full object-cover object-center opacity-60 filter brightness-105 contrast-95 transform-gpu"
+              style={{
+                transform: 'translate3d(0, 0, 0)',
+                backfaceVisibility: 'hidden',
+              }}
+            />
             {/* Luminous frosted glass overlay for crystal clear letter contrast */}
             <div className="absolute inset-0 bg-gradient-to-b from-white/75 via-white/50 to-white/80 pointer-events-none" />
           </div>

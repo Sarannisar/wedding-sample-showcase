@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { motion } from 'framer-motion';
-import { ArchitecturalPortal } from './ArchitecturalPortal';
+import { ArchitecturalPortal, ArchitecturalPortalHandle } from './ArchitecturalPortal';
 import { MonogramReveal } from './MonogramReveal';
 
 interface OpeningExperienceProps {
@@ -19,10 +19,10 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<HTMLDivElement>(null);
+  const portalRef = useRef<ArchitecturalPortalHandle>(null);
   const isTransitioningRef = useRef(false);
   const rafId = useRef<number | null>(null);
 
-  const [doorProgress, setDoorProgress] = useState(0);
   const [isStarted, setIsStarted] = useState(false);
   const [isCardVisible, setIsCardVisible] = useState(false);
   const [isRevealed, setIsRevealed] = useState(false);
@@ -52,37 +52,37 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
       },
     });
 
-    const animState = {
-      doors: 0,
-    };
+    const leftDoor = portalRef.current?.leftDoor;
+    const rightDoor = portalRef.current?.rightDoor;
 
-    // Stage 1: Doors slide open sideways with smooth luxury acceleration/deceleration immediately
-    tl.to(animState, {
-      doors: 1,
-      duration: 2.2,
-      ease: 'power3.inOut',
-      onStart: () => {
-        onDoorsOpening?.();
+    onDoorsOpening?.();
+
+    if (leftDoor && rightDoor) {
+      // Direct GPU hardware-accelerated door slide (0 React re-renders, locked 60/120fps)
+      tl.to([leftDoor, rightDoor], {
+        xPercent: (i) => (i === 0 ? -102 : 102),
+        duration: 2.2,
+        ease: 'power2.inOut',
+        force3D: true,
+      });
+    }
+
+    // Gentle camera push into fairytale scene
+    tl.to(
+      sceneRef.current,
+      {
+        scale: 1.05,
+        duration: 2.4,
+        ease: 'power2.out',
+        force3D: true,
       },
-      onUpdate: () => {
-        setDoorProgress(animState.doors);
-      },
-    })
-      // Stage 2: Camera pushes gently forward into the fairytale garden
-      .to(
-        sceneRef.current,
-        {
-          scale: 1.06,
-          duration: 2.4,
-          ease: 'power2.out',
-        },
-        '-=1.8'
-      )
-      // Stage 3: Start popup rise early (as doors reach ~50% parting)
+      0.1
+    )
+      // Reveal monogram popup card smoothly
       .call(() => {
         setIsCardVisible(true);
       }, undefined, '-=1.2')
-      .to({}, { duration: 1.8 });
+      .to({}, { duration: 1.6 });
   };
 
   const handleEnterInvitation = () => {
@@ -173,7 +173,7 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
       >
         {/* Full-bleed Sliding Doors */}
         <ArchitecturalPortal
-          doorProgress={doorProgress}
+          ref={portalRef}
           onClickDoor={!isStarted ? startCinematicSequence : undefined}
           isStarted={isStarted}
         />
