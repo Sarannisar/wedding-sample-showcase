@@ -51,7 +51,8 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ invitee, onRsvpSuccess
         invitee.slug,
         selectedRsvp,
         selectedRsvp === 'attending' ? guestCount : 0,
-        note.trim()
+        note.trim(),
+        invitee.name
       );
 
       if (selectedRsvp === 'attending') {

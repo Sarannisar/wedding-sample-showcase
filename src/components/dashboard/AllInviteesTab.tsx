@@ -14,6 +14,9 @@ import {
   X,
   Pencil,
   Save,
+  MessageSquareText,
+  AlertCircle,
+  Users,
 } from 'lucide-react';
 
 interface AllInviteesTabProps {
@@ -23,7 +26,7 @@ interface AllInviteesTabProps {
   onBulkMarkShared: (ids: string[]) => Promise<void>;
   onUpdateInvitee: (
     id: string,
-    updates: Partial<Pick<Invitee, 'name' | 'phone' | 'notes'>>
+    updates: Partial<Pick<Invitee, 'name' | 'phone' | 'notes' | 'rsvp' | 'guest_count'>>
   ) => Promise<void>;
 }
 
@@ -38,23 +41,40 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const [statusFilter, setStatusFilter] = useState<'all' | RsvpStatus>('all');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [copiedTextId, setCopiedTextId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [queue, setQueue] = useState<Invitee[] | null>(null);
   const [queueIndex, setQueueIndex] = useState(0);
 
-  // Inline editing state
+  // Inline editing state (Note: Guest RSVP note is strictly read-only for guests only)
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
-  const [editNotes, setEditNotes] = useState('');
   const [savingId, setSavingId] = useState<string | null>(null);
 
-  const filteredInvitees = invitees.filter((invitee) => {
-    const matchesSearch =
-      invitee.name.toLowerCase().includes(deferredSearchQuery.toLowerCase()) ||
-      invitee.slug.toLowerCase().includes(deferredSearchQuery.toLowerCase());
+  // RSVP status change confirmation modal state
+  const [rsvpConfirmTarget, setRsvpConfirmTarget] = useState<{
+    invitee: Invitee;
+    newStatus: RsvpStatus;
+    guestCount: number;
+  } | null>(null);
+  const [isUpdatingRsvp, setIsUpdatingRsvp] = useState(false);
 
+  // Enhanced search filtering: searches name, slug, or phone numbers (raw digits & formatted)
+  const filteredInvitees = invitees.filter((invitee) => {
+    const q = deferredSearchQuery.trim().toLowerCase();
+    const cleanQ = q.replace(/[\s\-\(\)\+\.]/g, '');
+
+    const matchesName = invitee.name.toLowerCase().includes(q);
+    const matchesSlug = invitee.slug.toLowerCase().includes(q);
+    const rawPhone = invitee.phone ? invitee.phone.toLowerCase() : '';
+    const cleanPhone = rawPhone.replace(/[\s\-\(\)\+\.]/g, '');
+    const matchesPhone =
+      Boolean(rawPhone && rawPhone.includes(q)) ||
+      Boolean(cleanQ.length > 0 && cleanPhone.includes(cleanQ));
+
+    const matchesSearch = !q || matchesName || matchesSlug || matchesPhone;
     const matchesStatus =
       statusFilter === 'all' ? true : invitee.rsvp === statusFilter;
 
@@ -66,6 +86,13 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
     return `${origin}/invite/${slug}`;
   };
 
+  const getWhatsAppMessage = (invitee: Invitee) => {
+    const url = getInviteUrl(invitee.slug);
+    return weddingConfig.whatsapp.messageTemplate
+      .replace(/GUEST_NAME/g, invitee.name)
+      .replace(/GUEST_LINK/g, url);
+  };
+
   const handleCopyLink = (invitee: Invitee) => {
     const url = getInviteUrl(invitee.slug);
     navigator.clipboard.writeText(url);
@@ -73,12 +100,15 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const openWhatsApp = (invitee: Invitee) => {
-    const url = getInviteUrl(invitee.slug);
-    const message = weddingConfig.whatsapp.messageTemplate
-      .replace(/GUEST_NAME/g, invitee.name)
-      .replace(/GUEST_LINK/g, url);
+  const handleCopyWhatsAppText = (invitee: Invitee) => {
+    const message = getWhatsAppMessage(invitee);
+    navigator.clipboard.writeText(message);
+    setCopiedTextId(invitee.id);
+    setTimeout(() => setCopiedTextId(null), 2000);
+  };
 
+  const openWhatsApp = (invitee: Invitee) => {
+    const message = getWhatsAppMessage(invitee);
     const phoneParam = invitee.phone ? invitee.phone.replace(/[^0-9]/g, '') : '';
     const waUrl = phoneParam
       ? `https://wa.me/${phoneParam}?text=${encodeURIComponent(message)}`
@@ -140,14 +170,12 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
     setEditingId(invitee.id);
     setEditName(invitee.name);
     setEditPhone(invitee.phone || '');
-    setEditNotes(invitee.notes || '');
   };
 
   const cancelEditing = () => {
     setEditingId(null);
     setEditName('');
     setEditPhone('');
-    setEditNotes('');
   };
 
   const saveEditing = async (id: string) => {
@@ -156,10 +184,40 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
     await onUpdateInvitee(id, {
       name: editName.trim(),
       phone: editPhone || null,
-      notes: editNotes || null,
     });
     setSavingId(null);
     setEditingId(null);
+  };
+
+  const requestRsvpChange = (invitee: Invitee, newStatus: RsvpStatus) => {
+    if (invitee.rsvp === newStatus) return;
+    setRsvpConfirmTarget({
+      invitee,
+      newStatus,
+      guestCount:
+        newStatus === 'attending'
+          ? invitee.guest_count && invitee.guest_count > 0
+            ? invitee.guest_count
+            : 1
+          : 0,
+    });
+  };
+
+  const handleConfirmRsvpChange = async () => {
+    if (!rsvpConfirmTarget) return;
+    setIsUpdatingRsvp(true);
+    try {
+      await onUpdateInvitee(rsvpConfirmTarget.invitee.id, {
+        rsvp: rsvpConfirmTarget.newStatus,
+        guest_count:
+          rsvpConfirmTarget.newStatus === 'attending'
+            ? rsvpConfirmTarget.guestCount
+            : 0,
+      });
+      setRsvpConfirmTarget(null);
+    } finally {
+      setIsUpdatingRsvp(false);
+    }
   };
 
   return (
@@ -171,7 +229,7 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search by name or slug..."
+            placeholder="Search by name, phone (+94...), or slug..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#e08aa3] focus:ring-1 focus:ring-[#e08aa3]"
@@ -186,7 +244,7 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
               onClick={() => setStatusFilter(filter)}
               className={`px-3 py-1.5 rounded-full text-xs font-label uppercase tracking-wider font-semibold transition-colors shrink-0 cursor-pointer ${
                 statusFilter === filter
-                  ? 'bg-[#e08aa3] text-white'
+                  ? 'bg-[#e08aa3] text-white shadow-xs'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -319,7 +377,7 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
                     {/* Name */}
                     <td className="py-3.5 px-4">
                       {editingId === invitee.id ? (
-                        <div className="space-y-2 min-w-[180px]">
+                        <div className="space-y-2 min-w-[200px]">
                           <input
                             type="text"
                             value={editName}
@@ -332,15 +390,13 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
                             value={editPhone}
                             onChange={(e) => setEditPhone(e.target.value)}
                             className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs focus:outline-none focus:border-[#e08aa3]"
-                            placeholder="Phone"
+                            placeholder="Phone (+94...)"
                           />
-                          <input
-                            type="text"
-                            value={editNotes}
-                            onChange={(e) => setEditNotes(e.target.value)}
-                            className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs focus:outline-none focus:border-[#e08aa3]"
-                            placeholder="Notes"
-                          />
+                          {invitee.notes && (
+                            <p className="text-[11px] font-body italic text-[#a8808e] bg-[#fffafc] p-2 rounded-lg border border-[#f2b8c6]/30">
+                              Guest note (read-only): "{invitee.notes}"
+                            </p>
+                          )}
                         </div>
                       ) : (
                         <div className="font-display font-semibold text-[#4a3038]">
@@ -351,8 +407,8 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
                             </span>
                           )}
                           {invitee.notes && (
-                            <p className="text-[11px] font-body text-[#a8808e] mt-1 max-w-[200px] truncate" title={invitee.notes}>
-                              {invitee.notes}
+                            <p className="text-[11px] font-body italic text-[#a8808e] mt-1 max-w-[220px] truncate" title={`Guest note: ${invitee.notes}`}>
+                              "{invitee.notes}"
                             </p>
                           )}
                         </div>
@@ -364,19 +420,28 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
                       /invite/{invitee.slug}
                     </td>
 
-                    {/* RSVP Status */}
+                    {/* RSVP Status with Confirmation-Gated Dropdown */}
                     <td className="py-3.5 px-4">
-                      <span
-                        className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-label uppercase tracking-wider font-semibold ${
+                      <select
+                        value={invitee.rsvp}
+                        onChange={(e) => requestRsvpChange(invitee, e.target.value as RsvpStatus)}
+                        className={`text-[11px] font-label uppercase tracking-wider font-semibold rounded-full px-2.5 py-1 border cursor-pointer transition-colors appearance-none pr-5 bg-no-repeat bg-[right_6px_center] ${
                           invitee.rsvp === 'attending'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
                             : invitee.rsvp === 'declined'
-                            ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                            : 'bg-amber-50 text-amber-700 border border-amber-200'
+                            ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                            : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
                         }`}
+                        style={{
+                          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                          backgroundSize: '10px 10px',
+                        }}
+                        title="Click to change RSVP status (requires confirmation)"
                       >
-                        {invitee.rsvp}
-                      </span>
+                        <option value="pending">Pending</option>
+                        <option value="attending">Attending</option>
+                        <option value="declined">Declined</option>
+                      </select>
                     </td>
 
                     {/* Guest Count */}
@@ -433,7 +498,7 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
                           <button
                             onClick={() => startEditing(invitee)}
                             className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors cursor-pointer"
-                            title="Edit guest"
+                            title="Edit guest name or phone"
                           >
                             <Pencil className="w-4 h-4" />
                           </button>
@@ -442,10 +507,23 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
                         {/* WhatsApp Action */}
                         <button
                           onClick={() => openWhatsApp(invitee)}
-                          title="Share on WhatsApp"
+                          title="Open in WhatsApp"
                           className="p-1.5 rounded-lg bg-[#25D366]/10 text-[#128C7E] hover:bg-[#25D366] hover:text-white transition-colors cursor-pointer"
                         >
                           <span className="text-xs font-bold font-label px-1">WA</span>
+                        </button>
+
+                        {/* Copy WhatsApp Text */}
+                        <button
+                          onClick={() => handleCopyWhatsAppText(invitee)}
+                          title="Copy WhatsApp invitation text"
+                          className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors cursor-pointer"
+                        >
+                          {copiedTextId === invitee.id ? (
+                            <Check className="w-4 h-4 text-emerald-600" />
+                          ) : (
+                            <MessageSquareText className="w-4 h-4 text-[#128C7E]" />
+                          )}
                         </button>
 
                         {/* View in new tab */}
@@ -504,6 +582,95 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
           <span>Showing all filtered guests</span>
         </div>
       </div>
+
+      {/* RSVP Status Change Confirmation Modal */}
+      {rsvpConfirmTarget && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#e08aa3]/30 space-y-4">
+            <div className="flex items-center gap-3 text-[#b05570]">
+              <div className="w-10 h-10 rounded-full bg-[#fdeef3] flex items-center justify-center text-[#e08aa3]">
+                <AlertCircle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-display text-base font-bold text-[#4a3038]">
+                  Confirm RSVP Status Change
+                </h3>
+                <p className="font-body text-xs text-[#b592a0]">
+                  Please confirm manual override
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-[#fffafc] border border-[#f2b8c6]/30 space-y-2 text-xs font-body text-[#4a3038]">
+              <p>
+                Are you sure you want to change the RSVP status for{' '}
+                <strong className="text-[#b05570] font-semibold">{rsvpConfirmTarget.invitee.name}</strong> from{' '}
+                <span className="uppercase font-label font-bold text-gray-600">{rsvpConfirmTarget.invitee.rsvp}</span> to{' '}
+                <span
+                  className={`uppercase font-label font-bold ${
+                    rsvpConfirmTarget.newStatus === 'attending'
+                      ? 'text-emerald-600'
+                      : rsvpConfirmTarget.newStatus === 'declined'
+                      ? 'text-rose-600'
+                      : 'text-amber-600'
+                  }`}
+                >
+                  {rsvpConfirmTarget.newStatus}
+                </span>
+                ?
+              </p>
+
+              {/* If changing to Attending, allow setting headcount */}
+              {rsvpConfirmTarget.newStatus === 'attending' && (
+                <div className="pt-2 border-t border-[#f2b8c6]/20 flex items-center justify-between">
+                  <span className="font-label uppercase tracking-wider text-[11px] font-semibold text-[#a8808e] flex items-center gap-1.5">
+                    <Users className="w-3.5 h-3.5 text-[#e08aa3]" />
+                    Attending Headcount:
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={1}
+                      max={20}
+                      value={rsvpConfirmTarget.guestCount}
+                      onChange={(e) =>
+                        setRsvpConfirmTarget({
+                          ...rsvpConfirmTarget,
+                          guestCount: Math.max(1, parseInt(e.target.value) || 1),
+                        })
+                      }
+                      className="w-16 px-2.5 py-1 text-center font-bold text-[#b05570] rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-[#e08aa3]"
+                    />
+                    <span className="text-xs text-gray-500">guests</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                onClick={() => setRsvpConfirmTarget(null)}
+                disabled={isUpdatingRsvp}
+                className="px-4 py-2 rounded-xl text-xs font-label uppercase tracking-wider font-semibold text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmRsvpChange}
+                disabled={isUpdatingRsvp}
+                className="px-5 py-2 rounded-xl text-xs font-label uppercase tracking-wider font-semibold bg-[#e08aa3] text-white hover:bg-[#b05570] transition-colors shadow-sm cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {isUpdatingRsvp ? (
+                  <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Check className="w-3.5 h-3.5" />
+                )}
+                <span>Confirm Change</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

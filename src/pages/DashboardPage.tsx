@@ -1,33 +1,62 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   fetchInvitees,
   createInvitee,
   deleteInvitee,
   markInviteeShared,
   updateInvitee,
+  isSupabaseConfigured,
+  supabase,
 } from '@/lib/supabase';
 import { Invitee } from '@/lib/types';
 import { weddingConfig } from '@/config/weddingConfig';
 import { OverviewTab } from '@/components/dashboard/OverviewTab';
 import { AllInviteesTab } from '@/components/dashboard/AllInviteesTab';
 import { AddImportTab } from '@/components/dashboard/AddImportTab';
-import { LayoutDashboard, Users, UserPlus, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Users, UserPlus, Sparkles, RefreshCw } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'all' | 'add'>('overview');
   const [invitees, setInvitees] = useState<Invitee[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
+    else setRefreshing(true);
     const data = await fetchInvitees();
     setInvitees(data);
-    setLoading(false);
-  };
+    if (!isSilent) setLoading(false);
+    else setRefreshing(false);
+  }, []);
 
   useEffect(() => {
     loadData();
-  }, []);
+
+    // Supabase Realtime channel subscription
+    if (isSupabaseConfigured && supabase) {
+      const channel = supabase
+        .channel('dashboard-realtime-invitees')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'invitees' },
+          () => {
+            void loadData(true);
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    } else {
+      // Periodic fallback sync every 15 seconds
+      const timer = setInterval(() => {
+        void loadData(true);
+      }, 15000);
+      return () => clearInterval(timer);
+    }
+  }, [loadData]);
 
   const handleAddInvitee = async (name: string, phone?: string | null) => {
     const newInvitee = await createInvitee(name, phone);
@@ -62,7 +91,7 @@ export const DashboardPage: React.FC = () => {
 
   const handleUpdateInvitee = async (
     id: string,
-    updates: Partial<Pick<Invitee, 'name' | 'phone' | 'notes'>>
+    updates: Partial<Pick<Invitee, 'name' | 'phone' | 'notes' | 'rsvp' | 'guest_count'>>
   ) => {
     const success = await updateInvitee(id, updates);
     if (!success) return;
@@ -89,14 +118,24 @@ export const DashboardPage: React.FC = () => {
             </h1>
           </div>
 
-          {/* Right: Event Date & Badge */}
-          <div className="text-center sm:text-right">
-            <span className="font-label text-xs uppercase tracking-wider text-[#f7c1d0] block">
-              Wedding Date
-            </span>
-            <p className="font-display text-sm font-medium">
-              {weddingConfig.event.dayAndDate}
-            </p>
+          {/* Right: Event Date & Refresh Button */}
+          <div className="flex items-center gap-4 text-center sm:text-right">
+            <div>
+              <span className="font-label text-xs uppercase tracking-wider text-[#f7c1d0] block">
+                Wedding Date
+              </span>
+              <p className="font-display text-sm font-medium">
+                {weddingConfig.event.dayAndDate}
+              </p>
+            </div>
+            <button
+              onClick={() => void loadData(true)}
+              disabled={refreshing || loading}
+              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white transition-colors cursor-pointer disabled:opacity-50"
+              title="Refresh Dashboard Data"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
           </div>
         </div>
       </header>

@@ -147,13 +147,14 @@ export async function updateRsvp(
   slug: string,
   rsvp: RsvpStatus,
   guestCount: number,
-  notes?: string
+  notes?: string,
+  fallbackName?: string
 ): Promise<boolean> {
   const respondedAt = new Date().toISOString();
 
   if (isSupabaseConfigured && supabase) {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('invitees')
         .update({
           rsvp,
@@ -161,9 +162,26 @@ export async function updateRsvp(
           notes: notes || null,
           responded_at: respondedAt,
         })
-        .eq('slug', slug);
-      if (!error) return true;
-      console.error('Supabase RSVP update error:', error);
+        .eq('slug', slug)
+        .select();
+
+      if (!error && data && data.length > 0) return true;
+
+      // If no row matched in Supabase, create it so the RSVP is not lost
+      if (!error && (!data || data.length === 0)) {
+        const { error: insertError } = await supabase.from('invitees').insert([
+          {
+            name: fallbackName || slug,
+            slug,
+            rsvp,
+            guest_count: rsvp === 'attending' ? guestCount : 0,
+            notes: notes || null,
+            responded_at: respondedAt,
+          },
+        ]);
+        if (!insertError) return true;
+      }
+      if (error) console.error('Supabase RSVP update error:', error);
     } catch (err) {
       console.error('Supabase RSVP update failed:', err);
     }
@@ -181,8 +199,23 @@ export async function updateRsvp(
     };
     saveLocalInvitees(local);
     return true;
+  } else {
+    // If not found in localStorage, create it
+    const newGuest: Invitee = {
+      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `inv-${Date.now()}`,
+      name: fallbackName || slug,
+      slug,
+      phone: null,
+      rsvp,
+      guest_count: rsvp === 'attending' ? guestCount : 0,
+      notes: notes || null,
+      responded_at: respondedAt,
+      created_at: new Date().toISOString(),
+    };
+    local.unshift(newGuest);
+    saveLocalInvitees(local);
+    return true;
   }
-  return false;
 }
 
 export async function markInviteeShared(id: string): Promise<string> {
@@ -207,12 +240,14 @@ export async function markInviteeShared(id: string): Promise<string> {
 
 export async function updateInvitee(
   id: string,
-  updates: Partial<Pick<Invitee, 'name' | 'phone' | 'notes'>>
+  updates: Partial<Pick<Invitee, 'name' | 'phone' | 'notes' | 'rsvp' | 'guest_count'>>
 ): Promise<boolean> {
   const cleaned: Partial<Invitee> = {};
   if (updates.name !== undefined) cleaned.name = updates.name.trim();
   if (updates.phone !== undefined) cleaned.phone = formatPhoneNumber(updates.phone);
   if (updates.notes !== undefined) cleaned.notes = updates.notes?.trim() || null;
+  if (updates.rsvp !== undefined) cleaned.rsvp = updates.rsvp;
+  if (updates.guest_count !== undefined) cleaned.guest_count = updates.guest_count;
 
   if (isSupabaseConfigured && supabase) {
     try {

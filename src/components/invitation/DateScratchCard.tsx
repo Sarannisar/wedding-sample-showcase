@@ -43,11 +43,16 @@ export const DateScratchCard: React.FC<DateScratchCardProps> = ({
     if (!ctx) return;
 
     const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width || 360;
-    canvas.height = rect.height || 200;
+    const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+    const width = rect.width || 360;
+    const height = rect.height || 200;
+
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+    ctx.scale(dpr, dpr);
 
     // Draw luxury brushed gold metallic gradient
-    const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    const grad = ctx.createLinearGradient(0, 0, width, height);
     grad.addColorStop(0, '#f0a8bd');
     grad.addColorStop(0.3, '#fce4ec');
     grad.addColorStop(0.5, '#f2b8c6');
@@ -55,15 +60,15 @@ export const DateScratchCard: React.FC<DateScratchCardProps> = ({
     grad.addColorStop(1, '#e08fa8');
 
     ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, width, height);
 
     // Subtle striped brush texture
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
     ctx.lineWidth = 2;
-    for (let i = -canvas.height; i < canvas.width + canvas.height; i += 8) {
+    for (let i = -height; i < width + height; i += 8) {
       ctx.beginPath();
       ctx.moveTo(i, 0);
-      ctx.lineTo(i + canvas.height, canvas.height);
+      ctx.lineTo(i + height, height);
       ctx.stroke();
     }
 
@@ -72,28 +77,30 @@ export const DateScratchCard: React.FC<DateScratchCardProps> = ({
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#73404f';
     ctx.font = 'bold 22px Georgia, serif';
-    ctx.fillText('DATE', canvas.width / 2, canvas.height / 2 - 20);
+    ctx.fillText('DATE', width / 2, height / 2 - 20);
 
     ctx.font = 'italic 17px Georgia, serif';
     ctx.fillStyle = '#8a4f61';
-    ctx.fillText('Scratch to Reveal', canvas.width / 2, canvas.height / 2 + 12);
+    ctx.fillText('Scratch to Reveal', width / 2, height / 2 + 12);
 
     ctx.font = '14px sans-serif';
     ctx.fillStyle = '#a86478';
-    ctx.fillText('✦', canvas.width / 2, canvas.height / 2 + 36);
+    ctx.fillText('✦', width / 2, height / 2 + 36);
 
     let scratchedPixels = 0;
-    const totalPixels = canvas.width * canvas.height;
+    const totalPixels = width * height;
 
     const scratch = (clientX: number, clientY: number) => {
       const box = canvas.getBoundingClientRect();
       const x = clientX - box.left;
       const y = clientY - box.top;
 
+      ctx.save();
       ctx.globalCompositeOperation = 'destination-out';
       ctx.beginPath();
       ctx.arc(x, y, 26, 0, Math.PI * 2);
       ctx.fill();
+      ctx.restore();
 
       scratchedPixels += Math.PI * 26 * 26 * 0.4;
       if (scratchedPixels / totalPixels > 0.35) {
