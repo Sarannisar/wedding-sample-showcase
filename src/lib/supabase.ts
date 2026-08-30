@@ -3,90 +3,55 @@ import { Invitee, RsvpStatus } from './types';
 import { generateSlug, formatPhoneNumber } from './utils';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabaseKey =
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  '';
 
 export const isSupabaseConfigured = Boolean(
   supabaseUrl &&
-    supabaseAnonKey &&
+    supabaseKey &&
     supabaseUrl !== 'your project URL' &&
-    supabaseAnonKey !== 'your anon key'
+    supabaseKey !== 'your anon key'
 );
 
+function isNewSupabaseApiKey(value: string): boolean {
+  return value.startsWith('sb_publishable_') || value.startsWith('sb_secret_');
+}
+
+function createSupabaseFetch(key: string): typeof fetch {
+  return (input, init) => {
+    const headers = new Headers(
+      typeof Request !== 'undefined' && input instanceof Request ? input.headers : undefined
+    );
+    if (init?.headers) {
+      new Headers(init.headers).forEach((value, k) => headers.set(k, value));
+    }
+    // New Supabase API keys (sb_publishable_) are API keys, not Bearer JWTs
+    if (isNewSupabaseApiKey(key) && headers.get('Authorization') === `Bearer ${key}`) {
+      headers.delete('Authorization');
+    }
+    headers.set('apikey', key);
+    return fetch(input, { ...init, headers });
+  };
+}
+
 export const supabase = isSupabaseConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseKey, {
+      global: {
+        fetch: createSupabaseFetch(supabaseKey),
+      },
+    })
   : null;
 
-// Initial sample invitees for immediate interactive testing & fallback
-const INITIAL_INVITEES: Invitee[] = [
-  {
-    id: '1',
-    name: 'Mohammed & Family',
-    slug: 'mohammed-and-family',
-    phone: '+94 77 123 4567',
-    rsvp: 'attending',
-    guest_count: 4,
-    notes: 'Warmest congratulations to Safiyya & Sharrafuth!',
-    responded_at: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
-  },
-  {
-    id: '2',
-    name: 'Amina Farook',
-    slug: 'amina-farook',
-    phone: '+94 71 987 6543',
-    rsvp: 'attending',
-    guest_count: 2,
-    notes: null,
-    responded_at: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(),
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
-  },
-  {
-    id: '3',
-    name: 'Zameer & Shazna',
-    slug: 'zameer-and-shazna',
-    phone: '+94 76 555 1234',
-    rsvp: 'declined',
-    guest_count: 0,
-    notes: 'Sending heartfelt duas from abroad.',
-    responded_at: new Date(Date.now() - 1000 * 60 * 60 * 18).toISOString(),
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-  },
-  {
-    id: '4',
-    name: 'Dr. Tariq Rizvi',
-    slug: 'dr-tariq-rizvi',
-    phone: '+94 77 444 8888',
-    rsvp: 'pending',
-    guest_count: 0,
-    notes: null,
-    responded_at: null,
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
-  },
-  {
-    id: '5',
-    name: 'Honored Guest',
-    slug: 'guest',
-    phone: null,
-    rsvp: 'pending',
-    guest_count: 0,
-    notes: null,
-    responded_at: null,
-    created_at: new Date().toISOString(),
-  },
-];
-
-const STORAGE_KEY = 'wedding_invitees_store_v1';
+const STORAGE_KEY = 'wedding_invitees_store_v2';
 
 function getLocalInvitees(): Invitee[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_INVITEES));
-      return INITIAL_INVITEES;
-    }
-    return JSON.parse(raw);
+    return raw ? JSON.parse(raw) : [];
   } catch {
-    return INITIAL_INVITEES;
+    return [];
   }
 }
 
@@ -106,9 +71,9 @@ export async function fetchInvitees(): Promise<Invitee[]> {
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      if (data && data.length > 0) return data as Invitee[];
+      return (data || []) as Invitee[];
     } catch (err) {
-      console.warn('Supabase fetch failed, using local store:', err);
+      console.error('Supabase fetch failed:', err);
     }
   }
   return getLocalInvitees();
@@ -121,10 +86,10 @@ export async function fetchInviteeBySlug(slug: string): Promise<Invitee | null> 
         .from('invitees')
         .select('*')
         .eq('slug', slug)
-        .single();
+        .maybeSingle();
       if (!error && data) return data as Invitee;
     } catch (err) {
-      console.warn('Supabase slug fetch failed, checking local store:', err);
+      console.error('Supabase slug fetch failed:', err);
     }
   }
   const local = getLocalInvitees();
@@ -133,8 +98,7 @@ export async function fetchInviteeBySlug(slug: string): Promise<Invitee | null> 
 }
 
 export async function createInvitee(name: string, phone?: string | null): Promise<Invitee> {
-  const local = getLocalInvitees();
-  const existingSlugs = local.map((i) => i.slug);
+  const existingSlugs = (await fetchInvitees()).map((i) => i.slug);
   const slug = generateSlug(name, existingSlugs);
 
   const newInvitee: Invitee = {
@@ -153,25 +117,27 @@ export async function createInvitee(name: string, phone?: string | null): Promis
     try {
       const { data, error } = await supabase
         .from('invitees')
-        .insert([{
-          name: newInvitee.name,
-          slug: newInvitee.slug,
-          phone: newInvitee.phone,
-          rsvp: 'pending',
-          guest_count: 0,
-        }])
+        .insert([
+          {
+            name: newInvitee.name,
+            slug: newInvitee.slug,
+            phone: newInvitee.phone,
+            rsvp: 'pending',
+            guest_count: 0,
+          },
+        ])
         .select()
         .single();
       if (!error && data) {
-        local.unshift(data as Invitee);
-        saveLocalInvitees(local);
         return data as Invitee;
       }
+      if (error) console.error('Supabase insert error:', error);
     } catch (err) {
-      console.warn('Supabase insert failed, saving to local store:', err);
+      console.error('Supabase insert failed:', err);
     }
   }
 
+  const local = getLocalInvitees();
   local.unshift(newInvitee);
   saveLocalInvitees(local);
   return newInvitee;
@@ -196,9 +162,10 @@ export async function updateRsvp(
           responded_at: respondedAt,
         })
         .eq('slug', slug);
-      if (error) throw error;
+      if (!error) return true;
+      console.error('Supabase RSVP update error:', error);
     } catch (err) {
-      console.warn('Supabase RSVP update failed, updating local store:', err);
+      console.error('Supabase RSVP update failed:', err);
     }
   }
 
@@ -225,7 +192,7 @@ export async function markInviteeShared(id: string): Promise<string> {
     try {
       await supabase.from('invitees').update({ shared_at: sharedAt }).eq('id', id);
     } catch (err) {
-      console.warn('Supabase shared_at update failed, using local store:', err);
+      console.error('Supabase shared_at update failed:', err);
     }
   }
 
@@ -242,10 +209,6 @@ export async function updateInvitee(
   id: string,
   updates: Partial<Pick<Invitee, 'name' | 'phone' | 'notes'>>
 ): Promise<boolean> {
-  const local = getLocalInvitees();
-  const index = local.findIndex((i) => i.id === id);
-  if (index === -1) return false;
-
   const cleaned: Partial<Invitee> = {};
   if (updates.name !== undefined) cleaned.name = updates.name.trim();
   if (updates.phone !== undefined) cleaned.phone = formatPhoneNumber(updates.phone);
@@ -254,11 +217,16 @@ export async function updateInvitee(
   if (isSupabaseConfigured && supabase) {
     try {
       const { error } = await supabase.from('invitees').update(cleaned).eq('id', id);
-      if (error) throw error;
+      if (!error) return true;
+      console.error('Supabase update invitee error:', error);
     } catch (err) {
-      console.warn('Supabase update invitee failed, updating local store:', err);
+      console.error('Supabase update invitee failed:', err);
     }
   }
+
+  const local = getLocalInvitees();
+  const index = local.findIndex((i) => i.id === id);
+  if (index === -1) return false;
 
   local[index] = { ...local[index], ...cleaned };
   saveLocalInvitees(local);
@@ -268,9 +236,11 @@ export async function updateInvitee(
 export async function deleteInvitee(id: string): Promise<boolean> {
   if (isSupabaseConfigured && supabase) {
     try {
-      await supabase.from('invitees').delete().eq('id', id);
+      const { error } = await supabase.from('invitees').delete().eq('id', id);
+      if (!error) return true;
+      console.error('Supabase delete error:', error);
     } catch (err) {
-      console.warn('Supabase delete failed:', err);
+      console.error('Supabase delete failed:', err);
     }
   }
   const local = getLocalInvitees();
