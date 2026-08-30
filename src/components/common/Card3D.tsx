@@ -53,6 +53,31 @@ export const Card3D: React.FC<Card3DProps> = ({
     y.set(0);
   };
 
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  React.useEffect(() => {
+    if (bgVideoSrc && videoRef.current) {
+      const vid = videoRef.current;
+      vid.defaultMuted = true;
+      vid.muted = true;
+      const playPromise = vid.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          // If browser policy blocks autoplay on mount, try again on user interaction
+          const onFirstInteraction = () => {
+            vid.play().catch(() => {});
+            window.removeEventListener('touchstart', onFirstInteraction);
+            window.removeEventListener('click', onFirstInteraction);
+            window.removeEventListener('scroll', onFirstInteraction);
+          };
+          window.addEventListener('touchstart', onFirstInteraction, { passive: true, once: true });
+          window.addEventListener('click', onFirstInteraction, { passive: true, once: true });
+          window.addEventListener('scroll', onFirstInteraction, { passive: true, once: true });
+        });
+      }
+    }
+  }, [bgVideoSrc]);
+
   return (
     <div className="perspective-1200 w-full">
       <motion.div
@@ -78,11 +103,18 @@ export const Card3D: React.FC<Card3DProps> = ({
         {bgVideoSrc && (
           <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none rounded-2xl">
             <video
+              ref={videoRef}
               src={bgVideoSrc}
+              poster="/assets/invite_card_bg_poster.webp"
               autoPlay
               loop
               muted
               playsInline
+              preload="auto"
+              disablePictureInPicture
+              disableRemotePlayback
+              onCanPlay={(e) => e.currentTarget.play().catch(() => {})}
+              onLoadedData={(e) => e.currentTarget.play().catch(() => {})}
               className="w-full h-full object-cover object-center opacity-45 filter brightness-105 contrast-95"
             />
             {/* Luminous frosted glass overlay for crystal clear letter contrast */}
