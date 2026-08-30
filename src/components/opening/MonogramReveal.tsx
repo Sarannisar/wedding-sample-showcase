@@ -24,9 +24,6 @@ export const MonogramReveal: React.FC<MonogramRevealProps> = ({ visible }) => {
       >
         {/* Luxury S&S Monogram Emblem */}
         <div className="relative mb-3 flex items-center justify-center">
-          {/* Luminous Warm Glow */}
-          <div className="absolute inset-0 w-28 h-28 rounded-full bg-[#fbd0de]/40 blur-xl animate-pulse-slow pointer-events-none" />
-
           {/* Clean Circular S&S Logo */}
           <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden drop-shadow-md border border-[#f2b8c6]/40 bg-white flex items-center justify-center p-1">
             <img

@@ -3,7 +3,6 @@ import gsap from 'gsap';
 import { motion } from 'framer-motion';
 import { ArchitecturalPortal } from './ArchitecturalPortal';
 import { MonogramReveal } from './MonogramReveal';
-import { FloralForeground } from './FloralForeground';
 
 interface OpeningExperienceProps {
   onOpenComplete: () => void;
@@ -24,7 +23,6 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
   const rafId = useRef<number | null>(null);
 
   const [doorProgress, setDoorProgress] = useState(0);
-  const [glowProgress, setGlowProgress] = useState(0);
   const [isStarted, setIsStarted] = useState(false);
   const [isCardVisible, setIsCardVisible] = useState(false);
   const [isRevealed, setIsRevealed] = useState(false);
@@ -55,51 +53,36 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
     });
 
     const animState = {
-      glow: 0,
       doors: 0,
     };
 
-    // Stage 0: Illuminate seam and central logo bloom
+    // Stage 1: Doors slide open sideways with smooth luxury acceleration/deceleration immediately
     tl.to(animState, {
-      glow: 1,
-      duration: 0.75,
-      ease: 'power2.out',
+      doors: 1,
+      duration: 2.2,
+      ease: 'power3.inOut',
+      onStart: () => {
+        onDoorsOpening?.();
+      },
       onUpdate: () => {
-        setGlowProgress(animState.glow);
+        setDoorProgress(animState.doors);
       },
     })
-      // Stage 1: Doors slide open sideways with smooth luxury acceleration/deceleration
-      .to(
-        animState,
-        {
-          doors: 1,
-          duration: 2.4,
-          ease: 'power3.inOut',
-          onStart: () => {
-            onDoorsOpening?.();
-          },
-          onUpdate: () => {
-            setDoorProgress(animState.doors);
-          },
-        },
-        '-=0.1'
-      )
       // Stage 2: Camera pushes gently forward into the fairytale garden
       .to(
         sceneRef.current,
         {
           scale: 1.06,
-          duration: 2.6,
+          duration: 2.4,
           ease: 'power2.out',
         },
-        '-=2.0'
+        '-=1.8'
       )
-      // Stage 3: Start popup rise early (as doors reach ~50% parting), decreasing delay to popup
+      // Stage 3: Start popup rise early (as doors reach ~50% parting)
       .call(() => {
         setIsCardVisible(true);
-      }, undefined, '-=1.5')
-      // Settle time for the 3.5s slow popup transition to complete before showing scroll prompt
-      .to({}, { duration: 2.0 });
+      }, undefined, '-=1.2')
+      .to({}, { duration: 1.8 });
   };
 
   const handleEnterInvitation = () => {
@@ -178,36 +161,25 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
       onClick={() => {
         if (!isStarted) startCinematicSequence();
       }}
-      className={`fixed inset-0 z-40 flex flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-[#fff5f9] via-[#fff2f6] to-[#fffafc] select-none ${
+      className={`fixed inset-0 z-40 flex flex-col items-center justify-center overflow-hidden bg-[#fff5f9] select-none ${
         !isStarted ? 'cursor-pointer' : ''
       }`}
     >
-      {/* Soft Romantic Ambient Light Blooms */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[550px] h-[550px] rounded-full bg-[#f7c1d0]/25 blur-[100px] animate-pulse-slow" />
-        <div className="absolute bottom-10 left-10 w-72 h-72 rounded-full bg-[#fcd5ce]/30 blur-[80px]" />
-        <div className="absolute top-10 right-10 w-72 h-72 rounded-full bg-[#fbd0de]/25 blur-[80px]" />
-      </div>
-
       {/* 3D Scene Root - Full Screen on Mobile */}
       <div
         ref={sceneRef}
         style={{ willChange: 'transform' }}
-        className="relative w-full h-full flex flex-col items-center justify-center transition-transform duration-150 ease-out"
+        className="relative w-full h-full flex flex-col items-center justify-center transition-transform duration-150 ease-out transform-gpu"
       >
         {/* Full-bleed Sliding Doors */}
         <ArchitecturalPortal
           doorProgress={doorProgress}
-          glowProgress={glowProgress}
           onClickDoor={!isStarted ? startCinematicSequence : undefined}
           isStarted={isStarted}
         />
 
         {/* Monogram, Couple Names, Date Reveal */}
         <MonogramReveal visible={isCardVisible} />
-
-        {/* Foreground Glow */}
-        <FloralForeground progress={doorProgress} />
       </div>
 
       {/* Floating Action Controls */}
