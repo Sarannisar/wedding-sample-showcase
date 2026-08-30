@@ -7,11 +7,11 @@ interface FloralLoaderProps {
 }
 
 const CRITICAL_ASSETS = [
-  '/assets/fancy_door_left.jpg',
-  '/assets/fancy_door_right.jpg',
-  '/assets/fancy_garden_palace.jpg',
-  '/assets/door_handle_crest_left.png',
-  '/assets/door_handle_crest_right.png',
+  '/assets/fancy_door_left.webp',
+  '/assets/fancy_door_right.webp',
+  '/assets/fancy_garden_palace.webp',
+  '/assets/door_handle_crest_left.webp',
+  '/assets/door_handle_crest_right.webp',
   '/assets/logo_saad_sheen_crest.png',
 ];
 
@@ -21,7 +21,7 @@ export const FloralLoader: React.FC<FloralLoaderProps> = ({ onComplete }) => {
   const isCompletedRef = useRef(false);
 
   const checkDone = () => {
-    if (isAnimationDoneRef.current && isPreloadDoneRef.current && !isCompletedRef.current) {
+    if ((isAnimationDoneRef.current || isPreloadDoneRef.current) && !isCompletedRef.current) {
       isCompletedRef.current = true;
       onComplete?.();
     }
@@ -55,14 +55,13 @@ export const FloralLoader: React.FC<FloralLoaderProps> = ({ onComplete }) => {
 
     preloadAll();
 
-    // Fallback safety timeout so loader never hangs
+    // Fast safety timeout so user never waits more than 1.5s
     const timer = setTimeout(() => {
       if (active && !isCompletedRef.current) {
-        isPreloadDoneRef.current = true;
-        isAnimationDoneRef.current = true;
-        checkDone();
+        isCompletedRef.current = true;
+        onComplete?.();
       }
-    }, 3200);
+    }, 1500);
 
     return () => {
       active = false;
@@ -74,7 +73,7 @@ export const FloralLoader: React.FC<FloralLoaderProps> = ({ onComplete }) => {
     <motion.div
       initial={{ opacity: 1 }}
       exit={{ opacity: 0, scale: 1.03 }}
-      transition={{ duration: 0.8, ease: 'easeInOut' }}
+      transition={{ duration: 0.6, ease: 'easeInOut' }}
       className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#fffafc] px-4 select-none"
     >
       <div className="relative flex flex-col items-center max-w-sm text-center">
@@ -82,13 +81,13 @@ export const FloralLoader: React.FC<FloralLoaderProps> = ({ onComplete }) => {
         <div className="relative w-52 h-52 sm:w-60 sm:h-60 flex items-center justify-center">
           {/* Logo Reveal — Smooth Fade, Scale & Soft Appearance */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.86, filter: 'blur(6px)' }}
+            initial={{ opacity: 0, scale: 0.88, filter: 'blur(4px)' }}
             animate={{
               opacity: 1,
               scale: 1,
               filter: 'blur(0px)',
             }}
-            transition={{ duration: 1.8, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 1.0, ease: [0.22, 1, 0.36, 1] }}
             onAnimationComplete={() => {
               isAnimationDoneRef.current = true;
               checkDone();

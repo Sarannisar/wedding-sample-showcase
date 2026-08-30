@@ -25,17 +25,15 @@ export const ArchitecturalPortal: React.FC<ArchitecturalPortalProps> = ({
       {/* ========================================================
           BACKGROUND: BESPOKE WHITE & PASTEL BABY PINK PALACE SCENE
           ======================================================== */}
-      <div className="absolute inset-0 overflow-hidden shadow-2xl flex items-center justify-center bg-[#fff5f9]">
+      <div className="absolute inset-0 overflow-hidden flex items-center justify-center bg-[#fff5f9]">
         <img
-          src="/assets/fancy_garden_palace.jpg"
+          src="/assets/fancy_garden_palace.webp"
           alt="Royal Fairytale Garden Palace"
           loading="eager"
           decoding="sync"
+          fetchPriority="high"
           className="w-full h-full object-cover object-center transform-gpu"
         />
-
-        {/* Soft Ambient Sunlight Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-[#fffafc]/30 pointer-events-none" />
       </div>
 
       {/* ========================================================
@@ -48,17 +46,14 @@ export const ArchitecturalPortal: React.FC<ArchitecturalPortalProps> = ({
           style={{
             transform: `translateX(${leftDoorTranslateX}%)`,
             willChange: 'transform',
-            boxShadow:
-              doorProgress > 0.02
-                ? '8px 0 25px rgba(0, 0, 0, 0.12)'
-                : 'none',
           }}
         >
           <img
-            src="/assets/fancy_door_left.jpg"
+            src="/assets/fancy_door_left.webp"
             alt="Royal French Left Door"
             loading="eager"
             decoding="sync"
+            fetchPriority="high"
             className="w-full h-full object-cover object-center transform-gpu"
           />
 
@@ -71,11 +66,11 @@ export const ArchitecturalPortal: React.FC<ArchitecturalPortalProps> = ({
             }}
           >
             <img
-              src="/assets/door_handle_crest_left.png"
+              src="/assets/door_handle_crest_left.webp"
               alt="S&S Logo Left"
               loading="eager"
               decoding="sync"
-              className="w-full h-full object-contain object-right drop-shadow-md"
+              className="w-full h-full object-contain object-right"
             />
           </div>
         </div>
@@ -86,17 +81,14 @@ export const ArchitecturalPortal: React.FC<ArchitecturalPortalProps> = ({
           style={{
             transform: `translateX(${rightDoorTranslateX}%)`,
             willChange: 'transform',
-            boxShadow:
-              doorProgress > 0.02
-                ? '-8px 0 25px rgba(0, 0, 0, 0.12)'
-                : 'none',
           }}
         >
           <img
-            src="/assets/fancy_door_right.jpg"
+            src="/assets/fancy_door_right.webp"
             alt="Royal French Right Door"
             loading="eager"
             decoding="sync"
+            fetchPriority="high"
             className="w-full h-full object-cover object-center transform-gpu"
           />
 
@@ -109,11 +101,11 @@ export const ArchitecturalPortal: React.FC<ArchitecturalPortalProps> = ({
             }}
           >
             <img
-              src="/assets/door_handle_crest_right.png"
+              src="/assets/door_handle_crest_right.webp"
               alt="S&S Logo Right"
               loading="eager"
               decoding="sync"
-              className="w-full h-full object-contain object-left drop-shadow-md"
+              className="w-full h-full object-contain object-left"
             />
           </div>
         </div>

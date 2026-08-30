@@ -103,28 +103,28 @@ export const GuestInvitePage: React.FC = () => {
       {/* Ambient Drifting Rose Petals */}
       <AmbientPetals />
 
-      <AnimatePresence mode="wait">
+      {/* Opening Portal Experience (pre-mounted for instantaneous 0ms display) */}
+      {loadingStep !== 'invitation' && (
+        <OpeningExperience
+          key="opening"
+          guestName={guestDisplayName}
+          onDoorsOpening={() => setMusicStarted(true)}
+          onEnterStart={() => {
+            setIsScrollUnlocked(true);
+          }}
+          onOpenComplete={() => {
+            setLoadingStep('invitation');
+          }}
+        />
+      )}
+
+      {/* Initial Monogram Reveal Loader */}
+      <AnimatePresence>
         {loadingStep === 'loader' && (
           <FloralLoader
             key="loader"
             guestName={guestDisplayName}
             onComplete={() => setLoadingStep('opening')}
-          />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {loadingStep === 'opening' && (
-          <OpeningExperience
-            key="opening"
-            guestName={guestDisplayName}
-            onDoorsOpening={() => setMusicStarted(true)}
-            onEnterStart={() => {
-              setIsScrollUnlocked(true);
-            }}
-            onOpenComplete={() => {
-              setLoadingStep('invitation');
-            }}
           />
         )}
       </AnimatePresence>
