@@ -18,6 +18,17 @@
   --perspective: 1200px;
 }
 
+html {
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
+}
+
 /* 3D Perspective Contexts */
 .perspective-1000 {
   perspective: 1000px;
@@ -88,25 +99,3 @@
   background: #eaa6ba;
 }
 
-/* Glow tracing animation for the door + crest outlines */
-.glow-trace {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  animation: glow-draw 4.5s ease-in-out infinite;
-}
-.glow-trace-delay-1 { animation-delay: 0.25s; }
-.glow-trace-delay-2 { animation-delay: 0.5s; }
-.glow-trace-delay-3 { animation-delay: 0.75s; }
-.glow-trace-delay-4 { animation-delay: 1s; }
-
-@keyframes glow-draw {
-  0% { stroke-dashoffset: 1; opacity: 0; }
-  12% { opacity: 1; }
-  55% { stroke-dashoffset: 0; opacity: 1; }
-  85% { stroke-dashoffset: 0; opacity: 0.35; }
-  100% { stroke-dashoffset: 0; opacity: 0; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .glow-trace { animation: none; stroke-dashoffset: 0; opacity: 0.7; }
-}

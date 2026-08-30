@@ -8,38 +8,44 @@ import { FloralForeground } from './FloralForeground';
 interface OpeningExperienceProps {
   onOpenComplete: () => void;
   onDoorsOpening?: () => void;
+  onEnterStart?: () => void;
   guestName?: string;
 }
 
 export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
   onOpenComplete,
   onDoorsOpening,
+  onEnterStart,
   guestName,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<HTMLDivElement>(null);
+  const isTransitioningRef = useRef(false);
+  const rafId = useRef<number | null>(null);
 
   const [doorProgress, setDoorProgress] = useState(0);
-  const [ribbonUntie, setRibbonUntie] = useState(0);
-  const [monogramOpacity, setMonogramOpacity] = useState(0);
-  const [monogramScale, setMonogramScale] = useState(0.85);
+  const [glowProgress, setGlowProgress] = useState(0);
   const [isStarted, setIsStarted] = useState(false);
+  const [isCardVisible, setIsCardVisible] = useState(false);
   const [isRevealed, setIsRevealed] = useState(false);
 
-
-  // Mouse parallax state
-  const [tilt, setTilt] = useState({ x: 0, y: 0 });
-
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!sceneRef.current || isTransitioningRef.current) return;
     const { clientX, clientY, currentTarget } = e;
     const { width, height, left, top } = currentTarget.getBoundingClientRect();
-    const x = (clientX - left) / width - 0.5;
-    const y = (clientY - top) / height - 0.5;
-    setTilt({ x: x * 5, y: y * -5 });
+    const x = ((clientX - left) / width - 0.5) * 4;
+    const y = ((clientY - top) / height - 0.5) * -4;
+
+    if (rafId.current) cancelAnimationFrame(rafId.current);
+    rafId.current = requestAnimationFrame(() => {
+      if (sceneRef.current) {
+        sceneRef.current.style.transform = `rotateY(${x}deg) rotateX(${y}deg)`;
+      }
+    });
   };
 
   const startCinematicSequence = () => {
-    if (isStarted) return;
+    if (isStarted || isTransitioningRef.current) return;
     setIsStarted(true);
 
     const tl = gsap.timeline({
@@ -49,93 +55,107 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
     });
 
     const animState = {
-      ribbon: 0,
+      glow: 0,
       doors: 0,
-      monoOpacity: 0,
-      monoScale: 0.85,
     };
 
-    // Stage 0: The satin ribbon unties itself
+    // Stage 0: Illuminate seam and central logo bloom
     tl.to(animState, {
-      ribbon: 1,
-      duration: 1.5,
-      ease: 'power2.inOut',
+      glow: 1,
+      duration: 0.75,
+      ease: 'power2.out',
       onUpdate: () => {
-        setRibbonUntie(animState.ribbon);
+        setGlowProgress(animState.glow);
       },
     })
       // Stage 1: Doors slide open sideways with smooth luxury acceleration/deceleration
-      .to(animState, {
-        doors: 1,
-        duration: 2.8,
-        ease: 'power3.inOut',
-        onStart: () => {
-          onDoorsOpening?.();
-        },
-        onUpdate: () => {
-          setDoorProgress(animState.doors);
-        },
-      })
-
-      // Stage 2: Camera pushes gently forward
-      .to(
-        sceneRef.current,
-        {
-          scale: 1.12,
-          duration: 3,
-          ease: 'power2.out',
-        },
-        '-=2.4'
-      )
-      // Stage 3: Monogram, names & date illuminate smoothly
       .to(
         animState,
         {
-          monoOpacity: 1,
-          monoScale: 1,
-          duration: 2,
-          ease: 'power2.out',
+          doors: 1,
+          duration: 2.4,
+          ease: 'power3.inOut',
+          onStart: () => {
+            onDoorsOpening?.();
+          },
           onUpdate: () => {
-            setMonogramOpacity(animState.monoOpacity);
-            setMonogramScale(animState.monoScale);
+            setDoorProgress(animState.doors);
           },
         },
-        '-=1.8'
-      );
+        '-=0.1'
+      )
+      // Stage 2: Camera pushes gently forward into the fairytale garden
+      .to(
+        sceneRef.current,
+        {
+          scale: 1.06,
+          duration: 2.6,
+          ease: 'power2.out',
+        },
+        '-=2.0'
+      )
+      // Stage 3: Start popup rise early (as doors reach ~50% parting), decreasing delay to popup
+      .call(() => {
+        setIsCardVisible(true);
+      }, undefined, '-=1.5')
+      // Settle time for the 3.5s slow popup transition to complete before showing scroll prompt
+      .to({}, { duration: 2.0 });
   };
 
   const handleEnterInvitation = () => {
-    // Buttery-smooth cross-fade transition into the main invitation details
+    if (isTransitioningRef.current) return;
+    isTransitioningRef.current = true;
+
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    onEnterStart?.();
+
+    if (!containerRef.current) {
+      onOpenComplete();
+      return;
+    }
+
+    containerRef.current.style.pointerEvents = 'none';
+
+    // Luxurious smooth glide-up and cross-fade into the main invitation suite
     gsap.to(containerRef.current, {
       opacity: 0,
-      y: -40,
-      scale: 1.03,
-      duration: 1.2,
+      y: -70,
+      scale: 0.98,
+      duration: 1.1,
       ease: 'power2.inOut',
-      onComplete: onOpenComplete,
+      onComplete: () => {
+        onOpenComplete();
+      },
     });
   };
 
-  // Allow scrolling to smoothly transition into the rest of the invite once opened
+  // Allow scrolling/swiping to smoothly transition into the rest of the invite immediately once popup appears
   useEffect(() => {
-    if (!isRevealed) return;
+    if (!isCardVisible) return;
 
     let touchStartY = 0;
 
     const handleWheel = (e: WheelEvent) => {
-      if (e.deltaY > 15) {
+      if (isTransitioningRef.current) return;
+      if (e.deltaY > 10) {
         handleEnterInvitation();
       }
     };
 
     const handleTouchStart = (e: TouchEvent) => {
-      touchStartY = e.touches[0].clientY;
+      if (isTransitioningRef.current) return;
+      if (e.touches.length > 0) {
+        touchStartY = e.touches[0].clientY;
+      }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      const touchEndY = e.touches[0].clientY;
-      if (touchStartY - touchEndY > 25) {
-        handleEnterInvitation();
+      if (isTransitioningRef.current) return;
+      if (e.touches.length > 0) {
+        const touchEndY = e.touches[0].clientY;
+        if (touchStartY - touchEndY > 14) {
+          handleEnterInvitation();
+        }
       }
     };
 
@@ -147,8 +167,9 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
       window.removeEventListener('wheel', handleWheel);
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchmove', handleTouchMove);
+      if (rafId.current) cancelAnimationFrame(rafId.current);
     };
-  }, [isRevealed]);
+  }, [isCardVisible]);
 
   return (
     <div
@@ -171,33 +192,33 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
       {/* 3D Scene Root - Full Screen on Mobile */}
       <div
         ref={sceneRef}
-        style={{
-          transform: `rotateY(${tilt.x}deg) rotateX(${tilt.y}deg)`,
-        }}
-        className="relative w-full h-full flex flex-col items-center justify-center transition-transform duration-300 ease-out"
+        style={{ willChange: 'transform' }}
+        className="relative w-full h-full flex flex-col items-center justify-center transition-transform duration-150 ease-out"
       >
         {/* Full-bleed Sliding Doors */}
         <ArchitecturalPortal
           doorProgress={doorProgress}
+          glowProgress={glowProgress}
           onClickDoor={!isStarted ? startCinematicSequence : undefined}
           isStarted={isStarted}
-          ribbonUntie={ribbonUntie}
         />
 
         {/* Monogram, Couple Names, Date Reveal */}
-        <MonogramReveal opacity={monogramOpacity} scale={monogramScale} />
+        <MonogramReveal visible={isCardVisible} />
 
         {/* Foreground Glow */}
         <FloralForeground progress={doorProgress} />
       </div>
 
       {/* Floating Action Controls */}
-      <div className="absolute bottom-8 z-50 flex flex-col items-center gap-2 px-4">
+      <div className="absolute bottom-8 z-50 flex flex-col items-center gap-2 px-4 pointer-events-auto">
         {!isStarted ? (
           <motion.div
+            key="tap-to-open"
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.8 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ delay: 0.4, duration: 0.7 }}
             className="flex flex-col items-center gap-2"
           >
             <button
@@ -223,11 +244,13 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
               </span>
             )}
           </motion.div>
-        ) : isRevealed ? (
+        ) : isCardVisible ? (
           <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
+            key="scroll-to-explore"
+            initial={{ opacity: 0, y: 15, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ delay: 0.6, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
             className="flex flex-col items-center gap-2"
           >
             <button

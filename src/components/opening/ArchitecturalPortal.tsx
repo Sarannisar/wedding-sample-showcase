@@ -1,36 +1,33 @@
 import React from 'react';
-import { DoorGlowTracer } from './DoorGlowTracer';
-import { DoorRibbon } from './DoorRibbon';
 
 interface ArchitecturalPortalProps {
   doorProgress: number; // 0 (closed) to 1 (fully open)
+  glowProgress?: number; // 0 (no glow) to 1 (full glow)
   onClickDoor?: () => void;
   isStarted?: boolean;
-  ribbonUntie?: number; // 0 (tied) to 1 (fully untied)
 }
 
 export const ArchitecturalPortal: React.FC<ArchitecturalPortalProps> = ({
   doorProgress,
+  glowProgress = 0,
   onClickDoor,
   isStarted = false,
-  ribbonUntie = 0,
 }) => {
   // Smooth horizontal sliding transforms for the left and right doors
   const leftDoorTranslateX = -doorProgress * 102; // Slide completely to the left (-102%)
   const rightDoorTranslateX = doorProgress * 102; // Slide completely to the right (+102%)
 
-
   return (
     <div
       onClick={onClickDoor}
-      className={`relative w-full h-full min-h-screen md:max-w-[460px] md:h-[92vh] md:min-h-0 md:rounded-3xl flex flex-col items-center justify-center select-none overflow-hidden ${
+      className={`relative w-full h-full min-h-screen flex flex-col items-center justify-center select-none overflow-hidden ${
         !isStarted ? 'cursor-pointer group' : ''
       }`}
     >
       {/* ========================================================
-          BACKGROUND: BESPOKE FAIRYTALE PALACE GARDEN COLONNADE
+          BACKGROUND: BESPOKE WHITE & PASTEL BABY PINK PALACE SCENE
           ======================================================== */}
-      <div className="absolute inset-0 overflow-hidden shadow-2xl flex items-center justify-center bg-[#eed0d9]">
+      <div className="absolute inset-0 overflow-hidden shadow-2xl flex items-center justify-center bg-[#fff5f9]">
         <img
           src="/assets/fancy_garden_palace.jpg"
           alt="Royal Fairytale Garden Palace"
@@ -38,21 +35,63 @@ export const ArchitecturalPortal: React.FC<ArchitecturalPortalProps> = ({
         />
 
         {/* Soft Ambient Sunlight Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-[#fffafc]/25 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/25 via-transparent to-[#fffafc]/35 pointer-events-none" />
       </div>
 
       {/* ========================================================
-          SLIDING ROYAL PALACE DOUBLE DOORS WITH CENTER S&S HANDLE
+          GLOWING DOOR SEAM & LOGO RADIANCE EFFECT BEFORE OPENING
+          ======================================================== */}
+      {doorProgress < 0.9 && (
+        <>
+          {/* Vertical Seam Light Tracer */}
+          <div
+            className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-2 pointer-events-none z-35 transition-opacity duration-200"
+            style={{
+              opacity:
+                doorProgress > 0
+                  ? Math.max(0, 1 - doorProgress * 3.5)
+                  : glowProgress > 0
+                  ? glowProgress
+                  : 0.15,
+            }}
+          >
+            {/* Brilliant Vertical Seam Beam */}
+            <div className="w-full h-full bg-gradient-to-b from-transparent via-[#fff0f5] to-transparent shadow-[0_0_24px_6px_#f2b8c6]" />
+          </div>
+
+          {/* Central Logo Radiance Glow Bloom */}
+          <div
+            className="absolute top-[58%] left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none z-25 transition-all duration-300"
+            style={{
+              width: `${190 + glowProgress * 120}px`,
+              height: `${190 + glowProgress * 120}px`,
+              opacity:
+                doorProgress > 0
+                  ? Math.max(0, 1 - doorProgress * 2.5)
+                  : glowProgress > 0
+                  ? glowProgress
+                  : 0.35,
+              background:
+                'radial-gradient(circle, rgba(255,235,242,0.95) 0%, rgba(247,193,208,0.6) 45%, transparent 72%)',
+              filter: 'blur(16px)',
+            }}
+          />
+        </>
+      )}
+
+      {/* ========================================================
+          SLIDING ROYAL PALACE DOUBLE DOORS WITH PEARL ESCUTCHEON
           ======================================================== */}
       <div className="absolute inset-0 z-20 flex overflow-hidden">
         {/* LEFT DOOR SLIDING LEAF */}
         <div
-          className="relative w-1/2 h-full transition-transform duration-75 overflow-hidden"
+          className="relative w-1/2 h-full transition-transform duration-75 overflow-hidden transform-gpu"
           style={{
             transform: `translateX(${leftDoorTranslateX}%)`,
+            willChange: 'transform',
             boxShadow:
               doorProgress > 0.02
-                ? `10px 0 30px rgba(0, 0, 0, ${0.35 - doorProgress * 0.2})`
+                ? `12px 0 35px rgba(224, 138, 163, ${0.45 - doorProgress * 0.3})`
                 : 'none',
           }}
         >
@@ -62,24 +101,31 @@ export const ArchitecturalPortal: React.FC<ArchitecturalPortalProps> = ({
             className="w-full h-full object-cover object-center"
           />
 
-          {/* Left Half of Central S&S Logo Handle */}
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-r-0 border-[#f2b8c6] bg-white shadow-2xl z-30 pointer-events-none flex items-center justify-center">
+          {/* Left Half of Central S&S Logo Handle (Mathematically Centered & Perfectly Symmetrical) */}
+          <div
+            className="absolute right-0 top-[58%] -translate-y-1/2 pointer-events-none z-30 flex items-center justify-end"
+            style={{
+              width: '48px',
+              height: '96px',
+            }}
+          >
             <img
-              src="/assets/logo_saad_sheen_crest.jpg"
-              alt="S&S Logo Handle"
-              className="w-full h-full object-cover scale-110"
+              src="/assets/door_handle_crest_left.png"
+              alt="S&S Logo Left"
+              className="w-full h-full object-contain object-right drop-shadow-lg"
             />
           </div>
         </div>
 
         {/* RIGHT DOOR SLIDING LEAF */}
         <div
-          className="relative w-1/2 h-full transition-transform duration-75 overflow-hidden"
+          className="relative w-1/2 h-full transition-transform duration-75 overflow-hidden transform-gpu"
           style={{
             transform: `translateX(${rightDoorTranslateX}%)`,
+            willChange: 'transform',
             boxShadow:
               doorProgress > 0.02
-                ? `-10px 0 30px rgba(0, 0, 0, ${0.35 - doorProgress * 0.2})`
+                ? `-12px 0 35px rgba(224, 138, 163, ${0.45 - doorProgress * 0.3})`
                 : 'none',
           }}
         >
@@ -89,23 +135,23 @@ export const ArchitecturalPortal: React.FC<ArchitecturalPortalProps> = ({
             className="w-full h-full object-cover object-center"
           />
 
-          {/* Right Half of Central S&S Logo Handle */}
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-l-0 border-[#f2b8c6] bg-white shadow-2xl z-30 pointer-events-none flex items-center justify-center">
+          {/* Right Half of Central S&S Logo Handle (Mathematically Centered & Perfectly Symmetrical) */}
+          <div
+            className="absolute left-0 top-[58%] -translate-y-1/2 pointer-events-none z-30 flex items-center justify-start"
+            style={{
+              width: '48px',
+              height: '96px',
+            }}
+          >
             <img
-              src="/assets/logo_saad_sheen_crest.jpg"
-              alt="S&S Logo Handle"
-              className="w-full h-full object-cover scale-110"
+              src="/assets/door_handle_crest_right.png"
+              alt="S&S Logo Right"
+              className="w-full h-full object-contain object-left drop-shadow-lg"
             />
           </div>
         </div>
       </div>
-
-      {/* Satin ribbon tied across the doors — unties before they part */}
-      {doorProgress < 0.98 && <DoorRibbon untie={ribbonUntie} />}
-
-      {/* Luminous outline tracing over the door + crest design */}
-      {!isStarted && <DoorGlowTracer fade={doorProgress} />}
     </div>
-
   );
 };
+

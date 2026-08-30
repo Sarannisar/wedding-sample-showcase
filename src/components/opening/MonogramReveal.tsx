@@ -1,32 +1,38 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { weddingConfig } from '@/config/weddingConfig';
 
 interface MonogramRevealProps {
-  opacity: number;
-  scale: number;
+  visible: boolean;
 }
 
-export const MonogramReveal: React.FC<MonogramRevealProps> = ({ opacity, scale }) => {
+export const MonogramReveal: React.FC<MonogramRevealProps> = ({ visible }) => {
   return (
-    <div
-      className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-30 transition-all duration-300 px-4"
-      style={{
-        opacity,
-        transform: `scale(${scale})`,
-      }}
-    >
-      <div className="flex flex-col items-center text-center max-w-xs -mt-10 bg-white/80 backdrop-blur-md p-6 rounded-3xl border border-[#e08aa3]/20 shadow-2xl">
-        {/* Simpler, Modern Luxury S&S Monogram Emblem */}
+    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-30 px-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.86, y: 30 }}
+        animate={
+          visible
+            ? { opacity: 1, scale: 1, y: 0 }
+            : { opacity: 0, scale: 0.86, y: 30 }
+        }
+        transition={{
+          duration: 4.5,
+          ease: [0.16, 1, 0.3, 1],
+        }}
+        className="flex flex-col items-center text-center max-w-xs -mt-10 bg-white/90 backdrop-blur-md p-6 rounded-3xl border border-[#e08aa3]/25 shadow-2xl"
+      >
+        {/* Luxury S&S Monogram Emblem */}
         <div className="relative mb-3 flex items-center justify-center">
           {/* Luminous Warm Glow */}
           <div className="absolute inset-0 w-28 h-28 rounded-full bg-[#fbd0de]/40 blur-xl animate-pulse-slow pointer-events-none" />
 
           {/* Clean Circular S&S Logo */}
-          <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden drop-shadow-lg border border-[#f2b8c6]/30 bg-white">
+          <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden drop-shadow-md border border-[#f2b8c6]/40 bg-white flex items-center justify-center p-1">
             <img
-              src="/assets/logo_saad_sheen_crest.jpg"
+              src="/assets/logo_saad_sheen_crest.png"
               alt="S & S Wedding Monogram"
-              className="w-full h-full object-cover scale-105"
+              className="w-full h-full object-contain"
             />
           </div>
         </div>
@@ -52,7 +58,7 @@ export const MonogramReveal: React.FC<MonogramRevealProps> = ({ opacity, scale }
         <p className="font-label text-xs uppercase tracking-[0.2em] text-[#b05570] font-bold">
           {weddingConfig.event.dayAndDate}
         </p>
-      </div>
+      </motion.div>
     </div>
   );
 };

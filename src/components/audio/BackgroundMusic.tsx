@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Music, VolumeX } from 'lucide-react';
-import bgm from '@/assets/wedding-bgm.mp3.asset.json';
 
 interface BackgroundMusicProps {
   /** Starts the music once true (triggered after the doors open) */
@@ -13,9 +12,9 @@ export const BackgroundMusic: React.FC<BackgroundMusicProps> = ({ active }) => {
 
   useEffect(() => {
     if (!audioRef.current) {
-      const el = new Audio(bgm.url);
+      const el = new Audio('/assets/wedding_bgm_track.mp3');
       el.loop = true;
-      el.volume = 0.45;
+      el.volume = 0.5;
       audioRef.current = el;
     }
     return () => {

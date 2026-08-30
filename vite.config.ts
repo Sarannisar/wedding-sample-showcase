@@ -12,5 +12,8 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    watch: {
+      ignored: ['**/*.mp4', '**/scratch/**', '**/*.log'],
+    },
   },
 });

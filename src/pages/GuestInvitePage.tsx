@@ -16,16 +16,21 @@ export const GuestInvitePage: React.FC = () => {
   const [loadingStep, setLoadingStep] = useState<'loader' | 'opening' | 'invitation'>('loader');
   const [musicStarted, setMusicStarted] = useState(false);
 
-  // Lock page scrolling until the invitation itself is on screen so the
-  // loader/door sequence and the invitation scroll consistently.
+  const [isScrollUnlocked, setIsScrollUnlocked] = useState(false);
+
+  // Lock page scrolling during initial loader and until user begins entering invitation
   useEffect(() => {
-    const locked = loadingStep !== 'invitation';
-    document.body.style.overflow = locked ? 'hidden' : '';
-    if (!locked) window.scrollTo(0, 0);
+    const locked = !isScrollUnlocked && loadingStep !== 'invitation';
+    if (locked) {
+      document.body.style.overflow = 'hidden';
+      window.scrollTo(0, 0);
+    } else {
+      document.body.style.overflow = '';
+    }
     return () => {
       document.body.style.overflow = '';
     };
-  }, [loadingStep]);
+  }, [loadingStep, isScrollUnlocked]);
 
   useEffect(() => {
     async function loadGuest() {
@@ -108,23 +113,27 @@ export const GuestInvitePage: React.FC = () => {
         )}
       </AnimatePresence>
 
-      <AnimatePresence mode="wait">
+      <AnimatePresence>
         {loadingStep === 'opening' && (
           <OpeningExperience
             key="opening"
             guestName={guestDisplayName}
             onDoorsOpening={() => setMusicStarted(true)}
+            onEnterStart={() => {
+              setIsScrollUnlocked(true);
+            }}
             onOpenComplete={() => {
               setLoadingStep('invitation');
-              window.scrollTo({ top: 0 });
             }}
           />
         )}
       </AnimatePresence>
 
-      {/* Main Post-Opening Invitation Suite (Reference 02 Post-Opening) */}
-      {loadingStep === 'invitation' && (
-        <InvitationSuite invitee={invitee} onRsvpSuccess={handleRsvpSuccess} />
+      {/* Main Post-Opening Invitation Suite — Pre-mounted to guarantee 60fps instant transitions */}
+      {loadingStep !== 'loader' && (
+        <div className="w-full">
+          <InvitationSuite invitee={invitee} onRsvpSuccess={handleRsvpSuccess} />
+        </div>
       )}
 
       {/* Background music with corner toggle, begins as the doors open */}
