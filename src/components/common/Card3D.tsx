@@ -53,31 +53,6 @@ export const Card3D: React.FC<Card3DProps> = ({
     y.set(0);
   };
 
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  React.useEffect(() => {
-    if (bgVideoSrc && videoRef.current) {
-      const vid = videoRef.current;
-      vid.defaultMuted = true;
-      vid.muted = true;
-      const playPromise = vid.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(() => {
-          // If browser policy blocks autoplay on mount, try again on user interaction
-          const onFirstInteraction = () => {
-            vid.play().catch(() => {});
-            window.removeEventListener('touchstart', onFirstInteraction);
-            window.removeEventListener('click', onFirstInteraction);
-            window.removeEventListener('scroll', onFirstInteraction);
-          };
-          window.addEventListener('touchstart', onFirstInteraction, { passive: true, once: true });
-          window.addEventListener('click', onFirstInteraction, { passive: true, once: true });
-          window.addEventListener('scroll', onFirstInteraction, { passive: true, once: true });
-        });
-      }
-    }
-  }, [bgVideoSrc]);
-
   return (
     <div className="perspective-1200 w-full">
       <motion.div
@@ -99,26 +74,21 @@ export const Card3D: React.FC<Card3DProps> = ({
           className
         )}
       >
-        {/* Background Video Layer */}
+        {/* Background Animated Art Layer */}
         {bgVideoSrc && (
           <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none rounded-2xl">
-            <video
-              ref={videoRef}
-              src={bgVideoSrc}
-              poster="/assets/invite_card_bg_poster.webp"
-              autoPlay
-              loop
-              muted
-              playsInline
-              preload="auto"
-              disablePictureInPicture
-              disableRemotePlayback
-              onCanPlay={(e) => e.currentTarget.play().catch(() => {})}
-              onLoadedData={(e) => e.currentTarget.play().catch(() => {})}
-              className="w-full h-full object-cover object-center opacity-45 filter brightness-105 contrast-95"
-            />
+            <picture className="w-full h-full">
+              <source srcSet="/assets/invite_card_bg_animation.webp" type="image/webp" />
+              <img
+                src="/assets/invite_card_bg_animation.webp"
+                alt="Illustrated Couple Background Animation"
+                loading="eager"
+                decoding="sync"
+                className="w-full h-full object-cover object-center opacity-65"
+              />
+            </picture>
             {/* Luminous frosted glass overlay for crystal clear letter contrast */}
-            <div className="absolute inset-0 bg-gradient-to-b from-white/80 via-white/65 to-white/85 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-b from-white/75 via-white/50 to-white/80 pointer-events-none" />
           </div>
         )}
 
