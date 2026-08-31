@@ -97,6 +97,90 @@ export async function fetchInviteeBySlug(slug: string): Promise<Invitee | null> 
   return found || null;
 }
 
+export async function createBulkInvitees(
+  rows: { name: string; phone?: string | null }[]
+): Promise<Invitee[]> {
+  if (!rows || rows.length === 0) return [];
+
+  const existing = await fetchInvitees();
+  const existingSlugs = new Set(existing.map((i) => i.slug.toLowerCase()));
+
+  const newInvitees: Invitee[] = [];
+  const dbPayloads: Array<{
+    name: string;
+    slug: string;
+    phone: string | null;
+    rsvp: RsvpStatus;
+    guest_count: number;
+  }> = [];
+
+  for (const row of rows) {
+    if (!row.name || !row.name.trim()) continue;
+    const cleanName = row.name.trim();
+
+    let baseSlug = cleanName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+    if (!baseSlug) baseSlug = 'guest';
+
+    let uniqueSlug = baseSlug;
+    let counter = 1;
+    while (existingSlugs.has(uniqueSlug.toLowerCase())) {
+      uniqueSlug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+    existingSlugs.add(uniqueSlug.toLowerCase());
+
+    const item: Invitee = {
+      id:
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `inv-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      name: cleanName,
+      slug: uniqueSlug,
+      phone: formatPhoneNumber(row.phone),
+      rsvp: 'pending',
+      guest_count: 0,
+      notes: null,
+      responded_at: null,
+      created_at: new Date().toISOString(),
+    };
+
+    newInvitees.push(item);
+    dbPayloads.push({
+      name: item.name,
+      slug: item.slug,
+      phone: item.phone,
+      rsvp: 'pending',
+      guest_count: 0,
+    });
+  }
+
+  if (isSupabaseConfigured && supabase && dbPayloads.length > 0) {
+    try {
+      const { data, error } = await supabase
+        .from('invitees')
+        .insert(dbPayloads)
+        .select();
+
+      if (!error && data && data.length > 0) {
+        return data as Invitee[];
+      }
+      if (error) {
+        console.error('Supabase bulk insert error:', error);
+      }
+    } catch (err) {
+      console.error('Supabase bulk insert failed:', err);
+    }
+  }
+
+  const local = getLocalInvitees();
+  const updatedLocal = [...newInvitees, ...local];
+  saveLocalInvitees(updatedLocal);
+  return newInvitees;
+}
+
 export async function createInvitee(name: string, phone?: string | null): Promise<Invitee> {
   const existingSlugs = (await fetchInvitees()).map((i) => i.slug);
   const slug = generateSlug(name, existingSlugs);
@@ -240,14 +324,23 @@ export async function markInviteeShared(id: string): Promise<string> {
 
 export async function updateInvitee(
   id: string,
-  updates: Partial<Pick<Invitee, 'name' | 'phone' | 'notes' | 'rsvp' | 'guest_count'>>
+  updates: Partial<Pick<Invitee, 'name' | 'phone' | 'notes' | 'rsvp' | 'guest_count' | 'responded_at'>>
 ): Promise<boolean> {
   const cleaned: Partial<Invitee> = {};
   if (updates.name !== undefined) cleaned.name = updates.name.trim();
   if (updates.phone !== undefined) cleaned.phone = formatPhoneNumber(updates.phone);
   if (updates.notes !== undefined) cleaned.notes = updates.notes?.trim() || null;
-  if (updates.rsvp !== undefined) cleaned.rsvp = updates.rsvp;
+  if (updates.rsvp !== undefined) {
+    cleaned.rsvp = updates.rsvp;
+    if (updates.rsvp === 'pending') {
+      cleaned.responded_at = null;
+      cleaned.guest_count = 0;
+    } else if (updates.responded_at === undefined && !cleaned.responded_at) {
+      cleaned.responded_at = new Date().toISOString();
+    }
+  }
   if (updates.guest_count !== undefined) cleaned.guest_count = updates.guest_count;
+  if (updates.responded_at !== undefined) cleaned.responded_at = updates.responded_at;
 
   if (isSupabaseConfigured && supabase) {
     try {
@@ -280,6 +373,25 @@ export async function deleteInvitee(id: string): Promise<boolean> {
   }
   const local = getLocalInvitees();
   const filtered = local.filter((i) => i.id !== id);
+  saveLocalInvitees(filtered);
+  return true;
+}
+
+export async function deleteBulkInvitees(ids: string[]): Promise<boolean> {
+  if (!ids || ids.length === 0) return true;
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { error } = await supabase.from('invitees').delete().in('id', ids);
+      if (!error) return true;
+      console.error('Supabase bulk delete error:', error);
+    } catch (err) {
+      console.error('Supabase bulk delete failed:', err);
+    }
+  }
+
+  const local = getLocalInvitees();
+  const filtered = local.filter((i) => !ids.includes(i.id));
   saveLocalInvitees(filtered);
   return true;
 }

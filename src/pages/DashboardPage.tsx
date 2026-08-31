@@ -2,7 +2,9 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
   fetchInvitees,
   createInvitee,
+  createBulkInvitees,
   deleteInvitee,
+  deleteBulkInvitees,
   markInviteeShared,
   updateInvitee,
   isSupabaseConfigured,
@@ -20,6 +22,7 @@ export const DashboardPage: React.FC = () => {
   const [invitees, setInvitees] = useState<Invitee[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [targetInviteeId, setTargetInviteeId] = useState<string | null>(null);
 
   const loadData = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoading(true);
@@ -65,15 +68,19 @@ export const DashboardPage: React.FC = () => {
   };
 
   const handleBulkAdd = async (rows: { name: string; phone?: string }[]) => {
-    for (const row of rows) {
-      await createInvitee(row.name, row.phone);
-    }
-    await loadData();
+    const newItems = await createBulkInvitees(rows);
+    setInvitees((prev) => [...newItems, ...prev]);
+    await loadData(true);
   };
 
   const handleDeleteInvitee = async (id: string) => {
     await deleteInvitee(id);
     setInvitees((prev) => prev.filter((i) => i.id !== id));
+  };
+
+  const handleBulkDelete = async (ids: string[]) => {
+    await deleteBulkInvitees(ids);
+    setInvitees((prev) => prev.filter((i) => !ids.includes(i.id)));
   };
 
   const handleMarkShared = async (id: string) => {
@@ -91,13 +98,28 @@ export const DashboardPage: React.FC = () => {
 
   const handleUpdateInvitee = async (
     id: string,
-    updates: Partial<Pick<Invitee, 'name' | 'phone' | 'notes' | 'rsvp' | 'guest_count'>>
+    updates: Partial<Pick<Invitee, 'name' | 'phone' | 'notes' | 'rsvp' | 'guest_count' | 'responded_at'>>
   ) => {
     const success = await updateInvitee(id, updates);
     if (!success) return;
     setInvitees((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, ...updates } : i))
+      prev.map((i) => {
+        if (i.id !== id) return i;
+        const next = { ...i, ...updates };
+        if (updates.rsvp === 'pending') {
+          next.responded_at = null;
+          next.guest_count = 0;
+        }
+        return next;
+      })
     );
+  };
+
+  const handleNavigateToAll = (targetId?: string) => {
+    setActiveTab('all');
+    if (targetId) {
+      setTargetInviteeId(targetId);
+    }
   };
 
   return (
@@ -193,7 +215,10 @@ export const DashboardPage: React.FC = () => {
             {activeTab === 'all' && (
               <AllInviteesTab
                 invitees={invitees}
+                targetInviteeId={targetInviteeId}
+                onClearTargetInviteeId={() => setTargetInviteeId(null)}
                 onDelete={handleDeleteInvitee}
+                onBulkDelete={handleBulkDelete}
                 onMarkShared={handleMarkShared}
                 onBulkMarkShared={handleBulkMarkShared}
                 onUpdateInvitee={handleUpdateInvitee}
@@ -201,8 +226,10 @@ export const DashboardPage: React.FC = () => {
             )}
             {activeTab === 'add' && (
               <AddImportTab
+                existingInvitees={invitees}
                 onAddInvitee={handleAddInvitee}
                 onBulkAddInvitees={handleBulkAdd}
+                onNavigateToAll={handleNavigateToAll}
               />
             )}
           </>

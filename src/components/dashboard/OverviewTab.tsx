@@ -22,9 +22,9 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ invitees }) => {
   const declinedPercent = totalInvited > 0 ? Math.round((declinedCount / totalInvited) * 100) : 0;
   const pendingPercent = totalInvited > 0 ? Math.round((pendingCount / totalInvited) * 100) : 0;
 
-  // Last 8 responses
+  // Last 8 responses (only attending or declined guests; pending is never shown)
   const respondedInvitees = invitees
-    .filter((i) => i.responded_at)
+    .filter((i) => i.rsvp !== 'pending' && Boolean(i.responded_at))
     .sort(
       (a, b) =>
         new Date(b.responded_at!).getTime() - new Date(a.responded_at!).getTime()

@@ -34,46 +34,87 @@ function parseCsvLine(line: string): string[] {
   return result.map((c) => c.replace(/^["']|["']$/g, '').trim());
 }
 
+const EXACT_HEADER_NAME_WORDS = new Set([
+  'name',
+  'names',
+  'guest',
+  'guests',
+  'guest name',
+  'guest_name',
+  'guestname',
+  'invitee',
+  'invitees',
+  'invitee name',
+  'invitee_name',
+  'full name',
+  'fullname',
+  'full_name',
+  'contact name',
+  'contact_name',
+  'person',
+  'first name',
+  'firstname',
+  'last name',
+  'lastname',
+]);
+
+const EXACT_HEADER_PHONE_WORDS = new Set([
+  'phone',
+  'phones',
+  'phone number',
+  'phone_number',
+  'phonenumber',
+  'mobile',
+  'mobiles',
+  'mobile number',
+  'mobile_number',
+  'mobilenumber',
+  'whatsapp',
+  'whatsapp number',
+  'whatsapp_number',
+  'whatsappnumber',
+  'contact',
+  'contact number',
+  'contact_number',
+  'contactnumber',
+  'tel',
+  'telephone',
+  'cell',
+  'cellphone',
+  'cell phone',
+  'number',
+]);
+
 function isPhoneLike(val: string): boolean {
   if (!val) return false;
   const cleaned = val.replace(/[\s\-().+]/g, '');
-  return cleaned.length >= 6 && /^\d+$/.test(cleaned);
+  return cleaned.length >= 5 && /^\d+$/.test(cleaned);
 }
 
 function checkHeaderRow(cols: string[]): { isHeader: boolean; nameIndex: number; phoneIndex: number } {
   if (cols.length === 0) return { isHeader: false, nameIndex: 0, phoneIndex: -1 };
 
-  const lower = cols.map((c) => c.toLowerCase().trim());
+  // If ANY column contains digits resembling a phone number, it's 100% data, NEVER a header
+  for (const col of cols) {
+    if (isPhoneLike(col)) {
+      return { isHeader: false, nameIndex: 0, phoneIndex: -1 };
+    }
+  }
 
-  let nameIndex = lower.findIndex(
-    (h) =>
-      h === 'name' ||
-      h === 'names' ||
-      h === 'guest' ||
-      h === 'guest name' ||
-      h === 'guest_name' ||
-      h === 'invitee' ||
-      h === 'invitee name' ||
-      h === 'full name' ||
-      h.includes('name')
+  // Normalize and check against exact header keyword sets
+  const cleanCols = cols.map((c) =>
+    c
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9_\s]/g, '')
   );
-  let phoneIndex = lower.findIndex(
-    (h) =>
-      h === 'phone' ||
-      h === 'mobile' ||
-      h === 'whatsapp' ||
-      h === 'contact' ||
-      h === 'tel' ||
-      h === 'telephone' ||
-      h === 'cell' ||
-      h.includes('phone') ||
-      h.includes('mobile') ||
-      h.includes('whatsapp')
-  );
+
+  let nameIndex = cleanCols.findIndex((h) => EXACT_HEADER_NAME_WORDS.has(h));
+  let phoneIndex = cleanCols.findIndex((h) => EXACT_HEADER_PHONE_WORDS.has(h));
 
   if (nameIndex !== -1 || phoneIndex !== -1) {
     if (nameIndex === -1) {
-      nameIndex = lower.findIndex((_, idx) => idx !== phoneIndex);
+      nameIndex = cleanCols.findIndex((_, idx) => idx !== phoneIndex);
       if (nameIndex === -1) nameIndex = 0;
     }
     return { isHeader: true, nameIndex, phoneIndex };

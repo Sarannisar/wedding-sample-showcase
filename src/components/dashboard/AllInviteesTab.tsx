@@ -1,4 +1,4 @@
-import React, { useState, useDeferredValue } from 'react';
+import React, { useState, useDeferredValue, useEffect } from 'react';
 import { Invitee, RsvpStatus } from '@/lib/types';
 import { weddingConfig } from '@/config/weddingConfig';
 import { formatTimeAgo } from '@/lib/utils';
@@ -17,22 +17,29 @@ import {
   MessageSquareText,
   AlertCircle,
   Users,
+  Lock,
 } from 'lucide-react';
 
 interface AllInviteesTabProps {
   invitees: Invitee[];
+  targetInviteeId?: string | null;
+  onClearTargetInviteeId?: () => void;
   onDelete: (id: string) => Promise<void>;
+  onBulkDelete?: (ids: string[]) => Promise<void>;
   onMarkShared: (id: string) => Promise<void>;
   onBulkMarkShared: (ids: string[]) => Promise<void>;
   onUpdateInvitee: (
     id: string,
-    updates: Partial<Pick<Invitee, 'name' | 'phone' | 'notes' | 'rsvp' | 'guest_count'>>
+    updates: Partial<Pick<Invitee, 'name' | 'phone' | 'notes' | 'rsvp' | 'guest_count' | 'responded_at'>>
   ) => Promise<void>;
 }
 
 export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
   invitees,
+  targetInviteeId,
+  onClearTargetInviteeId,
   onDelete,
+  onBulkDelete,
   onMarkShared,
   onBulkMarkShared,
   onUpdateInvitee,
@@ -44,8 +51,29 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
   const [copiedTextId, setCopiedTextId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [queue, setQueue] = useState<Invitee[] | null>(null);
   const [queueIndex, setQueueIndex] = useState(0);
+
+  // Auto-select and smooth scroll to target invitee from duplicate detection
+  useEffect(() => {
+    if (targetInviteeId) {
+      setSelectedIds((prev) =>
+        prev.includes(targetInviteeId) ? prev : [targetInviteeId, ...prev]
+      );
+      setSearchQuery('');
+      setStatusFilter('all');
+      const timer = setTimeout(() => {
+        const rowElement = document.getElementById(`invitee-row-${targetInviteeId}`);
+        if (rowElement) {
+          rowElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        onClearTargetInviteeId?.();
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [targetInviteeId, onClearTargetInviteeId]);
 
   // Inline editing state (Note: Guest RSVP note is strictly read-only for guests only)
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -190,6 +218,10 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
   };
 
   const requestRsvpChange = (invitee: Invitee, newStatus: RsvpStatus) => {
+    // If the guest already submitted an RSVP note, changing RSVP status from dashboard is blocked
+    if (invitee.notes && invitee.notes.trim()) {
+      return;
+    }
     if (invitee.rsvp === newStatus) return;
     setRsvpConfirmTarget({
       invitee,
@@ -203,6 +235,24 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
     });
   };
 
+  const handleExecuteBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setIsBulkDeleting(true);
+    try {
+      if (onBulkDelete) {
+        await onBulkDelete(selectedIds);
+      } else {
+        for (const id of selectedIds) {
+          await onDelete(id);
+        }
+      }
+      setSelectedIds([]);
+      setShowBulkDeleteModal(false);
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
   const handleConfirmRsvpChange = async () => {
     if (!rsvpConfirmTarget) return;
     setIsUpdatingRsvp(true);
@@ -213,6 +263,10 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
           rsvpConfirmTarget.newStatus === 'attending'
             ? rsvpConfirmTarget.guestCount
             : 0,
+        responded_at:
+          rsvpConfirmTarget.newStatus === 'pending'
+            ? null
+            : rsvpConfirmTarget.invitee.responded_at || new Date().toISOString(),
       });
       setRsvpConfirmTarget(null);
     } finally {
@@ -266,15 +320,24 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
       {/* Bulk actions bar */}
       {selectedIds.length > 0 && (
         <div className="bg-[#fff6f9] rounded-2xl p-3 px-4 border border-[#e08aa3]/25 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <span className="text-xs font-label uppercase tracking-wider text-[#b05570] font-semibold">
-            {selectedIds.length} selected
+          <span className="text-xs font-label uppercase tracking-wider text-[#b05570] font-semibold flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#e08aa3]" />
+            {selectedIds.length} invitee{selectedIds.length !== 1 ? 's' : ''} selected
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
             <button
               onClick={() => setSelectedIds([])}
               className="px-3 py-2 rounded-xl text-xs font-label uppercase tracking-wider font-semibold text-gray-500 hover:bg-white cursor-pointer"
             >
               Clear
+            </button>
+            <button
+              onClick={() => setShowBulkDeleteModal(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-label uppercase tracking-wider font-semibold transition-colors cursor-pointer"
+              title="Delete selected invitees"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Delete Selected ({selectedIds.length})</span>
             </button>
             <button
               onClick={handleBulkMarkSent}
@@ -362,17 +425,27 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
                   </td>
                 </tr>
               ) : (
-                filteredInvitees.map((invitee) => (
-                  <tr key={invitee.id} className="hover:bg-gray-50/50 transition-colors">
-                    {/* Select */}
-                    <td className="py-3.5 pl-4 pr-1">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.includes(invitee.id)}
-                        onChange={() => toggleSelect(invitee.id)}
-                        className="w-4 h-4 accent-[#e08aa3] cursor-pointer"
-                      />
-                    </td>
+                filteredInvitees.map((invitee) => {
+                  const isSelected = selectedIds.includes(invitee.id);
+                  return (
+                    <tr
+                      key={invitee.id}
+                      id={`invitee-row-${invitee.id}`}
+                      className={`transition-colors duration-150 ${
+                        isSelected
+                          ? 'bg-[#fedae3] hover:bg-[#fdccd8] border-l-[6px] border-l-[#b05570] font-medium text-[#2d0f19]'
+                          : 'hover:bg-gray-50/70 text-[#4a3038]'
+                      }`}
+                    >
+                      {/* Select */}
+                      <td className="py-3.5 pl-4 pr-1">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelect(invitee.id)}
+                          className="w-4.5 h-4.5 accent-[#b05570] cursor-pointer rounded transition-transform active:scale-90"
+                        />
+                      </td>
 
                     {/* Name */}
                     <td className="py-3.5 px-4">
@@ -420,28 +493,48 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
                       /invite/{invitee.slug}
                     </td>
 
-                    {/* RSVP Status with Confirmation-Gated Dropdown */}
+                    {/* RSVP Status with Note Lock Protection */}
                     <td className="py-3.5 px-4">
-                      <select
-                        value={invitee.rsvp}
-                        onChange={(e) => requestRsvpChange(invitee, e.target.value as RsvpStatus)}
-                        className={`text-[11px] font-label uppercase tracking-wider font-semibold rounded-full px-2.5 py-1 border cursor-pointer transition-colors appearance-none pr-5 bg-no-repeat bg-[right_6px_center] ${
-                          invitee.rsvp === 'attending'
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                            : invitee.rsvp === 'declined'
-                            ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
-                            : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
-                        }`}
-                        style={{
-                          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
-                          backgroundSize: '10px 10px',
-                        }}
-                        title="Click to change RSVP status (requires confirmation)"
-                      >
-                        <option value="pending">Pending</option>
-                        <option value="attending">Attending</option>
-                        <option value="declined">Declined</option>
-                      </select>
+                      {invitee.notes && invitee.notes.trim() ? (
+                        <div
+                          className="inline-flex items-center gap-1.5"
+                          title="RSVP status cannot be manually changed because this guest submitted an RSVP note."
+                        >
+                          <span
+                            className={`inline-flex items-center gap-1.5 text-[11px] font-label uppercase tracking-wider font-semibold rounded-full px-2.5 py-1 border cursor-not-allowed select-none shadow-xs ${
+                              invitee.rsvp === 'attending'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80'
+                                : invitee.rsvp === 'declined'
+                                ? 'bg-rose-50 text-rose-700 border-rose-200/80'
+                                : 'bg-amber-50 text-amber-700 border-amber-200/80'
+                            }`}
+                          >
+                            <Lock className="w-3 h-3 text-[#b592a0]" />
+                            {invitee.rsvp}
+                          </span>
+                        </div>
+                      ) : (
+                        <select
+                          value={invitee.rsvp}
+                          onChange={(e) => requestRsvpChange(invitee, e.target.value as RsvpStatus)}
+                          className={`text-[11px] font-label uppercase tracking-wider font-semibold rounded-full px-2.5 py-1 border cursor-pointer transition-colors appearance-none pr-5 bg-no-repeat bg-[right_6px_center] ${
+                            invitee.rsvp === 'attending'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                              : invitee.rsvp === 'declined'
+                              ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                              : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                          }`}
+                          style={{
+                            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                            backgroundSize: '10px 10px',
+                          }}
+                          title="Click to change RSVP status (requires confirmation)"
+                        >
+                          <option value="pending">Pending</option>
+                          <option value="attending">Attending</option>
+                          <option value="declined">Declined</option>
+                        </select>
+                      )}
                     </td>
 
                     {/* Guest Count */}
@@ -570,7 +663,8 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
                       </div>
                     </td>
                   </tr>
-                ))
+                );
+              })
               )}
             </tbody>
           </table>
@@ -666,6 +760,60 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
                   <Check className="w-3.5 h-3.5" />
                 )}
                 <span>Confirm Change</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      {showBulkDeleteModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-rose-200 flex flex-col items-center text-center relative overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <button
+              onClick={() => setShowBulkDeleteModal(false)}
+              disabled={isBulkDeleting}
+              className="absolute top-4 right-4 p-2 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+              title="Close modal"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="w-16 h-16 rounded-full bg-rose-100 border border-rose-200 flex items-center justify-center text-rose-600 mb-4 mt-2 shadow-inner">
+              <Trash2 className="w-8 h-8" />
+            </div>
+
+            <h3 className="font-display text-xl sm:text-2xl font-bold text-[#4a3038]">
+              Delete {selectedIds.length} Selected Invitees?
+            </h3>
+
+            <p className="font-body text-xs sm:text-sm text-[#704655] mt-2 leading-relaxed">
+              Are you sure you want to permanently delete these{' '}
+              <strong className="text-rose-700 font-semibold">
+                {selectedIds.length} invitee{selectedIds.length !== 1 ? 's' : ''}
+              </strong>
+              ? Their personalized invitation URLs will no longer be valid.
+            </p>
+
+            <div className="flex gap-2 w-full mt-6">
+              <button
+                onClick={() => setShowBulkDeleteModal(false)}
+                disabled={isBulkDeleting}
+                className="flex-1 py-3 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-label text-xs uppercase tracking-wider font-semibold transition-all cursor-pointer disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleExecuteBulkDelete}
+                disabled={isBulkDeleting}
+                className="flex-1 py-3 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-98 text-white font-label text-xs uppercase tracking-wider font-semibold shadow-md transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isBulkDeleting ? (
+                  <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
+                <span>{isBulkDeleting ? 'Deleting...' : 'Yes, Delete All'}</span>
               </button>
             </div>
           </div>
