@@ -53,7 +53,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ guestName }) => {
 
         {/* Invitation Host Body Text */}
         <p className="font-serif text-xs sm:text-sm text-[#4a2e38] max-w-md mx-auto my-3 leading-relaxed drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]">
-          With great joy and blessings, the families of{' '}
+          With great joy and blessings, the family of{' '}
           <span className="font-bold text-[#32131c]">{weddingConfig.hosts.primary}</span>{' '}
           request the pleasure of your company at the wedding ceremony of their beloved daughter
         </p>

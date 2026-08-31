@@ -70,7 +70,7 @@ export const weddingConfig: WeddingConfig = {
   hosts: {
     primary: 'Mr. and Mrs. Illyas',
     relationText:
-      'With great joy and blessings, the families of Mr. and Mrs. Illyas request the pleasure of your company at the wedding ceremony of their beloved daughter',
+      'With great joy and blessings, the family of Mr. and Mrs. Illyas request the pleasure of your company at the wedding ceremony of their beloved daughter',
   },
   couple: {
     bride: 'Safiyya',
@@ -98,9 +98,10 @@ export const weddingConfig: WeddingConfig = {
       ameenArabic: 'آمِيْن',
     },
   },
+
   whatsapp: {
     messageTemplate:
-      "Assalamu Alaikum GUEST_NAME! The family of Mr. and Mrs. Illyas cordially invite you to their daughter Safiyya's Wedding Ceremony with Sharrafuth on Saturday 12th December 2026 at Glen Reception Hall from 12:30pm onwards. View your personal invitation here: GUEST_LINK",
+      "Assalamu Alaikum GUEST_NAME! The family of Mr. and Mrs. Illyas cordially invite you to their daughter Safiyya's Wedding Ceremony on Saturday 12th December 2026 at Glen Reception Hall from 12:30pm onwards. View your personal invitation here: GUEST_LINK",
   },
   theme: {
     name: 'Baby Pink Pastel',
