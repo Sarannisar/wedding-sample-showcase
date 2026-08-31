@@ -12,7 +12,7 @@ export const BackgroundMusic: React.FC<BackgroundMusicProps> = ({ active }) => {
 
   useEffect(() => {
     if (!audioRef.current) {
-      const el = new Audio('/assets/wedding_bgm_track.mp3');
+      const el = new Audio('/assets/BG_AUDIO.mp3');
       el.loop = true;
       el.volume = 0.5;
       audioRef.current = el;

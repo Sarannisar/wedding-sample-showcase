@@ -17,7 +17,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ guestName }) => {
       className="w-full max-w-xl mx-auto my-6 px-3"
     >
       <Card3D
-        bgVideoSrc="/assets/invite_card_bg_video.mp4"
+        bgVideoSrc="/assets/video_2026-08-31_13-56-43.mp4"
         className="text-center py-10 px-6 sm:px-10"
       >
         {/* Bismillah Arabic Calligraphy */}

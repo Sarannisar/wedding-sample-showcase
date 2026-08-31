@@ -11,6 +11,7 @@ interface Card3DProps {
   withCorners?: boolean;
   withShimmer?: boolean;
   bgVideoSrc?: string;
+  bgVideoClassName?: string;
   onClick?: () => void;
 }
 
@@ -21,6 +22,7 @@ export const Card3D: React.FC<Card3DProps> = ({
   withCorners = true,
   withShimmer = true,
   bgVideoSrc,
+  bgVideoClassName,
   onClick,
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -137,7 +139,10 @@ export const Card3D: React.FC<Card3DProps> = ({
               preload="auto"
               disablePictureInPicture
               disableRemotePlayback
-              className="w-full h-full object-cover object-center opacity-60 filter brightness-105 contrast-95 transform-gpu"
+              className={cn(
+                'w-full h-full object-cover object-bottom opacity-60 filter brightness-105 contrast-95 transform-gpu',
+                bgVideoClassName
+              )}
               style={{
                 transform: 'translate3d(0, 0, 0)',
                 backfaceVisibility: 'hidden',
