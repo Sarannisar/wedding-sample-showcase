@@ -102,11 +102,12 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
     // Luxurious smooth glide-up and cross-fade into the main invitation suite
     gsap.to(containerRef.current, {
       opacity: 0,
-      y: -70,
+      y: -50,
       scale: 0.98,
-      duration: 1.1,
+      duration: 0.65,
       ease: 'power2.inOut',
       onComplete: () => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
         onOpenComplete();
       },
     });
@@ -119,32 +120,31 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
     let touchStartY = 0;
 
     const handleWheel = (e: WheelEvent) => {
-      if (isTransitioningRef.current) return;
-      if (e.deltaY > 10) {
+      if (e.deltaY > 5 || isTransitioningRef.current) {
+        if (e.cancelable) e.preventDefault();
         handleEnterInvitation();
       }
     };
 
     const handleTouchStart = (e: TouchEvent) => {
-      if (isTransitioningRef.current) return;
       if (e.touches.length > 0) {
         touchStartY = e.touches[0].clientY;
       }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (isTransitioningRef.current) return;
       if (e.touches.length > 0) {
         const touchEndY = e.touches[0].clientY;
-        if (touchStartY - touchEndY > 14) {
+        if (touchStartY - touchEndY > 8 || isTransitioningRef.current) {
+          if (e.cancelable) e.preventDefault();
           handleEnterInvitation();
         }
       }
     };
 
-    window.addEventListener('wheel', handleWheel, { passive: true });
+    window.addEventListener('wheel', handleWheel, { passive: false });
     window.addEventListener('touchstart', handleTouchStart, { passive: true });
-    window.addEventListener('touchmove', handleTouchMove, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
 
     return () => {
       window.removeEventListener('wheel', handleWheel);

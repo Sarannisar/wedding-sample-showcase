@@ -16,21 +16,26 @@ export const GuestInvitePage: React.FC = () => {
   const [loadingStep, setLoadingStep] = useState<'loader' | 'opening' | 'invitation'>('loader');
   const [musicStarted, setMusicStarted] = useState(false);
 
-  const [isScrollUnlocked, setIsScrollUnlocked] = useState(false);
-
-  // Lock page scrolling during initial loader and until user begins entering invitation
+  // Lock page scrolling during initial loader and opening experience until invitation is fully displayed
   useEffect(() => {
-    const locked = !isScrollUnlocked && loadingStep !== 'invitation';
-    if (locked) {
+    if (loadingStep !== 'invitation') {
       document.body.style.overflow = 'hidden';
       window.scrollTo(0, 0);
     } else {
-      document.body.style.overflow = '';
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      const timer = setTimeout(() => {
+        document.body.style.overflow = '';
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      }, 50);
+      return () => {
+        clearTimeout(timer);
+        document.body.style.overflow = '';
+      };
     }
     return () => {
       document.body.style.overflow = '';
     };
-  }, [loadingStep, isScrollUnlocked]);
+  }, [loadingStep]);
 
   useEffect(() => {
     async function loadGuest() {
@@ -109,9 +114,6 @@ export const GuestInvitePage: React.FC = () => {
           key="opening"
           guestName={guestDisplayName}
           onDoorsOpening={() => setMusicStarted(true)}
-          onEnterStart={() => {
-            setIsScrollUnlocked(true);
-          }}
           onOpenComplete={() => {
             setLoadingStep('invitation');
           }}
