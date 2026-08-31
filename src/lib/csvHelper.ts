@@ -5,27 +5,133 @@ export interface CsvInviteeRow {
   phone?: string;
 }
 
+function parseCsvLine(line: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  const delimiter = !line.includes(',') && (line.includes('\t') || line.includes(';'))
+    ? (line.includes('\t') ? '\t' : ';')
+    : ',';
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"' || char === "'") {
+      if (inQuotes && line[i + 1] === char) {
+        current += char;
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === delimiter && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  result.push(current.trim());
+  return result.map((c) => c.replace(/^["']|["']$/g, '').trim());
+}
+
+function isPhoneLike(val: string): boolean {
+  if (!val) return false;
+  const cleaned = val.replace(/[\s\-().+]/g, '');
+  return cleaned.length >= 6 && /^\d+$/.test(cleaned);
+}
+
+function checkHeaderRow(cols: string[]): { isHeader: boolean; nameIndex: number; phoneIndex: number } {
+  if (cols.length === 0) return { isHeader: false, nameIndex: 0, phoneIndex: -1 };
+
+  const lower = cols.map((c) => c.toLowerCase().trim());
+
+  let nameIndex = lower.findIndex(
+    (h) =>
+      h === 'name' ||
+      h === 'names' ||
+      h === 'guest' ||
+      h === 'guest name' ||
+      h === 'guest_name' ||
+      h === 'invitee' ||
+      h === 'invitee name' ||
+      h === 'full name' ||
+      h.includes('name')
+  );
+  let phoneIndex = lower.findIndex(
+    (h) =>
+      h === 'phone' ||
+      h === 'mobile' ||
+      h === 'whatsapp' ||
+      h === 'contact' ||
+      h === 'tel' ||
+      h === 'telephone' ||
+      h === 'cell' ||
+      h.includes('phone') ||
+      h.includes('mobile') ||
+      h.includes('whatsapp')
+  );
+
+  if (nameIndex !== -1 || phoneIndex !== -1) {
+    if (nameIndex === -1) {
+      nameIndex = lower.findIndex((_, idx) => idx !== phoneIndex);
+      if (nameIndex === -1) nameIndex = 0;
+    }
+    return { isHeader: true, nameIndex, phoneIndex };
+  }
+
+  return { isHeader: false, nameIndex: 0, phoneIndex: -1 };
+}
+
 export function parseCsvContent(text: string): CsvInviteeRow[] {
-  const lines = text.split(/\r\n|\n/).map((l) => l.trim()).filter(Boolean);
-  if (lines.length < 2) return [];
+  if (!text || !text.trim()) return [];
 
-  const headerLine = lines[0].toLowerCase();
-  const headers = headerLine.split(',').map((h) => h.trim().replace(/^["']|["']$/g, ''));
-  const nameIndex = headers.findIndex((h) => h.includes('name'));
-  const phoneIndex = headers.findIndex((h) => h.includes('phone') || h.includes('mobile') || h.includes('whatsapp'));
+  const rawLines = text
+    .split(/\r\n|\n/)
+    .map((l) => l.trim())
+    .filter((l) => Boolean(l) && !l.startsWith('#'));
 
-  if (nameIndex === -1) return [];
+  if (rawLines.length === 0) return [];
 
+  const parsedLines = rawLines.map(parseCsvLine).filter((cols) => cols.some(Boolean));
+  if (parsedLines.length === 0) return [];
+
+  const firstRow = parsedLines[0];
+  const { isHeader, nameIndex: headerNameIdx, phoneIndex: headerPhoneIdx } = checkHeaderRow(firstRow);
+
+  const startIdx = isHeader ? 1 : 0;
   const rows: CsvInviteeRow[] = [];
 
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i];
-    if (!line) continue;
-    const cols = line.split(',').map((c) => c.trim().replace(/^["']|["']$/g, ''));
-    const name = cols[nameIndex];
+  for (let i = startIdx; i < parsedLines.length; i++) {
+    const cols = parsedLines[i];
+    if (!cols || cols.length === 0) continue;
+
+    let name = '';
+    let phone: string | undefined = undefined;
+
+    if (isHeader) {
+      name = cols[headerNameIdx] || '';
+      phone = headerPhoneIdx !== -1 ? cols[headerPhoneIdx] : undefined;
+    } else {
+      // No header: support 1 or 2+ columns flexibly
+      if (cols.length === 1) {
+        name = cols[0];
+      } else if (cols.length >= 2) {
+        if (isPhoneLike(cols[0]) && !isPhoneLike(cols[1])) {
+          phone = cols[0];
+          name = cols[1];
+        } else {
+          name = cols[0];
+          phone = cols[1] || undefined;
+        }
+      }
+    }
+
+    name = name.trim();
     if (name) {
-      const phone = phoneIndex !== -1 ? cols[phoneIndex] : undefined;
-      rows.push({ name, phone });
+      rows.push({
+        name,
+        phone: phone ? phone.trim() : undefined,
+      });
     }
   }
 

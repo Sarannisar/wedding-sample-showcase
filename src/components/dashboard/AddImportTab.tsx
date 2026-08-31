@@ -62,7 +62,7 @@ export const AddImportTab: React.FC<AddImportTabProps> = ({
       const parsed = parseCsvContent(text);
 
       if (parsed.length === 0) {
-        setCsvProgress('Error: No valid rows with a "name" column found in CSV.');
+        setCsvProgress('Error: No valid guest rows found in CSV file.');
         setIsUploading(false);
         return;
       }
@@ -200,7 +200,7 @@ export const AddImportTab: React.FC<AddImportTabProps> = ({
             {isUploading ? 'Processing File...' : 'Click to Upload CSV File'}
           </span>
           <span className="text-[11px] font-body text-[#b592a0] mt-1">
-            Accepts CSV format with columns: <code>name</code> and <code>phone</code> (auto-converts <code>077...</code> / <code>77...</code> to <code>+94...</code>)
+            Accepts CSV with or without header columns (e.g. <code>name,phone</code> or just <code>Mohammed & Family, 077...</code>)
           </span>
         </label>
 
