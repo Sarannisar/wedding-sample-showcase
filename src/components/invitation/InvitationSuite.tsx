@@ -24,6 +24,35 @@ export const InvitationSuite: React.FC<InvitationSuiteProps> = ({
   onRsvpSuccess,
 }) => {
   const [isDateRevealed, setIsDateRevealed] = useState(false);
+  const postCountdownDividerRef = React.useRef<HTMLDivElement>(null);
+
+  const handleDateRevealed = () => {
+    setIsDateRevealed(true);
+    // Give the countdown height animation a moment to start/expand, then check view bounds
+    setTimeout(() => {
+      if (postCountdownDividerRef.current) {
+        const rect = postCountdownDividerRef.current.getBoundingClientRect();
+        if (rect.bottom > window.innerHeight - 20) {
+          postCountdownDividerRef.current.scrollIntoView({
+            behavior: 'smooth',
+            block: 'end',
+          });
+        }
+      }
+    }, 400);
+  };
+
+  const handleCountdownAnimationComplete = () => {
+    if (postCountdownDividerRef.current) {
+      const rect = postCountdownDividerRef.current.getBoundingClientRect();
+      if (rect.bottom > window.innerHeight - 10) {
+        postCountdownDividerRef.current.scrollIntoView({
+          behavior: 'smooth',
+          block: 'end',
+        });
+      }
+    }
+  };
 
   return (
     <div className="relative z-20 w-full min-h-screen py-10 px-2 sm:px-4 flex flex-col items-center">
@@ -40,7 +69,7 @@ export const InvitationSuite: React.FC<InvitationSuiteProps> = ({
       {/* Interactive Gold Date Scratch-to-Reveal Card (with Insha Allah badge) */}
       <DateScratchCard
         isRevealed={isDateRevealed}
-        onRevealed={() => setIsDateRevealed(true)}
+        onRevealed={handleDateRevealed}
       />
 
       {/* Live Countdown Timer - Only shown after date is scratched/revealed */}
@@ -51,6 +80,7 @@ export const InvitationSuite: React.FC<InvitationSuiteProps> = ({
             animate={{ opacity: 1, height: 'auto', y: 0 }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+            onAnimationComplete={handleCountdownAnimationComplete}
             className="w-full flex justify-center"
           >
             <CountdownSection />
@@ -58,7 +88,10 @@ export const InvitationSuite: React.FC<InvitationSuiteProps> = ({
         )}
       </AnimatePresence>
 
-      <FloralDivider className="my-6" />
+      {/* Section Divider after Countdown */}
+      <div ref={postCountdownDividerRef} className="w-full flex justify-center scroll-mt-6">
+        <FloralDivider className="my-6" />
+      </div>
 
       {/* 3D Tactile Event Location Card with Google Maps */}
       <EventCardSection />
