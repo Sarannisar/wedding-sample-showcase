@@ -5,18 +5,70 @@ import { OpeningExperience } from '@/components/opening/OpeningExperience';
 import { InvitationSuite } from '@/components/invitation/InvitationSuite';
 import { WatercolorBackground } from '@/components/ambient/WatercolorBackground';
 import { AmbientPetals } from '@/components/ambient/AmbientPetals';
-import { fetchInviteeBySlug } from '@/lib/supabase';
+import { fetchInviteeBySlug, logInviteeEvent } from '@/lib/supabase';
 import { Invitee, RsvpStatus } from '@/lib/types';
 import { AnimatePresence } from 'framer-motion';
 import { BackgroundMusic } from '@/components/audio/BackgroundMusic';
+import { weddingConfig } from '@/config/weddingConfig';
+import { WifiOff } from 'lucide-react';
+
+const PRELOAD_ASSETS = [
+  '/assets/fancy_door_left.webp',
+  '/assets/fancy_door_right.webp',
+  '/assets/door_handle_crest_left.webp',
+  '/assets/door_handle_crest_right.webp',
+  '/assets/logo_saad_sheen_crest.png',
+];
 
 export const GuestInvitePage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const [invitee, setInvitee] = useState<Invitee | null>(null);
   const [loadingStep, setLoadingStep] = useState<'loader' | 'opening' | 'invitation'>('loader');
   const [musicStarted, setMusicStarted] = useState(false);
+  const [isInvalidSlug, setIsInvalidSlug] = useState(false);
+  const [isOffline, setIsOffline] = useState(
+    typeof navigator !== 'undefined' ? !navigator.onLine : false
+  );
 
-  // Lock page scrolling during initial loader and opening experience until invitation is fully displayed
+  // Preload key images before opening
+  useEffect(() => {
+    let mounted = true;
+    const preloadPromises = PRELOAD_ASSETS.map((src) => {
+      return new Promise<void>((resolve) => {
+        const img = new Image();
+        img.src = src;
+        img.onload = () => resolve();
+        img.onerror = () => resolve(); // Non-fatal
+      });
+    });
+
+    const timeout = new Promise<void>((resolve) => setTimeout(resolve, 3500));
+
+    Promise.race([Promise.all(preloadPromises), timeout]).then(() => {
+      if (mounted) {
+        // Assets ready
+      }
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Offline / Online listeners
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Lock page scrolling during initial loader and opening experience
   useEffect(() => {
     if (loadingStep !== 'invitation') {
       document.body.style.overflow = 'hidden';
@@ -37,30 +89,32 @@ export const GuestInvitePage: React.FC = () => {
     };
   }, [loadingStep]);
 
+  // Load guest details & log opened event (guarded with sessionStorage)
   useEffect(() => {
     async function loadGuest() {
       if (slug) {
         const data = await fetchInviteeBySlug(slug);
         if (data) {
           setInvitee(data);
+          setIsInvalidSlug(false);
+
+          // Log opened event once per session
+          const sessionKey = `invite_opened_${slug}`;
+          if (!sessionStorage.getItem(sessionKey)) {
+            sessionStorage.setItem(sessionKey, '1');
+            void logInviteeEvent(data.id, 'opened');
+          }
         } else {
-          // Generate a formatted fallback name from slug
-          const derivedName = slug
-            .split('-')
-            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-            .join(' ');
-          setInvitee({
-            id: 'temp',
-            name: derivedName,
-            slug,
-            rsvp: 'pending',
-            guest_count: 0,
-            created_at: new Date().toISOString(),
-          });
+          // Slug was provided but does not exist in records
+          setIsInvalidSlug(true);
         }
+      } else {
+        // /invite with no slug -> generic invitation
+        setInvitee(null);
+        setIsInvalidSlug(false);
       }
     }
-    loadGuest();
+    void loadGuest();
   }, [slug]);
 
   const handleRsvpSuccess = (updated: { rsvp: RsvpStatus; guestCount: number }) => {
@@ -74,12 +128,22 @@ export const GuestInvitePage: React.FC = () => {
     }
   };
 
-  const guestDisplayName = invitee?.name || 'Honored Guest';
+  const guestDisplayName = invitee?.name || (slug && !isInvalidSlug ? 'Honored Guest' : '');
 
   // Per-guest page title / social preview metadata
   useEffect(() => {
-    const title = `Invitation for ${guestDisplayName} — Safiyya & Sharrafuth`;
-    const description = `${guestDisplayName}, you are cordially invited to the wedding ceremony of Safiyya & Sharrafuth on Saturday, 12th December 2026 at Glen Reception Hall.`;
+    if (isInvalidSlug) {
+      document.title = `Wedding Invitation — ${weddingConfig.couple.bride} & ${weddingConfig.couple.groom}`;
+      return;
+    }
+
+    const title = guestDisplayName
+      ? `Invitation for ${guestDisplayName} — ${weddingConfig.couple.bride} & ${weddingConfig.couple.groom}`
+      : `Wedding Invitation — ${weddingConfig.couple.bride} & ${weddingConfig.couple.groom}`;
+
+    const description = guestDisplayName
+      ? `${guestDisplayName}, you are cordially invited to the wedding ceremony of ${weddingConfig.couple.bride} & ${weddingConfig.couple.groom}.`
+      : `Wedding Invitation — ${weddingConfig.couple.bride} & ${weddingConfig.couple.groom}.`;
 
     document.title = title;
 
@@ -98,17 +162,70 @@ export const GuestInvitePage: React.FC = () => {
     setMeta('meta[property="og:description"]', 'property', 'og:description', description);
     setMeta('meta[property="og:type"]', 'property', 'og:type', 'website');
     setMeta('meta[name="twitter:card"]', 'name', 'twitter:card', 'summary_large_image');
-  }, [guestDisplayName]);
+  }, [guestDisplayName, isInvalidSlug]);
+
+  // Invalid Slug Privacy Card View (Step 19 #3)
+  if (isInvalidSlug) {
+    return (
+      <div className="min-h-screen bg-[#fffafc] flex items-center justify-center p-6 text-[#4a3038] relative overflow-hidden">
+        <WatercolorBackground />
+        <AmbientPetals />
+
+        <div className="max-w-md w-full p-8 sm:p-10 text-center rounded-3xl bg-white/95 backdrop-blur-md border border-[#e08aa3]/30 shadow-card-3d relative z-20 space-y-6">
+          {/* Subtle Bismillah Calligraphy */}
+          <p className="font-arabic text-lg text-[#b05570]/80">
+            {weddingConfig.cultural.bismillah.arabic}
+          </p>
+          <div>
+            <span className="font-label text-[10px] uppercase tracking-[0.35em] text-[#e08aa3] font-bold block mb-1.5">
+              Wedding Celebration
+            </span>
+            <h2 className="font-display text-2xl sm:text-3xl font-bold text-[#4a3038]">
+              {weddingConfig.couple.bride} & {weddingConfig.couple.groom}
+            </h2>
+          </div>
+
+          {/* Gold & Rose Decorative Divider */}
+          <div className="flex items-center justify-center gap-3 my-2">
+            <div className="w-12 h-[1px] bg-gradient-to-r from-transparent to-[#e08aa3]" />
+            <span className="text-[#b05570] text-xs">✦</span>
+            <div className="w-12 h-[1px] bg-gradient-to-l from-transparent to-[#e08aa3]" />
+          </div>
+
+          {/* Private Notice Card */}
+          <div className="p-5 rounded-2xl bg-[#fffafc] border border-[#e08aa3]/25 space-y-2.5 text-xs font-body text-[#704655] leading-relaxed">
+            <p className="font-display font-bold text-sm text-[#4a3038]">
+              Personalized Invitation Required
+            </p>
+            <p>
+              This link is invalid or has expired. Attendance at the wedding celebration is strictly by personal invitation.
+            </p>
+            <p className="text-[11px] text-[#a8808e] pt-1">
+              If you are an invited guest, please contact the host family directly to receive your personalized link.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen w-full bg-[#fffafc] overflow-x-hidden text-[#4a3038]">
-      {/* Ambient Watercolor Background blobs */}
+      {/* Offline Notice Banner (Step 22 #8) */}
+      {isOffline && (
+        <div className="fixed top-0 inset-x-0 z-[100] bg-amber-500 text-white text-xs font-label uppercase tracking-wider py-2 px-4 text-center flex items-center justify-center gap-2 shadow-md">
+          <WifiOff className="w-4 h-4" />
+          <span>You are currently offline. RSVP submission requires an internet connection.</span>
+        </div>
+      )}
+
+      {/* Ambient Watercolor Background */}
       <WatercolorBackground />
 
       {/* Ambient Drifting Rose Petals */}
       <AmbientPetals />
 
-      {/* Opening Portal Experience (pre-mounted for instantaneous 0ms display) */}
+      {/* Opening Portal Experience */}
       {loadingStep !== 'invitation' && (
         <OpeningExperience
           key="opening"
@@ -131,14 +248,18 @@ export const GuestInvitePage: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Main Post-Opening Invitation Suite — Pre-mounted to guarantee 60fps instant transitions */}
+      {/* Main Invitation Suite */}
       {loadingStep !== 'loader' && (
         <div className="w-full">
-          <InvitationSuite invitee={invitee} onRsvpSuccess={handleRsvpSuccess} />
+          <InvitationSuite
+            invitee={invitee}
+            showRsvp={Boolean(invitee)}
+            onRsvpSuccess={handleRsvpSuccess}
+          />
         </div>
       )}
 
-      {/* Background music with corner toggle, begins as the doors open */}
+      {/* Background music */}
       <BackgroundMusic active={musicStarted} />
     </div>
   );

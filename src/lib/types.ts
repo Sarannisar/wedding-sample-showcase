@@ -10,6 +10,16 @@ export interface Invitee {
   notes?: string | null;
   responded_at?: string | null;
   shared_at?: string | null;
+  opened_at?: string | null;
+  created_at: string;
+}
+
+export type InviteeEventType = 'created' | 'sent' | 'opened' | 'responded';
+
+export interface InviteeEvent {
+  id: string;
+  invitee_id: string;
+  type: InviteeEventType;
   created_at: string;
 }
 
@@ -24,4 +34,9 @@ export interface DashboardStats {
     declinedPercent: number;
     pendingPercent: number;
   };
+}
+
+export interface SupabaseResult<T> {
+  data: T | null;
+  error: Error | null;
 }

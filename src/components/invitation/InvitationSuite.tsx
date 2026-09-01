@@ -9,15 +9,18 @@ import { EventCardSection } from './EventCardSection';
 import { RsvpSection } from './RsvpSection';
 import { ContactSection } from './ContactSection';
 import { ClosingSection } from './ClosingSection';
+import { FloralDivider } from '@/components/common/FloralDivider';
 import { Invitee, RsvpStatus } from '@/lib/types';
 
 interface InvitationSuiteProps {
   invitee: Invitee | null;
+  showRsvp?: boolean;
   onRsvpSuccess?: (updated: { rsvp: RsvpStatus; guestCount: number }) => void;
 }
 
 export const InvitationSuite: React.FC<InvitationSuiteProps> = ({
   invitee,
+  showRsvp = true,
   onRsvpSuccess,
 }) => {
   const [isDateRevealed, setIsDateRevealed] = useState(false);
@@ -27,8 +30,12 @@ export const InvitationSuite: React.FC<InvitationSuiteProps> = ({
       {/* Sacred Spiritual Prelude Card: Surah Ar-Rum (30:21) */}
       <BlessingSection />
 
+      <FloralDivider className="my-6" />
+
       {/* Main Stationery Hero */}
       <HeroSection guestName={invitee?.name} />
+
+      <FloralDivider className="my-6" />
 
       {/* Interactive Gold Date Scratch-to-Reveal Card (with Insha Allah badge) */}
       <DateScratchCard
@@ -51,14 +58,25 @@ export const InvitationSuite: React.FC<InvitationSuiteProps> = ({
         )}
       </AnimatePresence>
 
+      <FloralDivider className="my-6" />
+
       {/* 3D Tactile Event Location Card with Google Maps */}
       <EventCardSection />
 
-      {/* Interactive RSVP Flow with Optional Note/Dua */}
-      <RsvpSection invitee={invitee} onRsvpSuccess={onRsvpSuccess} />
+      {/* Interactive RSVP Flow with Optional Note/Dua (only if personalized invitee or RSVP enabled) */}
+      {showRsvp && (
+        <>
+          <FloralDivider className="my-6" />
+          <RsvpSection invitee={invitee} onRsvpSuccess={onRsvpSuccess} />
+        </>
+      )}
+
+      <FloralDivider className="my-6" />
 
       {/* Directions & Family Contact */}
       <ContactSection />
+
+      <FloralDivider className="my-6" />
 
       {/* Closing Arabic Dua, Translation & Ameen */}
       <ClosingSection />

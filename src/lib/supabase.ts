@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Invitee, RsvpStatus } from './types';
+import { Invitee, InviteeEvent, InviteeEventType, RsvpStatus } from './types';
 import { generateSlug, formatPhoneNumber } from './utils';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
@@ -45,6 +45,7 @@ export const supabase = isSupabaseConfigured
   : null;
 
 const STORAGE_KEY = 'wedding_invitees_store_v2';
+const EVENTS_STORAGE_KEY = 'wedding_invitee_events_store_v1';
 
 function getLocalInvitees(): Invitee[] {
   try {
@@ -63,6 +64,94 @@ function saveLocalInvitees(invitees: Invitee[]): void {
   }
 }
 
+function getLocalEvents(): InviteeEvent[] {
+  try {
+    const raw = localStorage.getItem(EVENTS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalEvents(events: InviteeEvent[]): void {
+  try {
+    localStorage.setItem(EVENTS_STORAGE_KEY, JSON.stringify(events));
+  } catch (err) {
+    console.error('Failed to save events to localStorage', err);
+  }
+}
+
+// -------------------------------------------------------------
+// Activity Event Trail
+// -------------------------------------------------------------
+
+export async function logInviteeEvent(
+  inviteeId: string,
+  type: InviteeEventType
+): Promise<void> {
+  const newEvent: InviteeEvent = {
+    id:
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `ev-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    invitee_id: inviteeId,
+    type,
+    created_at: new Date().toISOString(),
+  };
+
+  // Always save locally
+  const localEvents = getLocalEvents();
+  localEvents.unshift(newEvent);
+  saveLocalEvents(localEvents);
+
+  // Sync to Supabase in background (fire-and-forget)
+  if (isSupabaseConfigured && supabase) {
+    try {
+      supabase
+        .from('invitee_events')
+        .insert([
+          {
+            invitee_id: inviteeId,
+            type,
+            created_at: newEvent.created_at,
+          },
+        ])
+        .then(({ error }) => {
+          if (error) {
+            console.warn('Background event log warning (table may be pending migration):', error.message);
+          }
+        });
+    } catch (err) {
+      console.warn('Failed to log event to Supabase:', err);
+    }
+  }
+}
+
+export async function fetchInviteeEvents(inviteeId: string): Promise<InviteeEvent[]> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('invitee_events')
+        .select('*')
+        .eq('invitee_id', inviteeId)
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        return data as InviteeEvent[];
+      }
+    } catch (err) {
+      console.warn('Failed to fetch events from Supabase:', err);
+    }
+  }
+
+  const localEvents = getLocalEvents();
+  return localEvents.filter((ev) => ev.invitee_id === inviteeId);
+}
+
+// -------------------------------------------------------------
+// Invitee CRUD
+// -------------------------------------------------------------
+
 export async function fetchInvitees(): Promise<Invitee[]> {
   if (isSupabaseConfigured && supabase) {
     try {
@@ -71,7 +160,7 @@ export async function fetchInvitees(): Promise<Invitee[]> {
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return (data || []) as Invitee[];
+      if (data) return data as Invitee[];
     } catch (err) {
       console.error('Supabase fetch failed:', err);
     }
@@ -139,11 +228,12 @@ export async function createBulkInvitees(
           : `inv-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       name: cleanName,
       slug: uniqueSlug,
-      phone: formatPhoneNumber(row.phone),
+      phone: formatPhoneNumber(row.phone) || null,
       rsvp: 'pending',
       guest_count: 0,
       notes: null,
       responded_at: null,
+      shared_at: null,
       created_at: new Date().toISOString(),
     };
 
@@ -151,7 +241,7 @@ export async function createBulkInvitees(
     dbPayloads.push({
       name: item.name,
       slug: item.slug,
-      phone: item.phone,
+      phone: item.phone || null,
       rsvp: 'pending',
       guest_count: 0,
     });
@@ -165,6 +255,10 @@ export async function createBulkInvitees(
         .select();
 
       if (!error && data && data.length > 0) {
+        // Log created event for each
+        for (const guest of data) {
+          logInviteeEvent(guest.id, 'created');
+        }
         return data as Invitee[];
       }
       if (error) {
@@ -178,6 +272,9 @@ export async function createBulkInvitees(
   const local = getLocalInvitees();
   const updatedLocal = [...newInvitees, ...local];
   saveLocalInvitees(updatedLocal);
+  for (const guest of newInvitees) {
+    logInviteeEvent(guest.id, 'created');
+  }
   return newInvitees;
 }
 
@@ -189,11 +286,12 @@ export async function createInvitee(name: string, phone?: string | null): Promis
     id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `inv-${Date.now()}`,
     name: name.trim(),
     slug,
-    phone: formatPhoneNumber(phone),
+    phone: formatPhoneNumber(phone) || null,
     rsvp: 'pending',
     guest_count: 0,
     notes: null,
     responded_at: null,
+    shared_at: null,
     created_at: new Date().toISOString(),
   };
 
@@ -213,7 +311,9 @@ export async function createInvitee(name: string, phone?: string | null): Promis
         .select()
         .single();
       if (!error && data) {
-        return data as Invitee;
+        const created = data as Invitee;
+        logInviteeEvent(created.id, 'created');
+        return created;
       }
       if (error) console.error('Supabase insert error:', error);
     } catch (err) {
@@ -224,7 +324,41 @@ export async function createInvitee(name: string, phone?: string | null): Promis
   const local = getLocalInvitees();
   local.unshift(newInvitee);
   saveLocalInvitees(local);
+  logInviteeEvent(newInvitee.id, 'created');
   return newInvitee;
+}
+
+export async function restoreInvitee(invitee: Invitee): Promise<boolean> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { error } = await supabase.from('invitees').insert([
+        {
+          id: invitee.id,
+          name: invitee.name,
+          slug: invitee.slug,
+          phone: invitee.phone,
+          rsvp: invitee.rsvp,
+          guest_count: invitee.guest_count,
+          notes: invitee.notes,
+          responded_at: invitee.responded_at,
+          shared_at: invitee.shared_at,
+          created_at: invitee.created_at,
+        },
+      ]);
+      if (!error) return true;
+      console.error('Supabase restore error:', error);
+    } catch (err) {
+      console.error('Supabase restore failed:', err);
+    }
+  }
+
+  const local = getLocalInvitees();
+  const existing = local.find((i) => i.id === invitee.id);
+  if (!existing) {
+    local.unshift(invitee);
+    saveLocalInvitees(local);
+  }
+  return true;
 }
 
 export async function updateRsvp(
@@ -249,21 +383,30 @@ export async function updateRsvp(
         .eq('slug', slug)
         .select();
 
-      if (!error && data && data.length > 0) return true;
+      if (!error && data && data.length > 0) {
+        logInviteeEvent(data[0].id, 'responded');
+        return true;
+      }
 
       // If no row matched in Supabase, create it so the RSVP is not lost
       if (!error && (!data || data.length === 0)) {
-        const { error: insertError } = await supabase.from('invitees').insert([
-          {
-            name: fallbackName || slug,
-            slug,
-            rsvp,
-            guest_count: rsvp === 'attending' ? guestCount : 0,
-            notes: notes || null,
-            responded_at: respondedAt,
-          },
-        ]);
-        if (!insertError) return true;
+        const { data: inserted, error: insertError } = await supabase
+          .from('invitees')
+          .insert([
+            {
+              name: fallbackName || slug,
+              slug,
+              rsvp,
+              guest_count: rsvp === 'attending' ? guestCount : 0,
+              notes: notes || null,
+              responded_at: respondedAt,
+            },
+          ])
+          .select();
+        if (!insertError && inserted && inserted.length > 0) {
+          logInviteeEvent(inserted[0].id, 'responded');
+          return true;
+        }
       }
       if (error) console.error('Supabase RSVP update error:', error);
     } catch (err) {
@@ -282,6 +425,7 @@ export async function updateRsvp(
       responded_at: respondedAt,
     };
     saveLocalInvitees(local);
+    logInviteeEvent(local[index].id, 'responded');
     return true;
   } else {
     // If not found in localStorage, create it
@@ -298,6 +442,7 @@ export async function updateRsvp(
     };
     local.unshift(newGuest);
     saveLocalInvitees(local);
+    logInviteeEvent(newGuest.id, 'responded');
     return true;
   }
 }
@@ -319,6 +464,7 @@ export async function markInviteeShared(id: string): Promise<string> {
     local[index] = { ...local[index], shared_at: sharedAt };
     saveLocalInvitees(local);
   }
+  logInviteeEvent(id, 'sent');
   return sharedAt;
 }
 

@@ -3,13 +3,27 @@ import { Invitee } from '@/lib/types';
 import { StatCard } from './StatCard';
 import { ResponseBar } from './ResponseBar';
 import { formatTimeAgo } from '@/lib/utils';
-import { Users, UserCheck, UserX, Clock, UserPlus, Send } from 'lucide-react';
+import { printGuestList } from '@/lib/printList';
+import { exportSeatingCsv } from '@/lib/csvHelper';
+import { notify } from '@/lib/notify';
+import {
+  Users,
+  UserCheck,
+  UserX,
+  Clock,
+  UserPlus,
+  Send,
+  Printer,
+  FileSpreadsheet,
+  PlusCircle,
+} from 'lucide-react';
 
 interface OverviewTabProps {
   invitees: Invitee[];
+  onNavigateToAdd?: () => void;
 }
 
-export const OverviewTab: React.FC<OverviewTabProps> = ({ invitees }) => {
+export const OverviewTab: React.FC<OverviewTabProps> = ({ invitees, onNavigateToAdd }) => {
   const totalInvited = invitees.length;
   const attendingList = invitees.filter((i) => i.rsvp === 'attending');
   const attendingCount = attendingList.length;
@@ -17,12 +31,16 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ invitees }) => {
   const declinedCount = invitees.filter((i) => i.rsvp === 'declined').length;
   const pendingCount = invitees.filter((i) => i.rsvp === 'pending').length;
   const notSentCount = invitees.filter((i) => !i.shared_at).length;
+  const sentCount = totalInvited - notSentCount;
 
-  const attendingPercent = totalInvited > 0 ? Math.round((attendingCount / totalInvited) * 100) : 0;
-  const declinedPercent = totalInvited > 0 ? Math.round((declinedCount / totalInvited) * 100) : 0;
-  const pendingPercent = totalInvited > 0 ? Math.round((pendingCount / totalInvited) * 100) : 0;
+  const attendingPercent = totalInvited > 0 ? (attendingCount / totalInvited) * 100 : 0;
+  const declinedPercent = totalInvited > 0 ? (declinedCount / totalInvited) * 100 : 0;
+  const pendingPercent = totalInvited > 0 ? (pendingCount / totalInvited) * 100 : 0;
+  const sentPercent = totalInvited > 0 ? (sentCount / totalInvited) * 100 : 0;
+  const respondedCount = attendingCount + declinedCount;
+  const respondedPercent = totalInvited > 0 ? (respondedCount / totalInvited) * 100 : 0;
 
-  // Last 8 responses (only attending or declined guests; pending is never shown)
+  // Last 8 responses (only attending or declined guests)
   const respondedInvitees = invitees
     .filter((i) => i.rsvp !== 'pending' && Boolean(i.responded_at))
     .sort(
@@ -31,9 +49,91 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ invitees }) => {
     )
     .slice(0, 8);
 
+  const handlePrint = (filter: 'all' | 'attending') => {
+    if (invitees.length === 0) {
+      notify.info('No guests to print yet.');
+      return;
+    }
+    printGuestList(invitees, filter);
+    notify.success('Opening print layout...');
+  };
+
+  const handleExportSeating = () => {
+    if (attendingCount === 0) {
+      notify.info('No attending guests recorded yet for seating export.');
+      return;
+    }
+    exportSeatingCsv(invitees);
+    notify.success(`Exported seating chart with ${attendingCount} parties.`);
+  };
+
+  if (totalInvited === 0) {
+    return (
+      <div className="bg-white rounded-3xl p-10 border border-[#e08aa3]/20 shadow-card-3d text-center max-w-xl mx-auto my-8">
+        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#fff2f6] flex items-center justify-center text-[#e08aa3]">
+          <Users className="w-8 h-8" />
+        </div>
+        <h3 className="font-display text-2xl font-bold text-[#4a3038] mb-2">No Guests Added Yet</h3>
+        <p className="font-body text-sm text-[#b592a0] mb-6 leading-relaxed">
+          Start by adding your wedding guest list or importing names from a CSV spreadsheet. You can then track RSVPs, monitor attendance, and share personalized links.
+        </p>
+        {onNavigateToAdd && (
+          <button
+            onClick={onNavigateToAdd}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#e08aa3] text-white hover:bg-[#b05570] transition shadow-md font-label text-xs uppercase tracking-wider font-semibold cursor-pointer"
+          >
+            <PlusCircle className="w-4 h-4" />
+            Add & Import Guests
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {/* 5 Responsive Stat Cards */}
+      {/* Quick Action Bar for Print & Export */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-[#e08aa3]/15 shadow-sm">
+        <div>
+          <span className="font-display text-base font-bold text-[#4a3038] block">
+            Guest Overview & Metrics
+          </span>
+          <span className="font-body text-xs text-[#b592a0]">
+            {respondedCount} of {totalInvited} responded ({Math.round(respondedPercent)}%) • {totalGuestCount} attending headcount
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => handlePrint('all')}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#fff2f6] text-[#b05570] hover:bg-[#f7c1d0]/40 transition border border-[#e08aa3]/20 text-xs font-label uppercase tracking-wider font-medium cursor-pointer"
+            title="Print / Save complete guest list as PDF"
+          >
+            <Printer className="w-3.5 h-3.5" />
+            <span>Print All</span>
+          </button>
+
+          <button
+            onClick={() => handlePrint('attending')}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition border border-emerald-200 text-xs font-label uppercase tracking-wider font-medium cursor-pointer"
+            title="Print attending guests with headcount"
+          >
+            <Printer className="w-3.5 h-3.5" />
+            <span>Print Attending</span>
+          </button>
+
+          <button
+            onClick={handleExportSeating}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-[#4a3038] hover:bg-gray-50 transition border border-gray-200 text-xs font-label uppercase tracking-wider font-medium cursor-pointer"
+            title="Export seating list as CSV"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Seating CSV</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 6 Responsive Stat Cards with Context & Progress */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         <StatCard
           label="Total Invited"
@@ -41,42 +141,53 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ invitees }) => {
           colorClass="text-[#b05570]"
           icon={<Users className="w-5 h-5 text-[#e08aa3]" />}
           subtext="Invited Parties"
+          progress={100}
+          progressColor="bg-[#b05570]"
         />
         <StatCard
           label="Attending"
           value={attendingCount}
           colorClass="text-emerald-600"
           icon={<UserCheck className="w-5 h-5 text-emerald-500" />}
-          subtext={`${attendingPercent}% of total`}
+          subtext={`${attendingCount} of ${totalInvited}`}
+          progress={attendingPercent}
+          progressColor="bg-emerald-500"
         />
         <StatCard
           label="Declined"
           value={declinedCount}
           colorClass="text-rose-600"
           icon={<UserX className="w-5 h-5 text-rose-500" />}
-          subtext={`${declinedPercent}% of total`}
+          subtext={`${declinedCount} of ${totalInvited}`}
+          progress={declinedPercent}
+          progressColor="bg-rose-500"
         />
         <StatCard
           label="Pending"
           value={pendingCount}
           colorClass="text-amber-500"
           icon={<Clock className="w-5 h-5 text-amber-500" />}
-          subtext={`${pendingPercent}% of total`}
+          subtext={`${pendingCount} of ${totalInvited}`}
+          progress={pendingPercent}
+          progressColor="bg-amber-500"
         />
         <StatCard
-          label="Total Guests"
+          label="Headcount"
           value={totalGuestCount}
           colorClass="text-[#e08aa3]"
           icon={<UserPlus className="w-5 h-5 text-[#e08aa3]" />}
-          subtext="Attending Headcount"
+          subtext="Total Attendees"
+          progress={attendingPercent}
+          progressColor="bg-[#e08aa3]"
         />
-
         <StatCard
-          label="Not Yet Sent"
-          value={notSentCount}
+          label="Links Sent"
+          value={sentCount}
           colorClass="text-[#128C7E]"
           icon={<Send className="w-5 h-5 text-[#25D366]" />}
-          subtext="Links not shared"
+          subtext={`${sentCount} of ${totalInvited}`}
+          progress={sentPercent}
+          progressColor="bg-[#25D366]"
         />
       </div>
 
@@ -84,9 +195,9 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ invitees }) => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <ResponseBar
-            attendingPercent={attendingPercent}
-            declinedPercent={declinedPercent}
-            pendingPercent={pendingPercent}
+            attendingPercent={Math.round(attendingPercent)}
+            declinedPercent={Math.round(declinedPercent)}
+            pendingPercent={Math.round(pendingPercent)}
           />
         </div>
 
@@ -170,7 +281,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ invitees }) => {
         </div>
       </div>
 
-      {/* Recent 8 Responses List */}
+      {/* Recent Responses List */}
       <div className="bg-white rounded-2xl p-6 border border-[#e08aa3]/15 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <h4 className="font-display text-base font-bold text-[#4a3038]">

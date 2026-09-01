@@ -25,7 +25,6 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
 
   const [isStarted, setIsStarted] = useState(false);
   const [isCardVisible, setIsCardVisible] = useState(false);
-  const [isRevealed, setIsRevealed] = useState(false);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!sceneRef.current || isTransitioningRef.current) return;
@@ -46,11 +45,7 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
     if (isStarted || isTransitioningRef.current) return;
     setIsStarted(true);
 
-    const tl = gsap.timeline({
-      onComplete: () => {
-        setIsRevealed(true);
-      },
-    });
+    const tl = gsap.timeline();
 
     const leftDoor = portalRef.current?.leftDoor;
     const rightDoor = portalRef.current?.rightDoor;

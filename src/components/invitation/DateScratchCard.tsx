@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Card3D } from '@/components/common/Card3D';
 import { weddingConfig } from '@/config/weddingConfig';
 import { downloadCalendarIcs } from '@/lib/calendar';
+import { notify } from '@/lib/notify';
 import confetti from 'canvas-confetti';
 import { Sparkles, Calendar, CalendarCheck } from 'lucide-react';
 
@@ -17,7 +18,8 @@ export const DateScratchCard: React.FC<DateScratchCardProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [revealed, setRevealed] = useState(isRevealed);
+  const prefersReducedMotion = useReducedMotion();
+  const [revealed, setRevealed] = useState(isRevealed || Boolean(prefersReducedMotion));
   const [isDrawing, setIsDrawing] = useState(false);
 
   const event = weddingConfig.event;
@@ -25,17 +27,19 @@ export const DateScratchCard: React.FC<DateScratchCardProps> = ({
   const triggerReveal = () => {
     if (revealed) return;
     setRevealed(true);
-    confetti({
-      particleCount: 50,
-      spread: 60,
-      origin: { y: 0.6 },
-      colors: ['#f2b8c6', '#f9dde5', '#e08aa3', '#fff2f6'],
-    });
+    if (!prefersReducedMotion) {
+      confetti({
+        particleCount: 50,
+        spread: 60,
+        origin: { y: 0.6 },
+        colors: ['#f2b8c6', '#f9dde5', '#e08aa3', '#fff2f6'],
+      });
+    }
     if (onRevealed) onRevealed();
   };
 
   useEffect(() => {
-    if (revealed) return;
+    if (revealed || prefersReducedMotion) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -142,7 +146,12 @@ export const DateScratchCard: React.FC<DateScratchCardProps> = ({
       canvas.removeEventListener('touchmove', handlePointerMove);
       window.removeEventListener('touchend', handlePointerUp);
     };
-  }, [revealed, isDrawing]);
+  }, [revealed, isDrawing, prefersReducedMotion]);
+
+  const handleDownloadCalendar = () => {
+    downloadCalendarIcs();
+    notify.success('Downloaded calendar event file (.ics)');
+  };
 
   return (
     <motion.section
@@ -151,6 +160,7 @@ export const DateScratchCard: React.FC<DateScratchCardProps> = ({
       viewport={{ once: true, margin: '-60px' }}
       transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
       className="w-full max-w-xl mx-auto my-6 px-3"
+      aria-label="Wedding Date and Time"
     >
       {/* Framed Insha Allah Badge Above Date */}
       <div className="flex justify-center mb-4">
@@ -199,17 +209,19 @@ export const DateScratchCard: React.FC<DateScratchCardProps> = ({
                 ref={canvasRef}
                 exit={{ opacity: 0, scale: 1.05 }}
                 transition={{ duration: 0.6 }}
-                className="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing z-10 touch-none rounded-2xl"
+                aria-label="Scratch surface to reveal date"
+                role="button"
+                className="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing z-10 touch-none rounded-2xl focus-visible:ring-2 focus-visible:ring-[#e08aa3]"
               />
             )}
           </AnimatePresence>
         </div>
 
-        {/* Action button if guest prefers tap, or add-to-calendar after reveal */}
+        {/* Action button */}
         {revealed ? (
           <button
-            onClick={downloadCalendarIcs}
-            className="mt-4 inline-flex items-center gap-1.5 text-xs font-label uppercase tracking-widest text-[#e79db0] hover:text-[#b05570] transition-colors cursor-pointer"
+            onClick={handleDownloadCalendar}
+            className="mt-4 inline-flex items-center gap-1.5 text-xs font-label uppercase tracking-widest text-[#e79db0] hover:text-[#b05570] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#e08aa3] rounded-lg px-2 py-1"
           >
             <CalendarCheck className="w-3.5 h-3.5" />
             <span>Add to Calendar</span>
@@ -217,7 +229,7 @@ export const DateScratchCard: React.FC<DateScratchCardProps> = ({
         ) : (
           <button
             onClick={triggerReveal}
-            className="mt-4 inline-flex items-center gap-1.5 text-xs font-label uppercase tracking-widest text-[#e79db0] hover:text-[#b05570] transition-colors cursor-pointer"
+            className="mt-4 inline-flex items-center gap-1.5 text-xs font-label uppercase tracking-widest text-[#e79db0] hover:text-[#b05570] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#e08aa3] rounded-lg px-2 py-1"
           >
             <Sparkles className="w-3.5 h-3.5" />
             <span>Or Tap to Reveal Date</span>

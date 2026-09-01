@@ -216,3 +216,33 @@ export function exportInviteesToCsv(invitees: Invitee[]): void {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+export function exportSeatingCsv(invitees: Invitee[]): void {
+  const escape = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const header = ['Guest Name', 'Party Size / Headcount', 'Status', 'Special Notes'];
+  const lines = [header.join(',')];
+
+  const attending = invitees.filter((i) => i.rsvp === 'attending');
+
+  for (const i of attending) {
+    lines.push(
+      [
+        i.name,
+        i.guest_count || 1,
+        'Attending',
+        i.notes || '',
+      ]
+        .map(escape)
+        .join(',')
+    );
+  }
+
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `seating-chart-attending-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+

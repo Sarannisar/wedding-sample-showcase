@@ -5,6 +5,7 @@ import {
   createBulkInvitees,
   deleteInvitee,
   deleteBulkInvitees,
+  restoreInvitee,
   markInviteeShared,
   updateInvitee,
   isSupabaseConfigured,
@@ -15,7 +16,15 @@ import { weddingConfig } from '@/config/weddingConfig';
 import { OverviewTab } from '@/components/dashboard/OverviewTab';
 import { AllInviteesTab } from '@/components/dashboard/AllInviteesTab';
 import { AddImportTab } from '@/components/dashboard/AddImportTab';
-import { LayoutDashboard, Users, UserPlus, Sparkles, RefreshCw } from 'lucide-react';
+import { notify } from '@/lib/notify';
+import {
+  LayoutDashboard,
+  Users,
+  UserPlus,
+  RefreshCw,
+} from 'lucide-react';
+
+type ConnectionStatus = 'live' | 'polling' | 'offline';
 
 export const DashboardPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'all' | 'add'>('overview');
@@ -23,20 +32,38 @@ export const DashboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [targetInviteeId, setTargetInviteeId] = useState<string | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>(
+    isSupabaseConfigured ? 'connecting' as any : 'polling'
+  );
 
   const loadData = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoading(true);
     else setRefreshing(true);
-    const data = await fetchInvitees();
-    setInvitees(data);
-    if (!isSilent) setLoading(false);
-    else setRefreshing(false);
+    try {
+      const data = await fetchInvitees();
+      setInvitees(data);
+    } catch (err) {
+      console.error('Failed to load invitees:', err);
+      notify.error('Could not refresh guest list.');
+    } finally {
+      if (!isSilent) setLoading(false);
+      else setRefreshing(false);
+    }
   }, []);
+
+  const connectionStatusRef = React.useRef<ConnectionStatus>(
+    isSupabaseConfigured ? 'connecting' as any : 'polling'
+  );
+
+  const updateStatus = (status: ConnectionStatus) => {
+    connectionStatusRef.current = status;
+    setConnectionStatus(status);
+  };
 
   useEffect(() => {
     loadData();
 
-    // Supabase Realtime channel subscription
+    // Supabase Realtime channel subscription with status tracking
     if (isSupabaseConfigured && supabase) {
       const channel = supabase
         .channel('dashboard-realtime-invitees')
@@ -47,18 +74,54 @@ export const DashboardPage: React.FC = () => {
             void loadData(true);
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            updateStatus('live');
+          } else if (status === 'TIMED_OUT' || status === 'CHANNEL_ERROR') {
+            updateStatus('polling');
+          } else if (status === 'CLOSED') {
+            updateStatus('offline');
+          }
+        });
+
+      // Fallback polling interval in case realtime is interrupted
+      const fallbackInterval = setInterval(() => {
+        if (connectionStatusRef.current === 'polling') {
+          void loadData(true);
+        }
+      }, 15000);
 
       return () => {
-        supabase.removeChannel(channel);
+        if (supabase) supabase.removeChannel(channel);
+        clearInterval(fallbackInterval);
       };
     } else {
-      // Periodic fallback sync every 15 seconds
+      updateStatus('polling');
       const timer = setInterval(() => {
         void loadData(true);
       }, 15000);
       return () => clearInterval(timer);
     }
+  }, [loadData]);
+
+  // Online / Offline window listeners
+  useEffect(() => {
+    const handleOnline = () => {
+      if (isSupabaseConfigured) setConnectionStatus('live');
+      else setConnectionStatus('polling');
+      void loadData(true);
+    };
+    const handleOffline = () => {
+      setConnectionStatus('offline');
+      notify.info('You are offline. Dashboard changes will sync when connected.');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, [loadData]);
 
   const handleAddInvitee = async (name: string, phone?: string | null) => {
@@ -81,6 +144,25 @@ export const DashboardPage: React.FC = () => {
   const handleBulkDelete = async (ids: string[]) => {
     await deleteBulkInvitees(ids);
     setInvitees((prev) => prev.filter((i) => !ids.includes(i.id)));
+  };
+
+  const handleRestoreInvitee = async (invitee: Invitee) => {
+    await restoreInvitee(invitee);
+    setInvitees((prev) => {
+      if (prev.some((i) => i.id === invitee.id)) return prev;
+      return [invitee, ...prev];
+    });
+  };
+
+  const handleBulkRestore = async (restoredList: Invitee[]) => {
+    for (const inv of restoredList) {
+      await restoreInvitee(inv);
+    }
+    setInvitees((prev) => {
+      const existingIds = new Set(prev.map((i) => i.id));
+      const toAdd = restoredList.filter((i) => !existingIds.has(i.id));
+      return [...toAdd, ...prev];
+    });
   };
 
   const handleMarkShared = async (id: string) => {
@@ -124,7 +206,7 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#fffafc] flex flex-col text-[#4a3038]">
-      {/* Dark Theme Header Bar as specified in template */}
+      {/* Header Bar */}
       <header className="bg-[#b05570] text-white py-4 px-4 sm:px-8 shadow-md">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
           {/* Left: Event & Honorees */}
@@ -140,7 +222,7 @@ export const DashboardPage: React.FC = () => {
             </h1>
           </div>
 
-          {/* Right: Event Date & Refresh Button */}
+          {/* Right: Realtime status & Refresh Button */}
           <div className="flex items-center gap-4 text-center sm:text-right">
             <div>
               <span className="font-label text-xs uppercase tracking-wider text-[#f7c1d0] block">
@@ -150,8 +232,33 @@ export const DashboardPage: React.FC = () => {
                 {weddingConfig.event.dayAndDate}
               </p>
             </div>
+
+            {/* Connection Status Badge */}
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/20 text-[11px] font-label font-medium">
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  connectionStatus === 'live'
+                    ? 'bg-emerald-400 animate-pulse'
+                    : connectionStatus === 'polling'
+                    ? 'bg-amber-300'
+                    : 'bg-rose-400'
+                }`}
+              />
+              <span className="text-white/90">
+                {connectionStatus === 'live'
+                  ? 'Live'
+                  : connectionStatus === 'polling'
+                  ? 'Polling 15s'
+                  : 'Offline'}
+              </span>
+            </div>
+
+            {/* Refresh button */}
             <button
-              onClick={() => void loadData(true)}
+              onClick={() => {
+                void loadData(true);
+                notify.info('Refreshing guest list...');
+              }}
               disabled={refreshing || loading}
               className="p-2 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white transition-colors cursor-pointer disabled:opacity-50"
               title="Refresh Dashboard Data"
@@ -203,15 +310,41 @@ export const DashboardPage: React.FC = () => {
           </button>
         </div>
 
-        {/* Tab Content */}
+        {/* Tab Content with Skeleton Loading (Step 16 #27) */}
         {loading ? (
-          <div className="py-20 text-center text-[#b592a0] font-body flex flex-col items-center gap-2">
-            <Sparkles className="w-6 h-6 animate-spin text-[#e08aa3]" />
-            <span>Loading dashboard data...</span>
+          <div className="space-y-6 animate-pulse">
+            {/* Skeleton Stat Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+              {[...Array(6)].map((_, i) => (
+                <div
+                  key={i}
+                  className="h-28 rounded-2xl bg-white/70 border border-[#e08aa3]/10 p-4 space-y-3"
+                >
+                  <div className="h-3 bg-[#e08aa3]/15 rounded w-16" />
+                  <div className="h-7 bg-[#e08aa3]/20 rounded w-10" />
+                  <div className="h-2 bg-[#e08aa3]/10 rounded w-20" />
+                </div>
+              ))}
+            </div>
+
+            {/* Skeleton Table / Content */}
+            <div className="bg-white/70 rounded-2xl p-6 border border-[#e08aa3]/10 space-y-4">
+              <div className="h-5 bg-[#e08aa3]/15 rounded w-48" />
+              <div className="space-y-2">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="h-10 bg-[#e08aa3]/8 rounded-xl" />
+                ))}
+              </div>
+            </div>
           </div>
         ) : (
           <>
-            {activeTab === 'overview' && <OverviewTab invitees={invitees} />}
+            {activeTab === 'overview' && (
+              <OverviewTab
+                invitees={invitees}
+                onNavigateToAdd={() => setActiveTab('add')}
+              />
+            )}
             {activeTab === 'all' && (
               <AllInviteesTab
                 invitees={invitees}
@@ -219,6 +352,8 @@ export const DashboardPage: React.FC = () => {
                 onClearTargetInviteeId={() => setTargetInviteeId(null)}
                 onDelete={handleDeleteInvitee}
                 onBulkDelete={handleBulkDelete}
+                onRestore={handleRestoreInvitee}
+                onBulkRestore={handleBulkRestore}
                 onMarkShared={handleMarkShared}
                 onBulkMarkShared={handleBulkMarkShared}
                 onUpdateInvitee={handleUpdateInvitee}

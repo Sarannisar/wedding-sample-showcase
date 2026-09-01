@@ -22,7 +22,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ guestName }) => {
       >
         {/* Bismillah Arabic Calligraphy */}
         <div className="mb-5">
-          <p className="font-arabic text-xl sm:text-2xl text-[#8a243e] font-normal tracking-wide leading-[1.8] sm:leading-[1.9] pb-1 drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
+          <p
+            style={{ fontSize: 'clamp(1.25rem, 3.5vw, 1.65rem)' }}
+            className="font-arabic text-[#8a243e] font-normal tracking-wide leading-[1.8] sm:leading-[1.9] pb-1 drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]"
+          >
             {weddingConfig.cultural.bismillah.arabic}
           </p>
           <p className="font-serif italic text-xs sm:text-sm text-[#704655] mt-2 leading-relaxed drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
@@ -39,7 +42,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ guestName }) => {
 
         {/* Personalized Guest Addressing */}
         <div className="mb-3">
-          <h3 className="font-serif italic text-2xl sm:text-3xl text-[#5c1c2b] font-semibold leading-snug tracking-wide drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
+          <h3
+            style={{ fontSize: 'clamp(1.5rem, 4.5vw, 2rem)' }}
+            className="font-serif italic text-[#5c1c2b] font-semibold leading-snug tracking-wide drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]"
+          >
             {guestName || 'Mohammed & Family'},
           </h3>
         </div>
@@ -58,9 +64,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ guestName }) => {
           request the pleasure of your company at the wedding ceremony of their beloved daughter
         </p>
 
-        {/* Flowing Couple Names in Kaushan Script */}
+        {/* Flowing Couple Names in Kaushan Script with Fluid clamp typography */}
         <div className="my-8 flex flex-col items-center">
-          <h2 className="font-kaushan text-4xl sm:text-5xl lg:text-6xl text-[#b04362] font-normal tracking-wide drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)] leading-none">
+          <h2
+            style={{ fontSize: 'clamp(2.5rem, 8vw, 3.85rem)' }}
+            className="font-kaushan text-[#b04362] font-normal tracking-wide drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)] leading-none"
+          >
             {weddingConfig.couple.bride}
           </h2>
 
@@ -70,7 +79,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ guestName }) => {
             </span>
           </div>
 
-          <h2 className="font-kaushan text-4xl sm:text-5xl lg:text-6xl text-[#b04362] font-normal tracking-wide drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)] leading-none">
+          <h2
+            style={{ fontSize: 'clamp(2.5rem, 8vw, 3.85rem)' }}
+            className="font-kaushan text-[#b04362] font-normal tracking-wide drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)] leading-none"
+          >
             {weddingConfig.couple.groom}
           </h2>
 
