@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import gsap from 'gsap';
 import { BlessingSection } from './BlessingSection';
 import { HeroSection } from './HeroSection';
 import { ScrollGuide } from './ScrollGuide';
@@ -25,33 +26,40 @@ export const InvitationSuite: React.FC<InvitationSuiteProps> = ({
 }) => {
   const [isDateRevealed, setIsDateRevealed] = useState(false);
   const postCountdownDividerRef = React.useRef<HTMLDivElement>(null);
+  const scrollTweenRef = React.useRef<gsap.core.Tween | null>(null);
+
+  const slowSmoothScrollToDivider = () => {
+    if (!postCountdownDividerRef.current) return;
+    const rect = postCountdownDividerRef.current.getBoundingClientRect();
+    const targetY = window.scrollY + rect.bottom - window.innerHeight + 36;
+
+    if (targetY > window.scrollY + 10) {
+      if (scrollTweenRef.current) {
+        scrollTweenRef.current.kill();
+      }
+
+      const scrollObj = { y: window.scrollY };
+      scrollTweenRef.current = gsap.to(scrollObj, {
+        y: targetY,
+        duration: 1.6, // Slow, luxurious, calm scroll pace
+        ease: 'power2.inOut',
+        onUpdate: () => {
+          window.scrollTo(0, scrollObj.y);
+        },
+      });
+    }
+  };
 
   const handleDateRevealed = () => {
     setIsDateRevealed(true);
-    // Give the countdown height animation a moment to start/expand, then check view bounds
+    // Smoothly scroll down after brief expansion start
     setTimeout(() => {
-      if (postCountdownDividerRef.current) {
-        const rect = postCountdownDividerRef.current.getBoundingClientRect();
-        if (rect.bottom > window.innerHeight - 20) {
-          postCountdownDividerRef.current.scrollIntoView({
-            behavior: 'smooth',
-            block: 'end',
-          });
-        }
-      }
-    }, 400);
+      slowSmoothScrollToDivider();
+    }, 450);
   };
 
   const handleCountdownAnimationComplete = () => {
-    if (postCountdownDividerRef.current) {
-      const rect = postCountdownDividerRef.current.getBoundingClientRect();
-      if (rect.bottom > window.innerHeight - 10) {
-        postCountdownDividerRef.current.scrollIntoView({
-          behavior: 'smooth',
-          block: 'end',
-        });
-      }
-    }
+    slowSmoothScrollToDivider();
   };
 
   return (
