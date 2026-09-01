@@ -25,7 +25,7 @@ export const FloralLoader: React.FC<FloralLoaderProps> = ({ onComplete, guestNam
   useEffect(() => {
     let active = true;
     const startTime = Date.now();
-    const MIN_LOAD_TIME = 2500; // 2.5s minimum for elegant logo presentation
+    const MIN_LOAD_TIME = 900; // Snappy 0.9s fast intro
 
     // Smooth visual progress ticker
     const progressInterval = setInterval(() => {
@@ -33,7 +33,7 @@ export const FloralLoader: React.FC<FloralLoaderProps> = ({ onComplete, guestNam
       const elapsed = Date.now() - startTime;
       const pct = Math.min(95, Math.round((elapsed / MIN_LOAD_TIME) * 90));
       setProgress(pct);
-    }, 50);
+    }, 40);
 
     const preloadImages = IMAGE_ASSETS.map((src) => {
       return new Promise<void>((resolve) => {
@@ -69,8 +69,7 @@ export const FloralLoader: React.FC<FloralLoaderProps> = ({ onComplete, guestNam
         vid.addEventListener('error', () => resolve(), { once: true });
         vid.load();
 
-        // Fallback for video
-        setTimeout(resolve, 3000);
+        setTimeout(resolve, 1000);
       } catch {
         resolve();
       }
@@ -83,7 +82,7 @@ export const FloralLoader: React.FC<FloralLoaderProps> = ({ onComplete, guestNam
         audio.src = AUDIO_ASSET;
         audio.oncanplaythrough = () => resolve();
         audio.onerror = () => resolve();
-        setTimeout(resolve, 2500);
+        setTimeout(resolve, 1000);
       } catch {
         resolve();
       }
@@ -95,22 +94,21 @@ export const FloralLoader: React.FC<FloralLoaderProps> = ({ onComplete, guestNam
       if (!active) return;
       clearInterval(progressInterval);
       setProgress(100);
-      // Small graceful pause at 100% before smooth fade out
       setTimeout(() => {
         if (active) {
           onComplete?.();
         }
-      }, 300);
+      }, 100);
     });
 
-    // Safety timeout (max 4.2s)
+    // Safety timeout (max 1.5s)
     const safetyTimer = setTimeout(() => {
       if (active) {
         clearInterval(progressInterval);
         setProgress(100);
         onComplete?.();
       }
-    }, 4200);
+    }, 1500);
 
     return () => {
       active = false;
@@ -122,8 +120,8 @@ export const FloralLoader: React.FC<FloralLoaderProps> = ({ onComplete, guestNam
   return (
     <motion.div
       initial={{ opacity: 1 }}
-      exit={{ opacity: 0, scale: 1.04 }}
-      transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+      exit={{ opacity: 0, scale: 1.03 }}
+      transition={{ duration: 0.5, ease: 'easeInOut' }}
       className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#fffafc] px-4 select-none overflow-hidden"
     >
       {/* Ambient Watercolor Radial Background Glow */}
