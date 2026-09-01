@@ -28,7 +28,7 @@ export const InvitationSuite: React.FC<InvitationSuiteProps> = ({
   const postCountdownDividerRef = React.useRef<HTMLDivElement>(null);
   const scrollTweenRef = React.useRef<gsap.core.Tween | null>(null);
 
-  const slowSmoothScrollToDivider = () => {
+  const smoothScrollToDivider = () => {
     if (!postCountdownDividerRef.current) return;
     const rect = postCountdownDividerRef.current.getBoundingClientRect();
     const targetY = window.scrollY + rect.bottom - window.innerHeight + 36;
@@ -41,8 +41,8 @@ export const InvitationSuite: React.FC<InvitationSuiteProps> = ({
       const scrollObj = { y: window.scrollY };
       scrollTweenRef.current = gsap.to(scrollObj, {
         y: targetY,
-        duration: 1.6, // Slow, luxurious, calm scroll pace
-        ease: 'power2.inOut',
+        duration: 0.85, // Balanced, responsive smooth pace
+        ease: 'power2.out',
         onUpdate: () => {
           window.scrollTo(0, scrollObj.y);
         },
@@ -52,14 +52,14 @@ export const InvitationSuite: React.FC<InvitationSuiteProps> = ({
 
   const handleDateRevealed = () => {
     setIsDateRevealed(true);
-    // Smoothly scroll down after brief expansion start
+    // Smoothly scroll down right as countdown starts revealing
     setTimeout(() => {
-      slowSmoothScrollToDivider();
-    }, 450);
+      smoothScrollToDivider();
+    }, 120);
   };
 
   const handleCountdownAnimationComplete = () => {
-    slowSmoothScrollToDivider();
+    smoothScrollToDivider();
   };
 
   return (
