@@ -30,7 +30,7 @@ export const GuestInvitePage: React.FC = () => {
     typeof navigator !== 'undefined' ? !navigator.onLine : false
   );
 
-  // Preload key images before opening
+  // Preload key images and background card video before opening
   useEffect(() => {
     let mounted = true;
     const preloadPromises = PRELOAD_ASSETS.map((src) => {
@@ -41,6 +41,17 @@ export const GuestInvitePage: React.FC = () => {
         img.onerror = () => resolve(); // Non-fatal
       });
     });
+
+    // Proactively pre-buffer card background video during door sequence
+    try {
+      const vid = document.createElement('video');
+      vid.src = '/assets/video_2026-08-31_13-56-43.mp4';
+      vid.preload = 'auto';
+      vid.muted = true;
+      vid.load();
+    } catch {
+      // Non-fatal
+    }
 
     const timeout = new Promise<void>((resolve) => setTimeout(resolve, 3500));
 
