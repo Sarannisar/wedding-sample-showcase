@@ -64,6 +64,9 @@ export const Card3D: React.FC<Card3DProps> = ({
     vid.defaultMuted = true;
     vid.muted = true;
 
+    // Immediately trigger play
+    vid.play().catch(() => {});
+
     // IntersectionObserver: Only play video when in viewport to eliminate mobile CPU/GPU contention
     const observer = new IntersectionObserver(
       (entries) => {
@@ -75,7 +78,7 @@ export const Card3D: React.FC<Card3DProps> = ({
           }
         });
       },
-      { threshold: 0.15 }
+      { threshold: 0.05 }
     );
 
     if (cardRef.current) {
@@ -87,14 +90,11 @@ export const Card3D: React.FC<Card3DProps> = ({
       if (vid.paused) {
         vid.play().catch(() => {});
       }
-      window.removeEventListener('touchstart', onUserInteraction);
-      window.removeEventListener('scroll', onUserInteraction);
-      window.removeEventListener('click', onUserInteraction);
     };
 
-    window.addEventListener('touchstart', onUserInteraction, { passive: true, once: true });
-    window.addEventListener('scroll', onUserInteraction, { passive: true, once: true });
-    window.addEventListener('click', onUserInteraction, { passive: true, once: true });
+    window.addEventListener('touchstart', onUserInteraction, { passive: true });
+    window.addEventListener('scroll', onUserInteraction, { passive: true });
+    window.addEventListener('click', onUserInteraction, { passive: true });
 
     return () => {
       observer.disconnect();

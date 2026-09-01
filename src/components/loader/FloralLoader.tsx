@@ -186,7 +186,7 @@ export const FloralLoader: React.FC<FloralLoaderProps> = ({ onComplete, guestNam
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5, duration: 0.6 }}
-          className="mt-6 w-48 flex flex-col items-center gap-2"
+          className="mt-6 w-36 flex flex-col items-center gap-2"
         >
           <div className="w-full h-1 bg-[#f7cdd7]/40 rounded-full overflow-hidden p-0.5 border border-[#f2b8c6]/30">
             <motion.div
@@ -195,9 +195,6 @@ export const FloralLoader: React.FC<FloralLoaderProps> = ({ onComplete, guestNam
               transition={{ ease: 'linear' }}
             />
           </div>
-          <span className="font-label text-[9px] uppercase tracking-[0.25em] text-[#b592a0] font-semibold">
-            {progress < 100 ? 'Preparing Your Invitation...' : 'Welcome'}
-          </span>
         </motion.div>
       </div>
     </motion.div>
