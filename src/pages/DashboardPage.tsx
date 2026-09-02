@@ -28,7 +28,7 @@ type ConnectionStatus = 'live' | 'polling' | 'offline';
 
 export const DashboardPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'all' | 'add'>('overview');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'attending' | 'declined' | 'pending' | 'notsent'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'attending' | 'declined' | 'pending' | 'opened_unresponded' | 'notsent'>('all');
   const [invitees, setInvitees] = useState<Invitee[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

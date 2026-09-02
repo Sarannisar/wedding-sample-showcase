@@ -22,7 +22,7 @@ import {
 interface OverviewTabProps {
   invitees: Invitee[];
   onNavigateToAdd?: () => void;
-  onFilterClick?: (status: 'all' | 'attending' | 'declined' | 'pending' | 'notsent') => void;
+  onFilterClick?: (status: 'all' | 'attending' | 'declined' | 'pending' | 'opened_unresponded' | 'notsent') => void;
 }
 
 export const OverviewTab: React.FC<OverviewTabProps> = ({
@@ -223,7 +223,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           colorClass="text-[#8a243e]"
           icon={<Eye className="w-4 h-4 text-[#e08aa3]" />}
           subtext={`${openedNotRespondedCount} viewed invite`}
-          onClick={() => onFilterClick?.('pending')}
+          onClick={() => onFilterClick?.('opened_unresponded')}
         />
       </div>
 

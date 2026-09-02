@@ -3,6 +3,7 @@ export interface WeddingConfig {
     type: string;
     label: string;
     dayAndDate: string;
+    hijriDate?: string;
     time: string;
     targetDate: string; // ISO date string for live countdown
     venue: {
@@ -59,6 +60,7 @@ export const weddingConfig: WeddingConfig = {
     type: 'Wedding Ceremony',
     label: 'Wedding Ceremony',
     dayAndDate: 'Saturday, 12th December 2026',
+    hijriDate: '٣ رَجَب ١٤٤٨',
     time: '12:30 PM onwards',
     targetDate: '2026-12-12T12:30:00+05:30',
     venue: {

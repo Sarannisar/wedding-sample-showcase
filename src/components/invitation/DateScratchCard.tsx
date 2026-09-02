@@ -187,7 +187,7 @@ export const DateScratchCard: React.FC<DateScratchCardProps> = ({
 
         <div
           ref={containerRef}
-          className="relative w-full h-48 sm:h-52 rounded-2xl overflow-hidden shadow-inner border border-[#f2b8c6]/30 bg-gradient-to-br from-[#fffafc] via-[#fffdfe] to-[#fff6f9] flex flex-col items-center justify-center select-none"
+          className="relative w-full h-52 sm:h-56 rounded-2xl overflow-hidden shadow-inner border border-[#f2b8c6]/30 bg-gradient-to-br from-[#fffafc] via-[#fffdfe] to-[#fff6f9] flex flex-col items-center justify-center select-none"
         >
           {/* Revealed Date Content Beneath Foil */}
           <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center z-0">
@@ -203,7 +203,16 @@ export const DateScratchCard: React.FC<DateScratchCardProps> = ({
               {event.dayAndDate}
             </h2>
 
-            <p className="font-serif italic text-sm text-[#dd8ea5] font-semibold mt-1">
+            {/* Hijri Islamic Date */}
+            <p
+              dir="rtl"
+              lang="ar"
+              className="font-arabic text-base sm:text-lg text-[#b04362] font-medium mt-1 leading-normal drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]"
+            >
+              {event.hijriDate || '٣ رَجَب ١٤٤٨'}
+            </p>
+
+            <p className="font-serif italic text-sm text-[#dd8ea5] font-semibold mt-0.5">
               {event.time}
             </p>
           </div>

@@ -50,7 +50,7 @@ interface AllInviteesTabProps {
 
 type SortColumn = 'name' | 'rsvp' | 'guest_count' | 'shared_at' | 'responded_at' | 'created_at';
 type SortDirection = 'asc' | 'desc';
-type ChipFilter = 'all' | 'attending' | 'declined' | 'pending' | 'notsent';
+type ChipFilter = 'all' | 'attending' | 'declined' | 'pending' | 'opened_unresponded' | 'notsent';
 
 export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
   invitees,
@@ -145,6 +145,7 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
     attending: invitees.filter((i) => i.rsvp === 'attending').length,
     declined: invitees.filter((i) => i.rsvp === 'declined').length,
     pending: invitees.filter((i) => i.rsvp === 'pending').length,
+    opened_unresponded: invitees.filter((i) => i.rsvp === 'pending' && Boolean(i.opened_at)).length,
     notsent: invitees.filter((i) => !i.shared_at).length,
   };
 
@@ -167,6 +168,7 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
     if (chipFilter === 'attending') matchesChip = invitee.rsvp === 'attending';
     else if (chipFilter === 'declined') matchesChip = invitee.rsvp === 'declined';
     else if (chipFilter === 'pending') matchesChip = invitee.rsvp === 'pending';
+    else if (chipFilter === 'opened_unresponded') matchesChip = invitee.rsvp === 'pending' && Boolean(invitee.opened_at);
     else if (chipFilter === 'notsent') matchesChip = !invitee.shared_at;
 
     return matchesSearch && matchesChip;
@@ -554,6 +556,27 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
             }`}
           >
             {counts.pending}
+          </span>
+        </button>
+
+        <button
+          onClick={() => handleSelectChip('opened_unresponded')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-label uppercase tracking-wider font-semibold transition-all cursor-pointer shrink-0 ${
+            chipFilter === 'opened_unresponded'
+              ? 'bg-[#8a243e] text-white shadow-xs'
+              : 'bg-white border border-[#e08aa3]/40 text-[#8a243e] hover:bg-[#fff0f4]'
+          }`}
+        >
+          <Eye className="w-3.5 h-3.5" />
+          <span>Opened (Unresponded)</span>
+          <span
+            className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+              chipFilter === 'opened_unresponded'
+                ? 'bg-white/25 text-white'
+                : 'bg-[#fff0f4] text-[#8a243e]'
+            }`}
+          >
+            {counts.opened_unresponded}
           </span>
         </button>
 
