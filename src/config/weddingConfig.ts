@@ -101,9 +101,10 @@ export const weddingConfig: WeddingConfig = {
     },
   },
 
+
   whatsapp: {
     messageTemplate:
-      "Assalamu Alaikum GUEST_NAME\nThe family of Mr. and Mrs. Illyas cordially invite you to their daughter Safiyya's Wedding Ceremony on Saturday 12th December 2026 at Glen Reception Hall from 12:30pm onwards.\n\nView your personal invitation here: GUEST_LINK",
+      "Assalamu Alaikum GUEST_NAME\n\nThe family of Mr. and Mrs. Illyas cordially invite you to their daughter Safiyya's Wedding Ceremony on Saturday 12th December 2026 at Glen Reception Hall from 12:30pm onwards.\n\nView your personal invitation here: GUEST_LINK",
   },
   theme: {
     name: 'Baby Pink Pastel',
