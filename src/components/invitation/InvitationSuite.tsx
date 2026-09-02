@@ -10,7 +10,6 @@ import { EventCardSection } from './EventCardSection';
 import { RsvpSection } from './RsvpSection';
 import { ContactSection } from './ContactSection';
 import { ClosingSection } from './ClosingSection';
-import { SaveShareActionRow } from './SaveShareActionRow';
 import { FloralDivider } from '@/components/common/FloralDivider';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { Invitee, RsvpStatus } from '@/lib/types';
@@ -139,11 +138,6 @@ export const InvitationSuite: React.FC<InvitationSuiteProps> = ({
       {/* Closing Arabic Dua, Translation & Ameen */}
       <ErrorBoundary compact fallbackTitle="Closing Blessing">
         <ClosingSection />
-      </ErrorBoundary>
-
-      {/* Save & Calendar Action Row */}
-      <ErrorBoundary compact fallbackTitle="Save Invitation">
-        <SaveShareActionRow inviteeId={invitee?.id} />
       </ErrorBoundary>
 
       {/* Gentle periodic nudge to keep scrolling to the very bottom */}
