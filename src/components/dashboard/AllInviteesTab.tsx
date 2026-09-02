@@ -750,23 +750,63 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-1">
                       <input
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => toggleSelect(invitee.id)}
-                        className="w-4.5 h-4.5 accent-[#b05570] cursor-pointer rounded"
+                        className="w-4.5 h-4.5 accent-[#b05570] cursor-pointer rounded shrink-0"
                       />
-                      <div>
-                        <h4 className="font-display text-sm font-bold text-[#4a3038]">
-                          {invitee.name}
-                        </h4>
-                        {invitee.phone && (
-                          <span className="text-xs font-body text-[#b592a0] block">
-                            {invitee.phone}
-                          </span>
-                        )}
-                      </div>
+                      {editingId === invitee.id ? (
+                        <div className="space-y-2 py-1 flex-1 pr-2">
+                          <input
+                            type="text"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-[#e08aa3] text-sm focus:outline-none bg-white font-medium text-[#4a3038]"
+                            placeholder="Guest Name"
+                            autoFocus
+                          />
+                          <input
+                            type="text"
+                            value={editPhone}
+                            onChange={(e) => setEditPhone(e.target.value)}
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-[#e08aa3] text-xs focus:outline-none bg-white text-gray-700 font-mono"
+                            placeholder="Phone number (+94...)"
+                          />
+                          <div className="flex items-center gap-2 pt-1">
+                            <button
+                              onClick={() => saveEditing(invitee.id)}
+                              disabled={savingId === invitee.id}
+                              className="px-3 py-1.5 rounded-lg bg-[#b05570] text-white text-xs font-label uppercase tracking-wider font-semibold hover:bg-[#8f3e55] flex items-center gap-1 shadow-xs cursor-pointer disabled:opacity-50"
+                            >
+                              {savingId === invitee.id ? (
+                                <span className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                              ) : (
+                                <Check className="w-3.5 h-3.5" />
+                              )}
+                              <span>Save</span>
+                            </button>
+                            <button
+                              onClick={cancelEditing}
+                              className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-xs font-label uppercase tracking-wider font-semibold hover:bg-gray-100 cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <h4 className="font-display text-sm font-bold text-[#4a3038]">
+                            {invitee.name}
+                          </h4>
+                          {invitee.phone && (
+                            <span className="text-xs font-body text-[#b592a0] block">
+                              {invitee.phone}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-1">
@@ -865,7 +905,27 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
                   )}
 
                   {/* Mobile Action Buttons */}
-                  <div className="flex items-center justify-end gap-1.5 mt-3 pt-2 border-t border-gray-100">
+                  <div className="flex items-center justify-end gap-1.5 mt-3 pt-2 border-t border-gray-100 flex-wrap">
+                    {/* Edit Guest Details Button */}
+                    {editingId === invitee.id ? (
+                      <button
+                        onClick={cancelEditing}
+                        className="p-1.5 rounded-lg border border-gray-300 text-gray-700 bg-gray-50 text-xs font-label uppercase font-semibold flex items-center gap-1 cursor-pointer"
+                        title="Cancel edit"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        <span>Cancel</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => startEditing(invitee)}
+                        className="p-1.5 rounded-lg border border-[#e08aa3]/30 text-[#b05570] hover:bg-[#fff5f8] cursor-pointer"
+                        title="Edit guest name or phone"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                    )}
+
                     <button
                       onClick={() => openWhatsApp(invitee)}
                       className="px-2.5 py-1.5 rounded-lg bg-[#25D366] text-white font-label text-xs uppercase tracking-wider font-semibold flex items-center gap-1"
