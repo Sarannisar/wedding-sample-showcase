@@ -6,6 +6,7 @@ interface Props {
   fallbackTitle?: string;
   fallbackMessage?: string;
   showHomeButton?: boolean;
+  compact?: boolean;
 }
 
 interface State {
@@ -33,6 +34,29 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public render() {
     if (this.state.hasError) {
+      if (this.props.compact) {
+        return (
+          <div className="w-full max-w-xl mx-auto my-4 p-5 text-center rounded-2xl bg-[#fffafc] border border-[#f2b8c6]/40 shadow-xs">
+            <div className="w-8 h-8 mx-auto mb-2 rounded-full bg-[#fff0f4] flex items-center justify-center text-[#e08aa3]">
+              <AlertCircle className="w-4 h-4" />
+            </div>
+            <p className="font-display text-sm font-semibold text-[#4a3038] mb-1">
+              {this.props.fallbackTitle ? `${this.props.fallbackTitle} couldn't load` : "This section couldn't load"}
+            </p>
+            <p className="font-body text-xs text-[#b592a0] mb-3">
+              {this.props.fallbackMessage || 'A temporary issue occurred while loading this section.'}
+            </p>
+            <button
+              onClick={this.handleReload}
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#e08aa3] text-white hover:bg-[#b05570] transition text-xs font-label uppercase tracking-wider font-semibold cursor-pointer shadow-xs"
+            >
+              <RefreshCw className="w-3 h-3" />
+              <span>Reload</span>
+            </button>
+          </div>
+        );
+      }
+
       return (
         <div className="min-h-[50vh] flex items-center justify-center p-6 bg-theme-bg/60">
           <div className="max-w-md w-full p-8 text-center rounded-2xl bg-white/90 backdrop-blur-md border border-theme-border shadow-card-3d relative overflow-hidden">

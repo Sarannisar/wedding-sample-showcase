@@ -8,7 +8,10 @@ export const FloralDivider: React.FC<FloralDividerProps> = ({
   className = 'my-8',
 }) => {
   return (
-    <div className={`flex items-center justify-center gap-3 w-full max-w-xs mx-auto ${className}`}>
+    <div
+      aria-hidden="true"
+      className={`flex items-center justify-center gap-3 w-full max-w-xs mx-auto select-none pointer-events-none ${className}`}
+    >
       <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-[#e08aa3]/40" />
       <div className="flex items-center gap-1.5 text-[#e08aa3]/70">
         <span className="text-xs">✦</span>

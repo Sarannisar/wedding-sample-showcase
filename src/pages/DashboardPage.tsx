@@ -28,6 +28,7 @@ type ConnectionStatus = 'live' | 'polling' | 'offline';
 
 export const DashboardPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'all' | 'add'>('overview');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'attending' | 'declined' | 'pending' | 'notsent'>('all');
   const [invitees, setInvitees] = useState<Invitee[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -343,6 +344,10 @@ export const DashboardPage: React.FC = () => {
               <OverviewTab
                 invitees={invitees}
                 onNavigateToAdd={() => setActiveTab('add')}
+                onFilterClick={(filter) => {
+                  setStatusFilter(filter);
+                  setActiveTab('all');
+                }}
               />
             )}
             {activeTab === 'all' && (
@@ -350,6 +355,8 @@ export const DashboardPage: React.FC = () => {
                 invitees={invitees}
                 targetInviteeId={targetInviteeId}
                 onClearTargetInviteeId={() => setTargetInviteeId(null)}
+                statusFilter={statusFilter}
+                onStatusFilterChange={setStatusFilter}
                 onDelete={handleDeleteInvitee}
                 onBulkDelete={handleBulkDelete}
                 onRestore={handleRestoreInvitee}

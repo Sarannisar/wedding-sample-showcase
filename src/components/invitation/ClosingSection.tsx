@@ -2,16 +2,15 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Card3D } from '@/components/common/Card3D';
 import { weddingConfig } from '@/config/weddingConfig';
+import { useReveal } from '@/lib/useReveal';
 
 export const ClosingSection: React.FC = () => {
   const closing = weddingConfig.cultural.closing;
+  const revealProps = useReveal();
 
   return (
     <motion.section
-      initial={{ opacity: 0, y: 28 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-60px' }}
-      transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+      {...revealProps}
       className="w-full max-w-xl mx-auto my-6 mb-16 px-3"
     >
       <Card3D className="text-center py-10 px-6 sm:px-10">

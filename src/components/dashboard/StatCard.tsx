@@ -9,6 +9,8 @@ interface StatCardProps {
   progress?: number;
   progressColor?: string;
   onClick?: () => void;
+  primary?: boolean;
+  accentBorderClass?: string;
 }
 
 export const StatCard: React.FC<StatCardProps> = ({
@@ -20,23 +22,39 @@ export const StatCard: React.FC<StatCardProps> = ({
   progress,
   progressColor = 'bg-[#e08aa3]',
   onClick,
+  primary = false,
+  accentBorderClass,
 }) => {
   return (
     <div
       onClick={onClick}
-      className={`bg-white rounded-2xl p-5 border border-[#e08aa3]/15 shadow-sm hover:shadow-md transition-all flex flex-col justify-between ${
-        onClick ? 'cursor-pointer hover:border-[#e08aa3]/40' : ''
-      }`}
+      className={`rounded-2xl transition-all duration-200 flex flex-col justify-between ${
+        primary
+          ? `bg-white p-6 sm:p-7 shadow-sm hover:shadow-md border-2 ${
+              accentBorderClass || 'border-[#e08aa3]/30'
+            }`
+          : `bg-white/95 p-4 sm:p-5 shadow-xs hover:shadow-sm border border-[#e08aa3]/15`
+      } ${onClick ? 'cursor-pointer hover:-translate-y-0.5' : ''}`}
     >
-      <div className="flex items-center justify-between">
-        <span className="font-label text-[11px] uppercase tracking-wider text-[#b592a0] font-semibold">
+      <div className="flex items-center justify-between gap-2">
+        <span
+          className={`font-label uppercase font-semibold ${
+            primary
+              ? 'text-xs tracking-wider text-[#7a5563]'
+              : 'text-[11px] tracking-wider text-[#b592a0]'
+          }`}
+        >
           {label}
         </span>
-        {icon && <div className="text-gray-400">{icon}</div>}
+        {icon && <div>{icon}</div>}
       </div>
 
-      <div className="my-2">
-        <span className={`font-display text-3xl sm:text-4xl font-bold ${colorClass}`}>
+      <div className={primary ? 'my-3' : 'my-1.5'}>
+        <span
+          className={`font-display font-bold tracking-tight ${colorClass} ${
+            primary ? 'text-4xl sm:text-5xl' : 'text-2xl sm:text-3xl'
+          }`}
+        >
           {value}
         </span>
       </div>

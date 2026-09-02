@@ -119,6 +119,7 @@ export const BackgroundMusic: React.FC<BackgroundMusicProps> = ({ active }) => {
       {/* Floating Audio Toggle Button */}
       <button
         onClick={toggle}
+        aria-pressed={isPlaying}
         aria-label={isPlaying ? 'Turn music off' : 'Turn music on'}
         title={isPlaying ? 'Turn music off' : 'Turn music on'}
         className="w-11 h-11 rounded-full bg-white/90 backdrop-blur-md border border-[#f2b8c6]/70 shadow-lg flex items-center justify-center text-[#b05570] active:scale-95 transition cursor-pointer focus-visible:ring-2 focus-visible:ring-[#e08aa3]"

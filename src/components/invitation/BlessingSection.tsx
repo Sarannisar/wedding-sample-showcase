@@ -1,14 +1,14 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Card3D } from '@/components/common/Card3D';
+import { useReveal } from '@/lib/useReveal';
 
 export const BlessingSection: React.FC = () => {
+  const revealProps = useReveal();
+
   return (
     <motion.section
-      initial={{ opacity: 0, y: 32 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-40px' }}
-      transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+      {...revealProps}
       className="w-full max-w-xl mx-auto my-6 px-3"
     >
       <Card3D className="text-center py-8 px-6 sm:px-10">

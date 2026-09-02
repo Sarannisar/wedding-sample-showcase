@@ -40,6 +40,7 @@ export const App: React.FC = () => {
           },
         }}
       />
+    <ErrorBoundary fallbackTitle="Application Error" fallbackMessage="The invitation application encountered an unexpected error.">
       <Router>
         <Suspense fallback={<PageFallbackLoader />}>
           <Routes>
@@ -81,6 +82,7 @@ export const App: React.FC = () => {
           </Routes>
         </Suspense>
       </Router>
+    </ErrorBoundary>
     </>
   );
 };

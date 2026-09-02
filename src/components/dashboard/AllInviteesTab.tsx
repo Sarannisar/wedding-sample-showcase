@@ -34,6 +34,8 @@ interface AllInviteesTabProps {
   invitees: Invitee[];
   targetInviteeId?: string | null;
   onClearTargetInviteeId?: () => void;
+  statusFilter?: ChipFilter;
+  onStatusFilterChange?: (filter: ChipFilter) => void;
   onDelete: (id: string) => Promise<void>;
   onBulkDelete?: (ids: string[]) => Promise<void>;
   onRestore?: (invitee: Invitee) => Promise<void>;
@@ -54,6 +56,8 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
   invitees,
   targetInviteeId,
   onClearTargetInviteeId,
+  statusFilter,
+  onStatusFilterChange,
   onDelete,
   onBulkDelete,
   onRestore,
@@ -64,7 +68,19 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const deferredSearchQuery = useDeferredValue(searchQuery);
-  const [chipFilter, setChipFilter] = useState<ChipFilter>('all');
+  const [chipFilter, setChipFilter] = useState<ChipFilter>(statusFilter || 'all');
+
+  useEffect(() => {
+    if (statusFilter) {
+      setChipFilter(statusFilter);
+    }
+  }, [statusFilter]);
+
+  const handleSelectChip = (filter: ChipFilter) => {
+    setChipFilter(filter);
+    onStatusFilterChange?.(filter);
+    setCurrentPage(1);
+  };
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [copiedTextId, setCopiedTextId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -470,10 +486,7 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
       {/* Filter Chips Row with Live Badges */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1">
         <button
-          onClick={() => {
-            setChipFilter('all');
-            setCurrentPage(1);
-          }}
+          onClick={() => handleSelectChip('all')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-label uppercase tracking-wider font-semibold transition-all cursor-pointer shrink-0 ${
             chipFilter === 'all'
               ? 'bg-[#e08aa3] text-white shadow-xs'
@@ -491,10 +504,7 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
         </button>
 
         <button
-          onClick={() => {
-            setChipFilter('attending');
-            setCurrentPage(1);
-          }}
+          onClick={() => handleSelectChip('attending')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-label uppercase tracking-wider font-semibold transition-all cursor-pointer shrink-0 ${
             chipFilter === 'attending'
               ? 'bg-emerald-600 text-white shadow-xs'
@@ -512,10 +522,7 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
         </button>
 
         <button
-          onClick={() => {
-            setChipFilter('declined');
-            setCurrentPage(1);
-          }}
+          onClick={() => handleSelectChip('declined')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-label uppercase tracking-wider font-semibold transition-all cursor-pointer shrink-0 ${
             chipFilter === 'declined'
               ? 'bg-rose-600 text-white shadow-xs'
@@ -533,10 +540,7 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
         </button>
 
         <button
-          onClick={() => {
-            setChipFilter('pending');
-            setCurrentPage(1);
-          }}
+          onClick={() => handleSelectChip('pending')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-label uppercase tracking-wider font-semibold transition-all cursor-pointer shrink-0 ${
             chipFilter === 'pending'
               ? 'bg-amber-500 text-white shadow-xs'
@@ -554,10 +558,7 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
         </button>
 
         <button
-          onClick={() => {
-            setChipFilter('notsent');
-            setCurrentPage(1);
-          }}
+          onClick={() => handleSelectChip('notsent')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-label uppercase tracking-wider font-semibold transition-all cursor-pointer shrink-0 ${
             chipFilter === 'notsent'
               ? 'bg-[#128C7E] text-white shadow-xs'

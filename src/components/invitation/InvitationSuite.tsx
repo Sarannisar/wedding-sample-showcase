@@ -10,7 +10,9 @@ import { EventCardSection } from './EventCardSection';
 import { RsvpSection } from './RsvpSection';
 import { ContactSection } from './ContactSection';
 import { ClosingSection } from './ClosingSection';
+import { SaveShareActionRow } from './SaveShareActionRow';
 import { FloralDivider } from '@/components/common/FloralDivider';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { Invitee, RsvpStatus } from '@/lib/types';
 
 interface InvitationSuiteProps {
@@ -65,20 +67,27 @@ export const InvitationSuite: React.FC<InvitationSuiteProps> = ({
   return (
     <div className="relative z-20 w-full min-h-screen py-10 px-2 sm:px-4 flex flex-col items-center">
       {/* Sacred Spiritual Prelude Card: Surah Ar-Rum (30:21) */}
-      <BlessingSection />
+      <ErrorBoundary compact fallbackTitle="Spiritual Blessing">
+        <BlessingSection />
+      </ErrorBoundary>
 
       <FloralDivider className="my-6" />
 
       {/* Main Stationery Hero */}
-      <HeroSection guestName={invitee?.name} />
+      <ErrorBoundary compact fallbackTitle="Wedding Invitation">
+        <HeroSection guestName={invitee?.name} />
+      </ErrorBoundary>
 
       <FloralDivider className="my-6" />
 
       {/* Interactive Gold Date Scratch-to-Reveal Card (with Insha Allah badge) */}
-      <DateScratchCard
-        isRevealed={isDateRevealed}
-        onRevealed={handleDateRevealed}
-      />
+      <ErrorBoundary compact fallbackTitle="Date & Time Card">
+        <DateScratchCard
+          isRevealed={isDateRevealed}
+          onRevealed={handleDateRevealed}
+          inviteeId={invitee?.id}
+        />
+      </ErrorBoundary>
 
       {/* Live Countdown Timer - Only shown after date is scratched/revealed */}
       <AnimatePresence>
@@ -91,7 +100,9 @@ export const InvitationSuite: React.FC<InvitationSuiteProps> = ({
             onAnimationComplete={handleCountdownAnimationComplete}
             className="w-full flex justify-center"
           >
-            <CountdownSection />
+            <ErrorBoundary compact fallbackTitle="Wedding Countdown">
+              <CountdownSection />
+            </ErrorBoundary>
           </motion.div>
         )}
       </AnimatePresence>
@@ -102,25 +113,38 @@ export const InvitationSuite: React.FC<InvitationSuiteProps> = ({
       </div>
 
       {/* 3D Tactile Event Location Card with Google Maps */}
-      <EventCardSection />
+      <ErrorBoundary compact fallbackTitle="Venue & Location">
+        <EventCardSection inviteeId={invitee?.id} />
+      </ErrorBoundary>
 
       {/* Interactive RSVP Flow with Optional Note/Dua (only if personalized invitee or RSVP enabled) */}
       {showRsvp && (
         <>
           <FloralDivider className="my-6" />
-          <RsvpSection invitee={invitee} onRsvpSuccess={onRsvpSuccess} />
+          <ErrorBoundary compact fallbackTitle="RSVP Section">
+            <RsvpSection invitee={invitee} onRsvpSuccess={onRsvpSuccess} />
+          </ErrorBoundary>
         </>
       )}
 
       <FloralDivider className="my-6" />
 
       {/* Directions & Family Contact */}
-      <ContactSection />
+      <ErrorBoundary compact fallbackTitle="Contact & Directions">
+        <ContactSection />
+      </ErrorBoundary>
 
       <FloralDivider className="my-6" />
 
       {/* Closing Arabic Dua, Translation & Ameen */}
-      <ClosingSection />
+      <ErrorBoundary compact fallbackTitle="Closing Blessing">
+        <ClosingSection />
+      </ErrorBoundary>
+
+      {/* Save & Calendar Action Row */}
+      <ErrorBoundary compact fallbackTitle="Save Invitation">
+        <SaveShareActionRow inviteeId={invitee?.id} />
+      </ErrorBoundary>
 
       {/* Gentle periodic nudge to keep scrolling to the very bottom */}
       <ScrollGuide />

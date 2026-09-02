@@ -3,6 +3,8 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Card3D } from '@/components/common/Card3D';
 import { weddingConfig } from '@/config/weddingConfig';
 import { downloadCalendarIcs } from '@/lib/calendar';
+import { logInviteeEvent } from '@/lib/supabase';
+import { useReveal } from '@/lib/useReveal';
 import { notify } from '@/lib/notify';
 import confetti from 'canvas-confetti';
 import { Sparkles, Calendar, CalendarCheck } from 'lucide-react';
@@ -10,11 +12,13 @@ import { Sparkles, Calendar, CalendarCheck } from 'lucide-react';
 interface DateScratchCardProps {
   onRevealed?: () => void;
   isRevealed?: boolean;
+  inviteeId?: string;
 }
 
 export const DateScratchCard: React.FC<DateScratchCardProps> = ({
   onRevealed,
   isRevealed = false,
+  inviteeId,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -150,15 +154,17 @@ export const DateScratchCard: React.FC<DateScratchCardProps> = ({
 
   const handleDownloadCalendar = () => {
     downloadCalendarIcs();
+    if (inviteeId) {
+      void logInviteeEvent(inviteeId, 'calendar_added');
+    }
     notify.success('Downloaded calendar event file (.ics)');
   };
 
+  const revealProps = useReveal();
+
   return (
     <motion.section
-      initial={{ opacity: 0, y: 28 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-60px' }}
-      transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+      {...revealProps}
       className="w-full max-w-xl mx-auto my-6 px-3"
       aria-label="Wedding Date and Time"
     >
@@ -193,9 +199,9 @@ export const DateScratchCard: React.FC<DateScratchCardProps> = ({
               Mark Your Calendar
             </span>
 
-            <h3 className="font-serif text-2xl sm:text-3xl text-[#4a3038] font-bold mt-1 tracking-wide">
+            <h2 className="font-serif text-2xl sm:text-3xl text-[#4a3038] font-bold mt-1 tracking-wide">
               {event.dayAndDate}
-            </h3>
+            </h2>
 
             <p className="font-serif italic text-sm text-[#dd8ea5] font-semibold mt-1">
               {event.time}
@@ -207,9 +213,16 @@ export const DateScratchCard: React.FC<DateScratchCardProps> = ({
             {!revealed && (
               <motion.canvas
                 ref={canvasRef}
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    triggerReveal();
+                  }
+                }}
                 exit={{ opacity: 0, scale: 1.05 }}
                 transition={{ duration: 0.6 }}
-                aria-label="Scratch surface to reveal date"
+                aria-label="Scratch surface or press Enter to reveal date"
                 role="button"
                 className="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing z-10 touch-none rounded-2xl focus-visible:ring-2 focus-visible:ring-[#e08aa3]"
               />

@@ -66,25 +66,25 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ guestName }) => {
 
         {/* Flowing Couple Names in Kaushan Script with Fluid clamp typography */}
         <div className="my-8 flex flex-col items-center">
-          <h2
-            style={{ fontSize: 'clamp(2.5rem, 8vw, 3.85rem)' }}
-            className="font-kaushan text-[#b04362] font-normal tracking-wide drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)] leading-none"
-          >
-            {weddingConfig.couple.bride}
-          </h2>
+          <h1 className="flex flex-col items-center">
+            <span
+              style={{ fontSize: 'clamp(2.5rem, 8vw, 3.85rem)' }}
+              className="font-kaushan text-[#b04362] font-normal tracking-wide drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)] leading-none"
+            >
+              {weddingConfig.couple.bride}
+            </span>
 
-          <div className="mt-6 sm:mt-8 mb-3 sm:mb-4 flex items-center justify-center">
-            <span className="font-serif italic text-xl sm:text-2xl text-[#825464] block font-normal tracking-wide drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
+            <span className="mt-6 sm:mt-8 mb-3 sm:mb-4 font-serif italic text-xl sm:text-2xl text-[#825464] block font-normal tracking-wide drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
               with
             </span>
-          </div>
 
-          <h2
-            style={{ fontSize: 'clamp(2.5rem, 8vw, 3.85rem)' }}
-            className="font-kaushan text-[#b04362] font-normal tracking-wide drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)] leading-none"
-          >
-            {weddingConfig.couple.groom}
-          </h2>
+            <span
+              style={{ fontSize: 'clamp(2.5rem, 8vw, 3.85rem)' }}
+              className="font-kaushan text-[#b04362] font-normal tracking-wide drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)] leading-none"
+            >
+              {weddingConfig.couple.groom}
+            </span>
+          </h1>
 
           <p className="font-serif italic text-xs sm:text-sm text-[#704655] mt-4 font-medium tracking-wide drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
             Son of Mr. and Mrs. Najiullah

@@ -3,21 +3,29 @@ import { motion } from 'framer-motion';
 import { Card3D } from '@/components/common/Card3D';
 import { weddingConfig } from '@/config/weddingConfig';
 import { downloadCalendarIcs } from '@/lib/calendar';
+import { useReveal } from '@/lib/useReveal';
 import { Navigation, Calendar } from 'lucide-react';
 
-export const EventCardSection: React.FC = () => {
+import { logInviteeEvent } from '@/lib/supabase';
+
+interface EventCardSectionProps {
+  inviteeId?: string;
+}
+
+export const EventCardSection: React.FC<EventCardSectionProps> = ({ inviteeId }) => {
   const event = weddingConfig.event;
+  const revealProps = useReveal();
 
   const handleOpenMaps = () => {
+    if (inviteeId) {
+      void logInviteeEvent(inviteeId, 'maps_opened');
+    }
     window.open(event.venue.mapsUrl, '_blank', 'noopener,noreferrer');
   };
 
   return (
     <motion.section
-      initial={{ opacity: 0, y: 28 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-60px' }}
-      transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+      {...revealProps}
       className="w-full max-w-xl mx-auto my-6 px-3"
     >
       <Card3D className="text-center py-8 px-5 sm:px-9">
@@ -27,9 +35,9 @@ export const EventCardSection: React.FC = () => {
         </span>
 
         {/* Venue Title */}
-        <h3 className="font-serif text-2xl sm:text-3xl text-[#4a3038] font-medium tracking-wide">
+        <h2 className="font-serif text-2xl sm:text-3xl text-[#4a3038] font-medium tracking-wide">
           {event.venue.name}
-        </h3>
+        </h2>
 
         {/* Golden Diamond Divider */}
         <div className="flex items-center justify-center gap-3 my-4">

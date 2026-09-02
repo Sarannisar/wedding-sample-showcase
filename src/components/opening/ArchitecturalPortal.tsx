@@ -36,7 +36,6 @@ export const ArchitecturalPortal = forwardRef<ArchitecturalPortalHandle, Archite
             alt="Royal Fairytale Garden Palace"
             loading="eager"
             decoding="sync"
-            fetchPriority="high"
             className="w-full h-full object-cover object-center transform-gpu"
           />
         </div>
@@ -60,7 +59,6 @@ export const ArchitecturalPortal = forwardRef<ArchitecturalPortalHandle, Archite
               alt="Royal French Left Door"
               loading="eager"
               decoding="sync"
-              fetchPriority="high"
               className="w-full h-full object-cover object-center transform-gpu select-none"
             />
 
@@ -97,7 +95,6 @@ export const ArchitecturalPortal = forwardRef<ArchitecturalPortalHandle, Archite
               alt="Royal French Right Door"
               loading="eager"
               decoding="sync"
-              fetchPriority="high"
               className="w-full h-full object-cover object-center transform-gpu select-none"
             />
 

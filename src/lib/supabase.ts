@@ -87,7 +87,7 @@ function saveLocalEvents(events: InviteeEvent[]): void {
 
 export async function logInviteeEvent(
   inviteeId: string,
-  type: InviteeEventType
+  type: InviteeEventType | string
 ): Promise<void> {
   const newEvent: InviteeEvent = {
     id:
@@ -95,7 +95,7 @@ export async function logInviteeEvent(
         ? crypto.randomUUID()
         : `ev-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     invitee_id: inviteeId,
-    type,
+    type: type as InviteeEventType,
     created_at: new Date().toISOString(),
   };
 
@@ -103,6 +103,16 @@ export async function logInviteeEvent(
   const localEvents = getLocalEvents();
   localEvents.unshift(newEvent);
   saveLocalEvents(localEvents);
+
+  // If opened, record opened_at timestamp in local store
+  if (type === 'opened') {
+    const localInvitees = getLocalInvitees();
+    const idx = localInvitees.findIndex((i) => i.id === inviteeId);
+    if (idx >= 0) {
+      localInvitees[idx].opened_at = newEvent.created_at;
+      saveLocalInvitees(localInvitees);
+    }
+  }
 
   // Sync to Supabase in background (fire-and-forget)
   if (isSupabaseConfigured && supabase) {
@@ -121,6 +131,18 @@ export async function logInviteeEvent(
             console.warn('Background event log warning (table may be pending migration):', error.message);
           }
         });
+
+      if (type === 'opened') {
+        supabase
+          .from('invitees')
+          .update({ opened_at: newEvent.created_at })
+          .eq('id', inviteeId)
+          .then(({ error }) => {
+            if (error) {
+              console.warn('Could not update opened_at timestamp:', error.message);
+            }
+          });
+      }
     } catch (err) {
       console.warn('Failed to log event to Supabase:', err);
     }

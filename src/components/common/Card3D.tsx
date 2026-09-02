@@ -136,7 +136,7 @@ export const Card3D: React.FC<Card3DProps> = ({
               loop
               muted
               playsInline
-              preload="auto"
+              preload="metadata"
               disablePictureInPicture
               disableRemotePlayback
               className={cn(

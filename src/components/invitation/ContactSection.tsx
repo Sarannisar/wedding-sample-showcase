@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Card3D } from '@/components/common/Card3D';
 import { weddingConfig } from '@/config/weddingConfig';
+import { useReveal } from '@/lib/useReveal';
 import { Navigation, Phone } from 'lucide-react';
 
 const CONTACTS = [
@@ -11,13 +12,11 @@ const CONTACTS = [
 
 export const ContactSection: React.FC = () => {
   const event = weddingConfig.event;
+  const revealProps = useReveal();
 
   return (
     <motion.section
-      initial={{ opacity: 0, y: 28 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-60px' }}
-      transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+      {...revealProps}
       className="w-full max-w-xl mx-auto my-6 px-3"
     >
       <Card3D className="py-8 px-5 sm:px-9">
@@ -25,9 +24,9 @@ export const ContactSection: React.FC = () => {
           <span className="font-label text-[10px] uppercase tracking-[0.35em] text-[#e79db0] font-semibold block mb-2">
             Directions &amp; Contact
           </span>
-          <h3 className="font-serif text-xl sm:text-2xl text-[#4a3038] font-medium tracking-wide">
+          <h2 className="font-serif text-xl sm:text-2xl text-[#4a3038] font-medium tracking-wide">
             We're Here to Help
-          </h3>
+          </h2>
           <div className="flex items-center justify-center gap-3 my-4">
             <div className="w-12 h-[1px] bg-gradient-to-r from-transparent to-[#f2b8c6]/50" />
             <span className="text-[#f2b8c6] text-xs">✦</span>
