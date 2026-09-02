@@ -323,22 +323,23 @@ export const AddImportTab: React.FC<AddImportTabProps> = ({
 
               <div>
                 <label className="block font-label text-xs uppercase tracking-wider text-[#4a3038] font-semibold mb-1">
-                  WhatsApp Phone Number (Numbers only)
+                  WhatsApp Phone Number
                 </label>
                 <input
                   type="tel"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  placeholder="e.g. 0771234567 or +94771234567"
+                  placeholder="e.g. 0771234567 or +447123456789"
                   value={phone}
                   onChange={(e) => {
-                    const numericOnly = e.target.value.replace(/\D/g, '');
-                    setPhone(numericOnly);
+                    const val = e.target.value;
+                    const sanitized = val.startsWith('+')
+                      ? '+' + val.substring(1).replace(/\D/g, '')
+                      : val.replace(/\D/g, '');
+                    setPhone(sanitized);
                   }}
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#e08aa3] focus:ring-1 focus:ring-[#e08aa3]"
                 />
                 <span className="text-[11px] text-[#b592a0] mt-1 block">
-                  Auto-formats to international format (e.g. <code>0771234567</code> → <code>+94771234567</code>).
+                  Numbers without <code>+</code> auto-format to <code>+94</code>. Non-Sri Lankan numbers can start with <code>+</code> (e.g. <code>+44...</code>, <code>+971...</code>).
                 </span>
               </div>
 

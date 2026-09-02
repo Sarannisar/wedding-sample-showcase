@@ -770,9 +770,15 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
                           <input
                             type="text"
                             value={editPhone}
-                            onChange={(e) => setEditPhone(e.target.value)}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              const sanitized = val.startsWith('+')
+                                ? '+' + val.substring(1).replace(/\D/g, '')
+                                : val.replace(/\D/g, '');
+                              setEditPhone(sanitized);
+                            }}
                             className="w-full px-2.5 py-1.5 rounded-lg border border-[#e08aa3] text-xs focus:outline-none bg-white text-gray-700 font-mono"
-                            placeholder="Phone number (+94...)"
+                            placeholder="Phone (e.g. 0771234567 or +971...)"
                           />
                           <div className="flex items-center gap-2 pt-1">
                             <button
@@ -1103,9 +1109,15 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
                                 <input
                                   type="text"
                                   value={editPhone}
-                                  onChange={(e) => setEditPhone(e.target.value)}
-                                  className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs focus:outline-none focus:border-[#e08aa3]"
-                                  placeholder="Phone (+94...)"
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    const sanitized = val.startsWith('+')
+                                      ? '+' + val.substring(1).replace(/\D/g, '')
+                                      : val.replace(/\D/g, '');
+                                    setEditPhone(sanitized);
+                                  }}
+                                  className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs focus:outline-none focus:border-[#e08aa3] font-mono"
+                                  placeholder="Phone (e.g. 0771234567 or +971...)"
                                 />
                               </div>
                             ) : (

@@ -43,47 +43,35 @@ export function formatPhoneNumber(phone?: string | null): string | null {
   const cleaned = phone.trim().replace(/[\s\-\(\)\.]/g, '');
   if (!cleaned) return null;
 
-  // If already starts with +
+  // 1. If starts with '+' -> Keep user's exact international country code (e.g. +44..., +971..., +1..., +94...)
   if (cleaned.startsWith('+')) {
     const digits = cleaned.substring(1).replace(/\D/g, '');
-    if (digits.startsWith('94')) {
-      return `+94${digits.substring(2)}`;
-    }
+    if (!digits) return null;
     return `+${digits}`;
   }
 
-  // If starts with 00 (international prefix)
+  // 2. If starts with '00' (international dialing prefix) -> convert to '+'
   if (cleaned.startsWith('00')) {
     const digits = cleaned.substring(2).replace(/\D/g, '');
-    if (digits.startsWith('94')) {
-      return `+94${digits.substring(2)}`;
-    }
+    if (!digits) return null;
     return `+${digits}`;
   }
 
+  // 3. For all numbers without '+' -> Treated as Sri Lankan number (+94)
   const digitsOnly = cleaned.replace(/\D/g, '');
   if (!digitsOnly) return null;
 
-  // Starts with 0 (e.g. 0771234567) -> 10 digits
-  if (digitsOnly.startsWith('0') && digitsOnly.length === 10) {
-    return `+94${digitsOnly.substring(1)}`;
-  }
-
-  // 9 digits (e.g. 771234567) -> prepend +94
-  if (digitsOnly.length === 9) {
-    return `+94${digitsOnly}`;
-  }
-
-  // 11 digits starting with 94 (e.g. 94771234567) -> prepend +
+  // If already starts with 94 (e.g. 94771234567)
   if (digitsOnly.startsWith('94') && digitsOnly.length === 11) {
     return `+${digitsOnly}`;
   }
 
-  // Default fallback if numbers entered
+  // If starts with 0 (e.g. 0771234567) -> strip leading 0 and prepend +94
   if (digitsOnly.startsWith('0')) {
     return `+94${digitsOnly.substring(1)}`;
   }
 
+  // Local 9-digit or general fallback (e.g. 771234567) -> prepend +94
   return `+94${digitsOnly}`;
 }
 
