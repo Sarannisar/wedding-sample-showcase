@@ -30,7 +30,11 @@ export const App: React.FC = () => {
       <Toaster
         position="top-center"
         richColors
+        closeButton
+        duration={4000}
+        expand={false}
         toastOptions={{
+          duration: 4000,
           style: {
             background: '#fffafc',
             border: '1px solid rgba(224, 138, 163, 0.3)',

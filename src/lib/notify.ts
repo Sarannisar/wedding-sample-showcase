@@ -12,47 +12,74 @@ export interface NotifyOptions {
   id?: string | number;
 }
 
+// Fallback timer to guarantee dismissal even if hover/touch prevents native sonner auto-dismiss
+const scheduleAutoDismiss = (id: string | number, duration: number) => {
+  if (typeof window !== 'undefined') {
+    setTimeout(() => {
+      toast.dismiss(id);
+    }, duration);
+  }
+};
+
 export const notify = {
   success: (message: string, options?: NotifyOptions) => {
-    return toast.success(message, {
+    const duration = options?.duration ?? 4000;
+    const id = toast.success(message, {
       description: options?.description,
       action: options?.action
         ? {
             label: options.action.label,
-            onClick: options.action.onClick,
+            onClick: () => {
+              toast.dismiss(id);
+              options.action?.onClick();
+            },
           }
         : undefined,
-      duration: options?.duration ?? 4000,
+      duration,
       id: options?.id,
     });
+    scheduleAutoDismiss(id, duration);
+    return id;
   },
 
   error: (message: string, options?: NotifyOptions) => {
-    return toast.error(message, {
+    const duration = options?.duration ?? 5000;
+    const id = toast.error(message, {
       description: options?.description,
       action: options?.action
         ? {
             label: options.action.label,
-            onClick: options.action.onClick,
+            onClick: () => {
+              toast.dismiss(id);
+              options.action?.onClick();
+            },
           }
         : undefined,
-      duration: options?.duration ?? 5000,
+      duration,
       id: options?.id,
     });
+    scheduleAutoDismiss(id, duration);
+    return id;
   },
 
   info: (message: string, options?: NotifyOptions) => {
-    return toast.info(message, {
+    const duration = options?.duration ?? 4000;
+    const id = toast.info(message, {
       description: options?.description,
       action: options?.action
         ? {
             label: options.action.label,
-            onClick: options.action.onClick,
+            onClick: () => {
+              toast.dismiss(id);
+              options.action?.onClick();
+            },
           }
         : undefined,
-      duration: options?.duration ?? 4000,
+      duration,
       id: options?.id,
     });
+    scheduleAutoDismiss(id, duration);
+    return id;
   },
 
   promise: <T>(
