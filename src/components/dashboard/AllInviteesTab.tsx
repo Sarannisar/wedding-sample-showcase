@@ -83,7 +83,8 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
   };
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [copiedTextId, setCopiedTextId] = useState<string | null>(null);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<Invitee | null>(null);
+  const [isDeletingSingle, setIsDeletingSingle] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
@@ -258,25 +259,38 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
     void onMarkShared(invitee.id);
   };
 
-  const handleDelete = async (id: string) => {
-    const targetInvitee = invitees.find((i) => i.id === id);
-    await onDelete(id);
-    setSelectedIds((prev) => prev.filter((s) => s !== id));
-    setDeleteConfirmId(null);
+  const requestSingleDelete = (invitee: Invitee) => {
+    setDeleteConfirmTarget(invitee);
+  };
 
-    if (targetInvitee && onRestore) {
-      notify.success(`Deleted ${targetInvitee.name}`, {
-        action: {
-          label: 'Undo',
-          onClick: () => {
-            void onRestore(targetInvitee);
-            notify.success(`Restored ${targetInvitee.name}`);
+  const handleConfirmSingleDelete = async () => {
+    if (!deleteConfirmTarget) return;
+    const target = deleteConfirmTarget;
+    setIsDeletingSingle(true);
+    try {
+      await onDelete(target.id);
+      setSelectedIds((prev) => prev.filter((s) => s !== target.id));
+      setDeleteConfirmTarget(null);
+
+      if (onRestore) {
+        notify.success(`Deleted invitation for ${target.name}`, {
+          action: {
+            label: 'Undo',
+            onClick: () => {
+              void onRestore(target);
+              notify.success(`Restored ${target.name}`);
+            },
           },
-        },
-        duration: 5000,
-      });
-    } else {
-      notify.success('Invitee deleted');
+          duration: 5000,
+        });
+      } else {
+        notify.success(`Deleted invitation for ${target.name}`);
+      }
+    } catch (err) {
+      console.error('Failed to delete invitee:', err);
+      notify.error('Could not delete invitation.');
+    } finally {
+      setIsDeletingSingle(false);
     }
   };
 
@@ -880,9 +894,9 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
                       <ExternalLink className="w-4 h-4" />
                     </a>
                     <button
-                      onClick={() => handleDelete(invitee.id)}
-                      className="p-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50"
-                      title="Delete"
+                      onClick={() => requestSingleDelete(invitee)}
+                      className="p-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 cursor-pointer"
+                      title="Delete invitation"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -1239,23 +1253,14 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
                                 )}
                               </button>
 
-                              {/* Delete Action */}
-                              {deleteConfirmId === invitee.id ? (
-                                <button
-                                  onClick={() => handleDelete(invitee.id)}
-                                  className="px-2 py-1 bg-rose-600 text-white rounded-lg text-xs font-label uppercase tracking-wider font-semibold hover:bg-rose-700 cursor-pointer"
-                                >
-                                  Confirm
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={() => setDeleteConfirmId(invitee.id)}
-                                  title="Delete invitee"
-                                  className="p-1.5 rounded-lg text-gray-400 hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              )}
+                              {/* Delete Action with Confirmation Modal */}
+                              <button
+                                onClick={() => requestSingleDelete(invitee)}
+                                title="Delete invitee"
+                                className="p-1.5 rounded-lg text-gray-400 hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -1513,6 +1518,94 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
         </div>
       )}
 
+      {/* Single Delete Confirmation Modal */}
+      {deleteConfirmTarget && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-rose-200 flex flex-col items-center text-center relative overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <button
+              onClick={() => setDeleteConfirmTarget(null)}
+              disabled={isDeletingSingle}
+              className="absolute top-4 right-4 p-2 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+              title="Close modal"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="w-16 h-16 rounded-full bg-rose-100 border border-rose-200 flex items-center justify-center text-rose-600 mb-4 mt-2 shadow-inner">
+              <Trash2 className="w-8 h-8" />
+            </div>
+
+            <h3 className="font-display text-xl sm:text-2xl font-bold text-[#4a3038]">
+              Delete Invitation?
+            </h3>
+
+            <p className="font-body text-xs sm:text-sm text-[#704655] mt-2 leading-relaxed">
+              Are you sure you want to permanently delete the invitation for{' '}
+              <strong className="text-rose-700 font-bold">
+                {deleteConfirmTarget.name}
+              </strong>
+              ?
+            </p>
+
+            {/* Guest Summary Card */}
+            <div className="w-full bg-[#fffafc] border border-rose-100 rounded-2xl p-3.5 my-4 text-left text-xs space-y-1.5 shadow-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500">Phone:</span>
+                <span className="font-semibold text-gray-700 font-mono">
+                  {deleteConfirmTarget.phone || 'None'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500">RSVP Status:</span>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-label uppercase tracking-wider font-semibold ${
+                    deleteConfirmTarget.rsvp === 'attending'
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : deleteConfirmTarget.rsvp === 'declined'
+                      ? 'bg-rose-100 text-rose-800'
+                      : 'bg-amber-100 text-amber-800'
+                  }`}
+                >
+                  {deleteConfirmTarget.rsvp} ({deleteConfirmTarget.guest_count || 1} guest{(deleteConfirmTarget.guest_count || 1) !== 1 ? 's' : ''})
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500">Invitation Link:</span>
+                <span className="font-mono text-gray-600 text-[11px] truncate max-w-[180px]">
+                  /invite/{deleteConfirmTarget.slug}
+                </span>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-[#b592a0]">
+              You will have 5 seconds to undo after confirming.
+            </p>
+
+            <div className="flex gap-2 w-full mt-4">
+              <button
+                onClick={() => setDeleteConfirmTarget(null)}
+                disabled={isDeletingSingle}
+                className="flex-1 py-3 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-label text-xs uppercase tracking-wider font-semibold transition-all cursor-pointer disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmSingleDelete}
+                disabled={isDeletingSingle}
+                className="flex-1 py-3 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-98 text-white font-label text-xs uppercase tracking-wider font-semibold shadow-md transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isDeletingSingle ? (
+                  <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
+                <span>{isDeletingSingle ? 'Deleting...' : 'Yes, Delete'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Bulk Delete Confirmation Modal */}
       {showBulkDeleteModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
@@ -1542,7 +1635,28 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
               ? You will have 5 seconds to undo this action.
             </p>
 
-            <div className="flex gap-2 w-full mt-6">
+            {/* Selected Guests Preview List */}
+            <div className="w-full max-h-36 overflow-y-auto bg-[#fffafc] border border-rose-100 rounded-2xl p-3 my-4 text-left text-xs space-y-1.5 shadow-xs">
+              <span className="font-semibold text-gray-500 uppercase tracking-wider text-[10px] block">
+                Selected for Deletion:
+              </span>
+              {invitees
+                .filter((i) => selectedIds.includes(i.id))
+                .slice(0, 8)
+                .map((i) => (
+                  <div key={i.id} className="text-gray-700 flex justify-between items-center">
+                    <span className="font-medium truncate max-w-[220px]">• {i.name}</span>
+                    <span className="text-[10px] text-gray-400 uppercase font-semibold">{i.rsvp}</span>
+                  </div>
+                ))}
+              {selectedIds.length > 8 && (
+                <p className="text-gray-400 italic text-[11px] pt-1 text-center">
+                  ...and {selectedIds.length - 8} more guests
+                </p>
+              )}
+            </div>
+
+            <div className="flex gap-2 w-full mt-2">
               <button
                 onClick={() => setShowBulkDeleteModal(false)}
                 disabled={isBulkDeleting}
