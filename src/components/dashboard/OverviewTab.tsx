@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Invitee } from '@/lib/types';
 import { StatCard } from './StatCard';
 import { ResponseBar } from './ResponseBar';
+import { GuestNotesSection } from './GuestNotesSection';
 import { formatTimeAgo } from '@/lib/utils';
 import { printGuestList } from '@/lib/printList';
 import { exportSeatingCsv } from '@/lib/csvHelper';
@@ -23,12 +24,14 @@ interface OverviewTabProps {
   invitees: Invitee[];
   onNavigateToAdd?: () => void;
   onFilterClick?: (status: 'all' | 'attending' | 'declined' | 'pending' | 'opened_unresponded' | 'notsent') => void;
+  onGuestClick?: (guestId: string) => void;
 }
 
 export const OverviewTab: React.FC<OverviewTabProps> = ({
   invitees,
   onNavigateToAdd,
   onFilterClick,
+  onGuestClick,
 }) => {
   const [hoveredSegment, setHoveredSegment] = useState<'attending' | 'declined' | 'pending' | null>(null);
 
@@ -424,6 +427,12 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           </div>
         </div>
       )}
+
+      {/* Feature: Guest Prayers, Wishes & Special Requests Aggregator */}
+      <GuestNotesSection
+        invitees={invitees}
+        onGuestClick={(guestId) => onGuestClick?.(guestId)}
+      />
     </div>
   );
 };

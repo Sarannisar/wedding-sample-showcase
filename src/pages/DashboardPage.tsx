@@ -17,11 +17,13 @@ import { OverviewTab } from '@/components/dashboard/OverviewTab';
 import { AllInviteesTab } from '@/components/dashboard/AllInviteesTab';
 import { AddImportTab } from '@/components/dashboard/AddImportTab';
 import { notify } from '@/lib/notify';
+import { exportDatabaseSnapshot } from '@/lib/backupHelper';
 import {
   LayoutDashboard,
   Users,
   UserPlus,
   RefreshCw,
+  Download,
 } from 'lucide-react';
 
 type ConnectionStatus = 'live' | 'polling' | 'offline';
@@ -254,6 +256,16 @@ export const DashboardPage: React.FC = () => {
               </span>
             </div>
 
+            {/* 1-Click JSON Snapshot Backup */}
+            <button
+              onClick={() => exportDatabaseSnapshot(invitees)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 active:scale-95 text-white text-xs font-semibold transition cursor-pointer border border-white/20"
+              title="Download Complete Offline JSON Backup of Wedding Database"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Backup (JSON)</span>
+            </button>
+
             {/* Refresh button */}
             <button
               onClick={() => {
@@ -346,6 +358,10 @@ export const DashboardPage: React.FC = () => {
                 onNavigateToAdd={() => setActiveTab('add')}
                 onFilterClick={(filter) => {
                   setStatusFilter(filter);
+                  setActiveTab('all');
+                }}
+                onGuestClick={(guestId) => {
+                  setTargetInviteeId(guestId);
                   setActiveTab('all');
                 }}
               />

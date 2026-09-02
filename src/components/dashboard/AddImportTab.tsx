@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Invitee } from '@/lib/types';
 import { parseCsvContent, SAMPLE_CSV_CONTENT } from '@/lib/csvHelper';
+import { validateBackupJson } from '@/lib/backupHelper';
 import { formatPhoneNumber } from '@/lib/utils';
 import { fetchInvitees } from '@/lib/supabase';
 import { notify } from '@/lib/notify';
@@ -134,14 +135,32 @@ export const AddImportTab: React.FC<AddImportTabProps> = ({
 
     setIsUploading(true);
 
+    const isJson = file.name.toLowerCase().endsWith('.json');
+
     const reader = new FileReader();
     reader.onload = async (event) => {
       try {
         const text = event.target?.result as string;
-        const parsed = parseCsvContent(text);
+        let parsed: { name: string; phone?: string }[] = [];
+
+        if (isJson) {
+          const validated = validateBackupJson(text);
+          if (!validated.success || !validated.invitees) {
+            notify.error(validated.error || 'Invalid JSON backup file.');
+            setIsUploading(false);
+            return;
+          }
+          parsed = validated.invitees.map((i) => ({
+            name: i.name,
+            phone: i.phone || undefined,
+          }));
+          notify.info(`Extracted ${parsed.length} guests from JSON backup for review.`);
+        } else {
+          parsed = parseCsvContent(text);
+        }
 
         if (parsed.length === 0) {
-          notify.error('No valid guest rows found in the CSV file.');
+          notify.error('No valid guest rows found in the uploaded file.');
           setIsUploading(false);
           return;
         }
@@ -367,27 +386,27 @@ export const AddImportTab: React.FC<AddImportTabProps> = ({
         <div className="bg-white rounded-2xl p-6 border border-[#e08aa3]/15 shadow-sm space-y-4">
           <div className="flex items-center gap-2 mb-2 text-[#b05570]">
             <Upload className="w-5 h-5" />
-            <h4 className="font-display text-lg font-bold">Bulk CSV Import</h4>
+            <h4 className="font-display text-lg font-bold">Bulk CSV &amp; Backup Import</h4>
           </div>
           <p className="font-body text-xs text-[#b592a0]">
-            Upload a spreadsheet or CSV file with guest names and phone numbers to review and stage before adding.
+            Upload a spreadsheet (CSV) or JSON database backup file to review, resolve conflicts, and stage guests before adding.
           </p>
 
           {/* Dashed Upload Area */}
           <label className="relative border-2 border-dashed border-[#e08aa3]/30 hover:border-[#e08aa3] rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-colors bg-[#fdfafb]/50">
             <input
               type="file"
-              accept=".csv,text/csv"
+              accept=".csv,text/csv,.json,application/json"
               onChange={handleFileUpload}
               disabled={isUploading}
               className="hidden"
             />
             <FileText className="w-10 h-10 text-[#e08aa3]/60 mb-2" />
             <span className="font-label text-xs uppercase tracking-wider text-[#4a3038] font-semibold">
-              {isUploading ? 'Parsing Spreadsheet...' : 'Click to Upload CSV File'}
+              {isUploading ? 'Parsing File...' : 'Click to Upload CSV or JSON Backup'}
             </span>
             <span className="text-[11px] font-body text-[#b592a0] mt-1">
-              Supports comma, tab, or semicolon separated columns (e.g. <code>name,phone</code>)
+              Supports CSV (<code>name,phone</code>) or JSON backups (<code>.json</code>)
             </span>
           </label>
 
