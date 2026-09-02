@@ -140,6 +140,25 @@ export const InvitationSuite: React.FC<InvitationSuiteProps> = ({
         <ClosingSection />
       </ErrorBoundary>
 
+      {/* Artisan Colophon & Direct WhatsApp Inquiry */}
+      <footer className="w-full flex flex-col items-center justify-center pt-8 pb-3 text-center">
+        <a
+          href="https://wa.me/94721125255?text=Hi%20BIZZIMAX%2C%20I%20saw%20Safiyya%20%26%20Sharrafuth%27s%20wedding%20invitation%20and%20would%20like%20to%20inquire%20about%20a%20digital%20invitation."
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-[#e08aa3]/20 bg-white/40 hover:bg-white/80 hover:border-[#e08aa3]/40 transition-all duration-300 shadow-xs"
+          title="Inquire about a bespoke digital invitation on WhatsApp"
+        >
+          <span className="text-[10px] sm:text-[11px] font-label uppercase tracking-[0.2em] text-[#b592a0] group-hover:text-[#b05570] transition-colors font-medium">
+            Digital Invitation by <strong className="font-bold text-[#8a3852]">BIZZIMAX</strong>
+          </span>
+          <span className="text-[#b592a0]/60 text-[10px]">•</span>
+          <span className="text-[10px] sm:text-[11px] font-label tracking-wider text-[#b05570] group-hover:underline font-semibold font-mono">
+            0721125255
+          </span>
+        </a>
+      </footer>
+
       {/* Gentle periodic nudge to keep scrolling to the very bottom */}
       <ScrollGuide />
     </div>
