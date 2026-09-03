@@ -27,7 +27,10 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
   const [isCardVisible, setIsCardVisible] = useState(false);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!sceneRef.current || isTransitioningRef.current) return;
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion || !sceneRef.current || isTransitioningRef.current) return;
     const { clientX, clientY, currentTarget } = e;
     const { width, height, left, top } = currentTarget.getBoundingClientRect();
     const x = ((clientX - left) / width - 0.5) * 4;
@@ -45,12 +48,24 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
     if (isStarted || isTransitioningRef.current) return;
     setIsStarted(true);
 
-    const tl = gsap.timeline();
-
     const leftDoor = portalRef.current?.leftDoor;
     const rightDoor = portalRef.current?.rightDoor;
 
     onDoorsOpening?.();
+
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (prefersReducedMotion) {
+      if (leftDoor && rightDoor) {
+        gsap.set([leftDoor, rightDoor], { xPercent: (i) => (i === 0 ? -102 : 102) });
+      }
+      setIsCardVisible(true);
+      return;
+    }
+
+    const tl = gsap.timeline();
 
     if (leftDoor && rightDoor) {
       // Direct GPU hardware-accelerated door slide (0 React re-renders, locked 60/120fps)
@@ -88,6 +103,15 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
     onEnterStart?.();
 
     if (!containerRef.current) {
+      onOpenComplete();
+      return;
+    }
+
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (prefersReducedMotion) {
       onOpenComplete();
       return;
     }
@@ -234,7 +258,7 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
                 ↓
               </span>
             </button>
-            <span className="font-label text-[11px] uppercase tracking-widest text-[#b05570] font-bold animate-bounce bg-white/70 px-3 py-0.5 rounded-full shadow-xs">
+            <span className="font-label text-[11px] uppercase tracking-widest text-[#b05570] font-bold motion-safe:animate-bounce bg-white/70 px-3 py-0.5 rounded-full shadow-xs">
               ↓ Scroll Down ↓
             </span>
           </motion.div>

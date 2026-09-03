@@ -141,12 +141,17 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ invitee, onRsvpSuccess
       }
 
       if (selectedRsvp === 'attending') {
-        confetti({
-          particleCount: 90,
-          spread: 75,
-          origin: { y: 0.7 },
-          colors: ['#f2b8c6', '#f9dde5', '#e08aa3', '#fff2f6'],
-        });
+        const prefersReducedMotion =
+          typeof window !== 'undefined' &&
+          window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (!prefersReducedMotion) {
+          confetti({
+            particleCount: 90,
+            spread: 75,
+            origin: { y: 0.7 },
+            colors: ['#f2b8c6', '#f9dde5', '#e08aa3', '#fff2f6'],
+          });
+        }
         notify.success('Thank you! Your RSVP has been confirmed.');
       } else {
         notify.success('Thank you for letting us know.');
@@ -154,7 +159,10 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ invitee, onRsvpSuccess
 
       setStep(3);
       if (onRsvpSuccess) {
-        onRsvpSuccess({ rsvp: selectedRsvp, guestCount });
+        onRsvpSuccess({
+          rsvp: selectedRsvp,
+          guestCount: selectedRsvp === 'attending' ? guestCount : 0,
+        });
       }
     } catch (err: any) {
       console.error('Failed to submit RSVP:', err);
@@ -263,11 +271,12 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ invitee, onRsvpSuccess
               <div className="p-4 rounded-xl bg-[#fff6f9]/90 border border-[#f2b8c6]/25">
                 <div className="flex items-center gap-2 mb-2 text-[#a8808e]">
                   <MessageSquare className="w-3.5 h-3.5" />
-                  <label className="font-label text-xs uppercase tracking-wider font-semibold">
+                  <label htmlFor="rsvp-note-input" className="font-label text-xs uppercase tracking-wider font-semibold cursor-pointer">
                     Add a Note or Dua (Optional)
                   </label>
                 </div>
                 <textarea
+                  id="rsvp-note-input"
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   placeholder="Share a warm wish, dua, dietary requirement, or message for Safiyya & Sharrafuth..."
@@ -307,7 +316,7 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ invitee, onRsvpSuccess
                 >
                   {isSubmitting ? (
                     <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <RefreshCw className="w-4 h-4 motion-safe:animate-spin" />
                       <span>Sending RSVP...</span>
                     </>
                   ) : (
@@ -333,7 +342,7 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ invitee, onRsvpSuccess
               {selectedRsvp === 'attending' ? (
                 <>
                   <div className="w-12 h-12 rounded-full bg-[#fdeef3] mx-auto flex items-center justify-center text-[#e08aa3]">
-                    <Sparkles className="w-6 h-6 animate-pulse" />
+                    <Sparkles className="w-6 h-6 motion-safe:animate-pulse" />
                   </div>
                   <h4 className="font-serif text-xl font-bold text-[#4a3038]">
                     You're Attending!

@@ -12,14 +12,6 @@ import { BackgroundMusic } from '@/components/audio/BackgroundMusic';
 import { weddingConfig } from '@/config/weddingConfig';
 import { WifiOff } from 'lucide-react';
 
-const PRELOAD_ASSETS = [
-  '/assets/fancy_door_left.webp',
-  '/assets/fancy_door_right.webp',
-  '/assets/door_handle_crest_left.webp',
-  '/assets/door_handle_crest_right.webp',
-  '/assets/logo_saad_sheen_crest.png',
-];
-
 export const GuestInvitePage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const [invitee, setInvitee] = useState<Invitee | null>(null);
@@ -29,42 +21,6 @@ export const GuestInvitePage: React.FC = () => {
   const [isOffline, setIsOffline] = useState(
     typeof navigator !== 'undefined' ? !navigator.onLine : false
   );
-
-  // Preload key images and background card video before opening
-  useEffect(() => {
-    let mounted = true;
-    const preloadPromises = PRELOAD_ASSETS.map((src) => {
-      return new Promise<void>((resolve) => {
-        const img = new Image();
-        img.src = src;
-        img.onload = () => resolve();
-        img.onerror = () => resolve(); // Non-fatal
-      });
-    });
-
-    // Proactively pre-buffer card background video during door sequence
-    try {
-      const vid = document.createElement('video');
-      vid.src = '/assets/video_2026-08-31_13-56-43.mp4';
-      vid.preload = 'auto';
-      vid.muted = true;
-      vid.load();
-    } catch {
-      // Non-fatal
-    }
-
-    const timeout = new Promise<void>((resolve) => setTimeout(resolve, 3500));
-
-    Promise.race([Promise.all(preloadPromises), timeout]).then(() => {
-      if (mounted) {
-        // Assets ready
-      }
-    });
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   // Offline / Online listeners
   useEffect(() => {
@@ -221,7 +177,7 @@ export const GuestInvitePage: React.FC = () => {
   }
 
   return (
-    <div className="relative min-h-screen w-full bg-[#fffafc] overflow-x-hidden text-[#4a3038]">
+    <div className={`relative min-h-screen w-full bg-[#fffafc] overflow-x-hidden text-[#4a3038] ${isOffline && loadingStep === 'invitation' ? 'pt-10' : ''}`}>
       {/* Offline Notice Banner (Step 22 #8) */}
       {isOffline && (
         <div className="fixed top-0 inset-x-0 z-[100] bg-amber-500 text-white text-xs font-label uppercase tracking-wider py-2 px-4 text-center flex items-center justify-center gap-2 shadow-md">

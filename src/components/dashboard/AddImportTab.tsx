@@ -138,6 +138,19 @@ export const AddImportTab: React.FC<AddImportTabProps> = ({
     const isJson = file.name.toLowerCase().endsWith('.json');
 
     const reader = new FileReader();
+
+    reader.onerror = () => {
+      notify.error('Error reading the uploaded file. Please try again.');
+      setIsUploading(false);
+      if (e.target) e.target.value = '';
+    };
+
+    reader.onabort = () => {
+      notify.error('File upload was cancelled.');
+      setIsUploading(false);
+      if (e.target) e.target.value = '';
+    };
+
     reader.onload = async (event) => {
       try {
         const text = event.target?.result as string;
@@ -168,10 +181,23 @@ export const AddImportTab: React.FC<AddImportTabProps> = ({
         const currentDbList =
           existingInvitees.length > 0 ? existingInvitees : await fetchInvitees();
 
+        // Pre-index database contacts for O(1) lookup
+        const dbNamePhoneSet = new Set(
+          currentDbList.map(
+            (inv) => `${inv.name.trim().toLowerCase()}::${normalizeDigits(inv.phone)}`
+          )
+        );
+
         const staged: StagedCsvRow[] = [];
         const seenInFile = new Set<string>();
+        const CHUNK_SIZE = 100;
 
         for (let i = 0; i < parsed.length; i++) {
+          if (i > 0 && i % CHUNK_SIZE === 0) {
+            // Yield to event loop to keep UI thread responsive on large files
+            await new Promise((resolve) => setTimeout(resolve, 0));
+          }
+
           const row = parsed[i];
           const rowName = row.name ? row.name.trim() : '';
           const formattedPhone = formatPhoneNumber(row.phone) || undefined;
@@ -190,11 +216,10 @@ export const AddImportTab: React.FC<AddImportTabProps> = ({
             continue;
           }
 
-          // 2. Duplicate against database
-          const existingMatch = currentDbList.find((inv) =>
-            isSameContact(inv.name, inv.phone, rowName, formattedPhone)
-          );
-          if (existingMatch) {
+          const fileKey = `${rowName.toLowerCase()}::${normalizeDigits(formattedPhone)}`;
+
+          // 2. Duplicate against database (O(1) Set lookup)
+          if (dbNamePhoneSet.has(fileKey)) {
             staged.push({
               id,
               name: rowName,
@@ -206,8 +231,7 @@ export const AddImportTab: React.FC<AddImportTabProps> = ({
             continue;
           }
 
-          // 3. Duplicate within CSV
-          const fileKey = `${rowName.toLowerCase()}::${normalizeDigits(formattedPhone)}`;
+          // 3. Duplicate within CSV (O(1) Set lookup)
           if (seenInFile.has(fileKey)) {
             staged.push({
               id,

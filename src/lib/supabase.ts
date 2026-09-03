@@ -277,18 +277,22 @@ export async function createBulkInvitees(
         .insert(dbPayloads)
         .select();
 
-      if (!error && data && data.length > 0) {
-        // Log created event for each
+      if (error) {
+        console.error('Supabase bulk insert error:', error);
+        throw error;
+      }
+      if (data && data.length > 0) {
+        const local = getLocalInvitees();
+        saveLocalInvitees([...data, ...local]);
         for (const guest of data) {
           logInviteeEvent(guest.id, 'created');
         }
         return data as Invitee[];
       }
-      if (error) {
-        console.error('Supabase bulk insert error:', error);
-      }
+      return [];
     } catch (err) {
       console.error('Supabase bulk insert failed:', err);
+      throw err;
     }
   }
 
@@ -333,14 +337,22 @@ export async function createInvitee(name: string, phone?: string | null): Promis
         ])
         .select()
         .single();
-      if (!error && data) {
+      if (error) {
+        console.error('Supabase insert error:', error);
+        throw error;
+      }
+      if (data) {
         const created = data as Invitee;
+        const local = getLocalInvitees();
+        local.unshift(created);
+        saveLocalInvitees(local);
         logInviteeEvent(created.id, 'created');
         return created;
       }
-      if (error) console.error('Supabase insert error:', error);
+      throw new Error('Failed to create invitee');
     } catch (err) {
       console.error('Supabase insert failed:', err);
+      throw err;
     }
   }
 
@@ -368,10 +380,20 @@ export async function restoreInvitee(invitee: Invitee): Promise<boolean> {
           created_at: invitee.created_at,
         },
       ]);
-      if (!error) return true;
-      console.error('Supabase restore error:', error);
+      if (error) {
+        console.error('Supabase restore error:', error);
+        return false;
+      }
+      const local = getLocalInvitees();
+      const existing = local.find((i) => i.id === invitee.id);
+      if (!existing) {
+        local.unshift(invitee);
+        saveLocalInvitees(local);
+      }
+      return true;
     } catch (err) {
       console.error('Supabase restore failed:', err);
+      return false;
     }
   }
 
@@ -381,6 +403,47 @@ export async function restoreInvitee(invitee: Invitee): Promise<boolean> {
     local.unshift(invitee);
     saveLocalInvitees(local);
   }
+  return true;
+}
+
+export async function restoreBulkInvitees(restoredList: Invitee[]): Promise<boolean> {
+  if (!restoredList || restoredList.length === 0) return true;
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { error } = await supabase.from('invitees').insert(
+        restoredList.map((invitee) => ({
+          id: invitee.id,
+          name: invitee.name,
+          slug: invitee.slug,
+          phone: invitee.phone,
+          rsvp: invitee.rsvp,
+          guest_count: invitee.guest_count,
+          notes: invitee.notes,
+          responded_at: invitee.responded_at,
+          shared_at: invitee.shared_at,
+          created_at: invitee.created_at,
+        }))
+      );
+      if (error) {
+        console.error('Supabase bulk restore error:', error);
+        return false;
+      }
+      const local = getLocalInvitees();
+      const existingIds = new Set(local.map((i) => i.id));
+      const toAdd = restoredList.filter((i) => !existingIds.has(i.id));
+      saveLocalInvitees([...toAdd, ...local]);
+      return true;
+    } catch (err) {
+      console.error('Supabase bulk restore failed:', err);
+      return false;
+    }
+  }
+
+  const local = getLocalInvitees();
+  const existingIds = new Set(local.map((i) => i.id));
+  const toAdd = restoredList.filter((i) => !existingIds.has(i.id));
+  saveLocalInvitees([...toAdd, ...local]);
   return true;
 }
 
@@ -451,7 +514,6 @@ export async function updateRsvp(
     logInviteeEvent(local[index].id, 'responded');
     return true;
   } else {
-    // If not found in localStorage, create it
     const newGuest: Invitee = {
       id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `inv-${Date.now()}`,
       name: fallbackName || slug,
@@ -475,7 +537,10 @@ export async function markInviteeShared(id: string): Promise<string> {
 
   if (isSupabaseConfigured && supabase) {
     try {
-      await supabase.from('invitees').update({ shared_at: sharedAt }).eq('id', id);
+      const { error } = await supabase.from('invitees').update({ shared_at: sharedAt }).eq('id', id);
+      if (error) {
+        console.error('Supabase shared_at update failed:', error);
+      }
     } catch (err) {
       console.error('Supabase shared_at update failed:', err);
     }
@@ -488,6 +553,39 @@ export async function markInviteeShared(id: string): Promise<string> {
     saveLocalInvitees(local);
   }
   logInviteeEvent(id, 'sent');
+  return sharedAt;
+}
+
+export async function markBulkInviteesShared(ids: string[]): Promise<string | null> {
+  if (!ids || ids.length === 0) return null;
+  const sharedAt = new Date().toISOString();
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { error } = await supabase.from('invitees').update({ shared_at: sharedAt }).in('id', ids);
+      if (error) {
+        console.error('Supabase bulk shared_at update failed:', error);
+        return null;
+      }
+    } catch (err) {
+      console.error('Supabase bulk shared_at update failed:', err);
+      return null;
+    }
+  }
+
+  const local = getLocalInvitees();
+  const idSet = new Set(ids);
+  let changed = false;
+  for (const item of local) {
+    if (idSet.has(item.id)) {
+      item.shared_at = sharedAt;
+      changed = true;
+      logInviteeEvent(item.id, 'sent');
+    }
+  }
+  if (changed) {
+    saveLocalInvitees(local);
+  }
   return sharedAt;
 }
 
@@ -514,10 +612,20 @@ export async function updateInvitee(
   if (isSupabaseConfigured && supabase) {
     try {
       const { error } = await supabase.from('invitees').update(cleaned).eq('id', id);
-      if (!error) return true;
-      console.error('Supabase update invitee error:', error);
+      if (error) {
+        console.error('Supabase update invitee error:', error);
+        return false;
+      }
+      const local = getLocalInvitees();
+      const index = local.findIndex((i) => i.id === id);
+      if (index !== -1) {
+        local[index] = { ...local[index], ...cleaned };
+        saveLocalInvitees(local);
+      }
+      return true;
     } catch (err) {
       console.error('Supabase update invitee failed:', err);
+      return false;
     }
   }
 
@@ -534,10 +642,17 @@ export async function deleteInvitee(id: string): Promise<boolean> {
   if (isSupabaseConfigured && supabase) {
     try {
       const { error } = await supabase.from('invitees').delete().eq('id', id);
-      if (!error) return true;
-      console.error('Supabase delete error:', error);
+      if (error) {
+        console.error('Supabase delete error:', error);
+        return false;
+      }
+      const local = getLocalInvitees();
+      const filtered = local.filter((i) => i.id !== id);
+      saveLocalInvitees(filtered);
+      return true;
     } catch (err) {
       console.error('Supabase delete failed:', err);
+      return false;
     }
   }
   const local = getLocalInvitees();
@@ -552,10 +667,17 @@ export async function deleteBulkInvitees(ids: string[]): Promise<boolean> {
   if (isSupabaseConfigured && supabase) {
     try {
       const { error } = await supabase.from('invitees').delete().in('id', ids);
-      if (!error) return true;
-      console.error('Supabase bulk delete error:', error);
+      if (error) {
+        console.error('Supabase bulk delete error:', error);
+        return false;
+      }
+      const local = getLocalInvitees();
+      const filtered = local.filter((i) => !ids.includes(i.id));
+      saveLocalInvitees(filtered);
+      return true;
     } catch (err) {
       console.error('Supabase bulk delete failed:', err);
+      return false;
     }
   }
 

@@ -13,7 +13,7 @@ export default {
           'secondary-light': '#fff2f6',
           'secondary-dark': '#d17e92',
           text: '#4a3038',
-          muted: '#b592a0',
+          muted: '#7a4d5d',
           gold: '#f2b8c6',
           'gold-light': '#f9dde5',
           border: 'rgba(224, 138, 163, 0.2)',

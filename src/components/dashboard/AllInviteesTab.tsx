@@ -1,4 +1,4 @@
-import React, { useState, useDeferredValue, useEffect } from 'react';
+import React, { useState, useDeferredValue, useEffect, useMemo } from 'react';
 import { Invitee, InviteeEvent, RsvpStatus } from '@/lib/types';
 import { weddingConfig } from '@/config/weddingConfig';
 import { formatTimeAgo } from '@/lib/utils';
@@ -140,67 +140,89 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
   } | null>(null);
   const [isUpdatingRsvp, setIsUpdatingRsvp] = useState(false);
 
-  // Dynamic live chip counts
-  const counts = {
-    all: invitees.length,
-    attending: invitees.filter((i) => i.rsvp === 'attending').length,
-    declined: invitees.filter((i) => i.rsvp === 'declined').length,
-    pending: invitees.filter((i) => i.rsvp === 'pending').length,
-    opened_unresponded: invitees.filter((i) => i.rsvp === 'pending' && Boolean(i.opened_at)).length,
-    notsent: invitees.filter((i) => !i.shared_at).length,
-  };
+  // Dynamic live chip counts (single-pass memoized reduction)
+  const counts = useMemo(() => {
+    let attending = 0;
+    let declined = 0;
+    let pending = 0;
+    let opened_unresponded = 0;
+    let notsent = 0;
+    for (const i of invitees) {
+      if (i.rsvp === 'attending') attending++;
+      else if (i.rsvp === 'declined') declined++;
+      else if (i.rsvp === 'pending') {
+        pending++;
+        if (i.opened_at) opened_unresponded++;
+      }
+      if (!i.shared_at) notsent++;
+    }
+    return {
+      all: invitees.length,
+      attending,
+      declined,
+      pending,
+      opened_unresponded,
+      notsent,
+    };
+  }, [invitees]);
 
-  // Filtered invitees
-  const filteredInvitees = invitees.filter((invitee) => {
+  // Filtered invitees (memoized on invitees, deferred search query, and active chip filter)
+  const filteredInvitees = useMemo(() => {
     const q = deferredSearchQuery.trim().toLowerCase();
     const cleanQ = q.replace(/[\s\-\(\)\+\.]/g, '');
 
-    const matchesName = invitee.name.toLowerCase().includes(q);
-    const matchesSlug = invitee.slug.toLowerCase().includes(q);
-    const rawPhone = invitee.phone ? invitee.phone.toLowerCase() : '';
-    const cleanPhone = rawPhone.replace(/[\s\-\(\)\+\.]/g, '');
-    const matchesPhone =
-      Boolean(rawPhone && rawPhone.includes(q)) ||
-      Boolean(cleanQ.length > 0 && cleanPhone.includes(cleanQ));
+    return invitees.filter((invitee) => {
+      let matchesSearch = true;
+      if (q) {
+        const matchesName = invitee.name.toLowerCase().includes(q);
+        const matchesSlug = invitee.slug.toLowerCase().includes(q);
+        const rawPhone = invitee.phone ? invitee.phone.toLowerCase() : '';
+        const cleanPhone = rawPhone.replace(/[\s\-\(\)\+\.]/g, '');
+        const matchesPhone =
+          Boolean(rawPhone && rawPhone.includes(q)) ||
+          Boolean(cleanQ.length > 0 && cleanPhone.includes(cleanQ));
+        matchesSearch = matchesName || matchesSlug || matchesPhone;
+      }
 
-    const matchesSearch = !q || matchesName || matchesSlug || matchesPhone;
+      let matchesChip = true;
+      if (chipFilter === 'attending') matchesChip = invitee.rsvp === 'attending';
+      else if (chipFilter === 'declined') matchesChip = invitee.rsvp === 'declined';
+      else if (chipFilter === 'pending') matchesChip = invitee.rsvp === 'pending';
+      else if (chipFilter === 'opened_unresponded') matchesChip = invitee.rsvp === 'pending' && Boolean(invitee.opened_at);
+      else if (chipFilter === 'notsent') matchesChip = !invitee.shared_at;
 
-    let matchesChip = true;
-    if (chipFilter === 'attending') matchesChip = invitee.rsvp === 'attending';
-    else if (chipFilter === 'declined') matchesChip = invitee.rsvp === 'declined';
-    else if (chipFilter === 'pending') matchesChip = invitee.rsvp === 'pending';
-    else if (chipFilter === 'opened_unresponded') matchesChip = invitee.rsvp === 'pending' && Boolean(invitee.opened_at);
-    else if (chipFilter === 'notsent') matchesChip = !invitee.shared_at;
+      return matchesSearch && matchesChip;
+    });
+  }, [invitees, deferredSearchQuery, chipFilter]);
 
-    return matchesSearch && matchesChip;
-  });
-
-  // Sorted invitees
-  const sortedInvitees = [...filteredInvitees].sort((a, b) => {
-    let comparison = 0;
-    switch (sortColumn) {
-      case 'name':
-        comparison = a.name.localeCompare(b.name);
-        break;
-      case 'rsvp':
-        comparison = a.rsvp.localeCompare(b.rsvp);
-        break;
-      case 'guest_count':
-        comparison = (a.guest_count || 0) - (b.guest_count || 0);
-        break;
-      case 'shared_at':
-        comparison = (a.shared_at || '').localeCompare(b.shared_at || '');
-        break;
-      case 'responded_at':
-        comparison = (a.responded_at || '').localeCompare(b.responded_at || '');
-        break;
-      case 'created_at':
-      default:
-        comparison = (a.created_at || '').localeCompare(b.created_at || '');
-        break;
-    }
-    return sortDirection === 'asc' ? comparison : -comparison;
-  });
+  // Sorted invitees (memoized on filtered list, column, and direction)
+  const sortedInvitees = useMemo(() => {
+    return [...filteredInvitees].sort((a, b) => {
+      let comparison = 0;
+      switch (sortColumn) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case 'rsvp':
+          comparison = a.rsvp.localeCompare(b.rsvp);
+          break;
+        case 'guest_count':
+          comparison = (a.guest_count || 0) - (b.guest_count || 0);
+          break;
+        case 'shared_at':
+          comparison = (a.shared_at || '').localeCompare(b.shared_at || '');
+          break;
+        case 'responded_at':
+          comparison = (a.responded_at || '').localeCompare(b.responded_at || '');
+          break;
+        case 'created_at':
+        default:
+          comparison = (a.created_at || '').localeCompare(b.created_at || '');
+          break;
+      }
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [filteredInvitees, sortColumn, sortDirection]);
 
   // Pagination calculation
   const totalItems = sortedInvitees.length;
@@ -208,7 +230,9 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
   const validCurrentPage = Math.min(currentPage, totalPages);
   const startIndex = pageSize === -1 ? 0 : (validCurrentPage - 1) * pageSize;
   const endIndex = pageSize === -1 ? totalItems : Math.min(startIndex + pageSize, totalItems);
-  const paginatedInvitees = sortedInvitees.slice(startIndex, endIndex);
+  const paginatedInvitees = useMemo(() => {
+    return sortedInvitees.slice(startIndex, endIndex);
+  }, [sortedInvitees, startIndex, endIndex]);
 
   const handleSort = (col: SortColumn) => {
     if (sortColumn === col) {
@@ -447,7 +471,19 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
             : rsvpConfirmTarget.invitee.responded_at || new Date().toISOString(),
       });
       notify.success(`Updated RSVP status for ${rsvpConfirmTarget.invitee.name}`);
+      const targetId = rsvpConfirmTarget.invitee.id;
       setRsvpConfirmTarget(null);
+      // Invalidate and refresh activity trail cache
+      setActivityEvents((prev) => {
+        const next = { ...prev };
+        delete next[targetId];
+        return next;
+      });
+      if (expandedTrailId === targetId) {
+        void fetchInviteeEvents(targetId).then((events) => {
+          setActivityEvents((prev) => ({ ...prev, [targetId]: events }));
+        });
+      }
     } finally {
       setIsUpdatingRsvp(false);
     }

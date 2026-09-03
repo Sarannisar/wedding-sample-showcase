@@ -34,7 +34,7 @@ export const ClosingSection: React.FC = () => {
           <p className="font-arabic text-2xl sm:text-3xl text-[#b05570]">
             {closing.ameenArabic}
           </p>
-          <p className="font-serif text-xs tracking-widest text-[#a8808e] uppercase font-semibold">
+          <p className="font-serif text-xs tracking-widest text-[#7a4d5d] uppercase font-semibold">
             {closing.ameenWord}
           </p>
         </div>
@@ -44,7 +44,7 @@ export const ClosingSection: React.FC = () => {
           <span className="font-kaushan text-xl text-[#dd8ea5] tracking-wider">
             Safiyya & Sharrafuth
           </span>
-          <span className="font-label text-[10px] uppercase tracking-[0.25em] text-[#a8808e] mt-1 font-medium">
+          <span className="font-label text-[10px] uppercase tracking-[0.25em] text-[#7a4d5d] mt-1 font-medium">
             12th December 2026
           </span>
         </div>

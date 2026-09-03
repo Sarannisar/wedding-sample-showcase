@@ -1,6 +1,16 @@
 import { Invitee } from './types';
 import { weddingConfig } from '@/config/weddingConfig';
 
+function escapeHtml(str: string | null | undefined): string {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 export function printGuestList(invitees: Invitee[], filter: 'all' | 'attending' = 'all'): void {
   const list =
     filter === 'attending' ? invitees.filter((i) => i.rsvp === 'attending') : invitees;
@@ -25,8 +35,8 @@ export function printGuestList(invitees: Invitee[], filter: 'all' | 'attending' 
     <tr>
       <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: center; width: 40px;">${idx + 1}</td>
       <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-weight: 600;">
-        ${guest.name}
-        ${guest.phone ? `<div style="font-size: 11px; color: #6b7280; font-weight: normal;">${guest.phone}</div>` : ''}
+        ${escapeHtml(guest.name)}
+        ${guest.phone ? `<div style="font-size: 11px; color: #6b7280; font-weight: normal;">${escapeHtml(guest.phone)}</div>` : ''}
       </td>
       <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: center;">
         <span style="display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; text-transform: uppercase; ${
@@ -43,7 +53,7 @@ export function printGuestList(invitees: Invitee[], filter: 'all' | 'attending' 
         ${guest.rsvp === 'attending' ? guest.guest_count || 1 : '-'}
       </td>
       <td style="padding: 8px; border-bottom: 1px solid #e5e7eb; font-size: 12px; color: #4b5563;">
-        ${guest.notes || '<span style="color: #9ca3af; font-style: italic;">None</span>'}
+        ${guest.notes ? escapeHtml(guest.notes) : '<span style="color: #9ca3af; font-style: italic;">None</span>'}
       </td>
     </tr>
   `

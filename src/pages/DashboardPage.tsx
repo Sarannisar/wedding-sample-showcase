@@ -6,7 +6,9 @@ import {
   deleteInvitee,
   deleteBulkInvitees,
   restoreInvitee,
+  restoreBulkInvitees,
   markInviteeShared,
+  markBulkInviteesShared,
   updateInvitee,
   isSupabaseConfigured,
   supabase,
@@ -158,14 +160,17 @@ export const DashboardPage: React.FC = () => {
   };
 
   const handleBulkRestore = async (restoredList: Invitee[]) => {
-    for (const inv of restoredList) {
-      await restoreInvitee(inv);
+    const success = await restoreBulkInvitees(restoredList);
+    if (success) {
+      setInvitees((prev) => {
+        const existingIds = new Set(prev.map((i) => i.id));
+        const toAdd = restoredList.filter((i) => !existingIds.has(i.id));
+        return [...toAdd, ...prev];
+      });
+      notify.success(`Restored ${restoredList.length} invitees`);
+    } else {
+      notify.error('Failed to restore invitees. Please try again.');
     }
-    setInvitees((prev) => {
-      const existingIds = new Set(prev.map((i) => i.id));
-      const toAdd = restoredList.filter((i) => !existingIds.has(i.id));
-      return [...toAdd, ...prev];
-    });
   };
 
   const handleMarkShared = async (id: string) => {
@@ -176,8 +181,15 @@ export const DashboardPage: React.FC = () => {
   };
 
   const handleBulkMarkShared = async (ids: string[]) => {
-    for (const id of ids) {
-      await handleMarkShared(id);
+    const sharedAt = await markBulkInviteesShared(ids);
+    if (sharedAt) {
+      const idSet = new Set(ids);
+      setInvitees((prev) =>
+        prev.map((i) => (idSet.has(i.id) ? { ...i, shared_at: sharedAt } : i))
+      );
+      notify.success(`Marked ${ids.length} invitees as sent`);
+    } else {
+      notify.error('Failed to mark invitees as sent. Please try again.');
     }
   };
 
@@ -251,7 +263,7 @@ export const DashboardPage: React.FC = () => {
                 {connectionStatus === 'live'
                   ? 'Live'
                   : connectionStatus === 'polling'
-                  ? 'Polling 15s'
+                  ? 'Auto-syncing'
                   : 'Offline'}
               </span>
             </div>
@@ -327,26 +339,60 @@ export const DashboardPage: React.FC = () => {
         {loading ? (
           <div className="space-y-6 animate-pulse">
             {/* Skeleton Stat Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-              {[...Array(6)].map((_, i) => (
+            {/* Skeleton Quick Action Bar */}
+            <div className="h-16 rounded-2xl bg-white/70 border border-[#e08aa3]/10 p-4 flex items-center justify-between animate-pulse">
+              <div className="space-y-1.5">
+                <div className="h-4 bg-[#e08aa3]/20 rounded w-44" />
+                <div className="h-2.5 bg-[#e08aa3]/10 rounded w-64" />
+              </div>
+              <div className="flex gap-2">
+                <div className="h-8 bg-[#e08aa3]/15 rounded-xl w-20" />
+                <div className="h-8 bg-[#e08aa3]/15 rounded-xl w-24" />
+              </div>
+            </div>
+
+            {/* Skeleton 3 Primary Stat Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 animate-pulse">
+              {[...Array(3)].map((_, i) => (
                 <div
                   key={i}
-                  className="h-28 rounded-2xl bg-white/70 border border-[#e08aa3]/10 p-4 space-y-3"
+                  className="h-36 rounded-2xl bg-white/70 border border-[#e08aa3]/15 p-6 flex flex-col justify-between"
                 >
-                  <div className="h-3 bg-[#e08aa3]/15 rounded w-16" />
-                  <div className="h-7 bg-[#e08aa3]/20 rounded w-10" />
-                  <div className="h-2 bg-[#e08aa3]/10 rounded w-20" />
+                  <div className="h-3 bg-[#e08aa3]/20 rounded w-24" />
+                  <div className="h-9 bg-[#e08aa3]/25 rounded w-16" />
+                  <div className="h-2 bg-[#e08aa3]/10 rounded w-full" />
                 </div>
               ))}
             </div>
 
-            {/* Skeleton Table / Content */}
-            <div className="bg-white/70 rounded-2xl p-6 border border-[#e08aa3]/10 space-y-4">
-              <div className="h-5 bg-[#e08aa3]/15 rounded w-48" />
-              <div className="space-y-2">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-10 bg-[#e08aa3]/8 rounded-xl" />
-                ))}
+            {/* Skeleton 4 Secondary Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 animate-pulse">
+              {[...Array(4)].map((_, i) => (
+                <div
+                  key={i}
+                  className="h-24 rounded-2xl bg-white/70 border border-[#e08aa3]/10 p-4 flex flex-col justify-between"
+                >
+                  <div className="h-2.5 bg-[#e08aa3]/15 rounded w-20" />
+                  <div className="h-6 bg-[#e08aa3]/20 rounded w-12" />
+                  <div className="h-2 bg-[#e08aa3]/10 rounded w-16" />
+                </div>
+              ))}
+            </div>
+
+            {/* Skeleton Donut & Progress Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-pulse">
+              <div className="h-40 rounded-2xl bg-white/70 border border-[#e08aa3]/10 p-5 flex items-center gap-5">
+                <div className="w-28 h-28 rounded-full border-8 border-[#e08aa3]/20 shrink-0" />
+                <div className="space-y-2 flex-1">
+                  <div className="h-3 bg-[#e08aa3]/15 rounded w-32" />
+                  <div className="h-2.5 bg-[#e08aa3]/10 rounded w-48" />
+                  <div className="h-2.5 bg-[#e08aa3]/10 rounded w-40" />
+                </div>
+              </div>
+              <div className="h-40 rounded-2xl bg-white/70 border border-[#e08aa3]/10 p-5 space-y-3">
+                <div className="h-4 bg-[#e08aa3]/20 rounded w-36" />
+                <div className="h-2.5 bg-[#e08aa3]/10 rounded w-full" />
+                <div className="h-2.5 bg-[#e08aa3]/10 rounded w-5/6" />
               </div>
             </div>
           </div>

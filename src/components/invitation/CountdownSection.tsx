@@ -62,15 +62,45 @@ export const CountdownSection: React.FC = () => {
       }
     };
 
-    const isFinished = calculateTime();
-    if (isFinished) return;
+    let interval: ReturnType<typeof setInterval> | null = null;
 
-    const interval = setInterval(() => {
-      const shouldStop = calculateTime();
-      if (shouldStop) clearInterval(interval);
-    }, 1000);
+    const startTimer = () => {
+      if (interval) return;
+      const finished = calculateTime();
+      if (finished) return;
+      interval = setInterval(() => {
+        const shouldStop = calculateTime();
+        if (shouldStop && interval) {
+          clearInterval(interval);
+          interval = null;
+        }
+      }, 1000);
+    };
 
-    return () => clearInterval(interval);
+    const stopTimer = () => {
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+      }
+    };
+
+    const handleVisibility = () => {
+      if (typeof document !== 'undefined' && document.hidden) {
+        stopTimer();
+      } else {
+        startTimer();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    if (typeof document !== 'undefined' && !document.hidden) {
+      startTimer();
+    }
+
+    return () => {
+      stopTimer();
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, []);
 
   const timeUnits = [
@@ -113,7 +143,7 @@ export const CountdownSection: React.FC = () => {
                   >
                     {String(unit.value).padStart(2, '0')}
                   </span>
-                  <span className="font-label text-[9px] sm:text-[10px] uppercase tracking-wider text-[#a8808e] mt-1 font-semibold">
+                  <span className="font-label text-[9px] sm:text-[10px] uppercase tracking-wider text-[#7a4d5d] mt-1 font-semibold">
                     {unit.label}
                   </span>
                 </div>
@@ -125,7 +155,7 @@ export const CountdownSection: React.FC = () => {
         {stage === 'today' && (
           <div className="space-y-3 py-2">
             <div className="w-12 h-12 rounded-full bg-[#fdeef3] mx-auto flex items-center justify-center text-[#e08aa3]">
-              <Sparkles className="w-6 h-6 animate-pulse" />
+              <Sparkles className="w-6 h-6 motion-safe:animate-pulse" />
             </div>
             <h4 className="font-serif text-2xl font-bold text-[#4a3038]">
               It's Today, Insha Allah!
@@ -145,7 +175,7 @@ export const CountdownSection: React.FC = () => {
         {stage === 'happening' && (
           <div className="space-y-3 py-2">
             <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center">
-              <Sparkles className="w-6 h-6 animate-spin" />
+              <Sparkles className="w-6 h-6 motion-safe:animate-spin" />
             </div>
             <h4 className="font-serif text-2xl font-bold text-[#4a3038]">
               Happening Now

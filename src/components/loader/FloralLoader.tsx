@@ -128,8 +128,8 @@ export const FloralLoader: React.FC<FloralLoaderProps> = ({ onComplete, guestNam
       <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(255,235,242,0.8)_0%,rgba(255,250,252,1)_70%)]" />
 
       {/* Decorative Floating Bokeh Orbs */}
-      <div className="absolute w-72 h-72 rounded-full bg-[#fdeef3]/60 blur-3xl -top-12 -left-12 pointer-events-none animate-pulse" />
-      <div className="absolute w-72 h-72 rounded-full bg-[#fdeef3]/60 blur-3xl -bottom-12 -right-12 pointer-events-none animate-pulse" />
+      <div className="absolute w-72 h-72 rounded-full bg-[#fdeef3]/60 blur-3xl -top-12 -left-12 pointer-events-none motion-safe:animate-pulse" />
+      <div className="absolute w-72 h-72 rounded-full bg-[#fdeef3]/60 blur-3xl -bottom-12 -right-12 pointer-events-none motion-safe:animate-pulse" />
 
       <div className="relative z-10 flex flex-col items-center max-w-sm text-center">
         {/* Animated Royal S&S Crest Logo with Aura Glow */}

@@ -265,10 +265,21 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                     strokeWidth={hoveredSegment === 'attending' ? '14' : '12'}
                     strokeDasharray={`${attendingStroke} ${circumference}`}
                     strokeLinecap="round"
-                    className="cursor-pointer transition-all duration-200"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Attending: ${attendingCount} guests`}
+                    className="cursor-pointer transition-all duration-200 focus:outline-none"
                     onMouseEnter={() => setHoveredSegment('attending')}
                     onMouseLeave={() => setHoveredSegment(null)}
+                    onFocus={() => setHoveredSegment('attending')}
+                    onBlur={() => setHoveredSegment(null)}
                     onClick={() => onFilterClick?.('attending')}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onFilterClick?.('attending');
+                      }
+                    }}
                   />
                   {/* Declined segment */}
                   <circle
@@ -281,10 +292,21 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                     strokeDasharray={`${declinedStroke} ${circumference}`}
                     strokeDashoffset={-attendingStroke}
                     strokeLinecap="round"
-                    className="cursor-pointer transition-all duration-200"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Declined: ${declinedCount} guests`}
+                    className="cursor-pointer transition-all duration-200 focus:outline-none"
                     onMouseEnter={() => setHoveredSegment('declined')}
                     onMouseLeave={() => setHoveredSegment(null)}
+                    onFocus={() => setHoveredSegment('declined')}
+                    onBlur={() => setHoveredSegment(null)}
                     onClick={() => onFilterClick?.('declined')}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onFilterClick?.('declined');
+                      }
+                    }}
                   />
                   {/* Pending segment */}
                   <circle
@@ -297,10 +319,21 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                     strokeDasharray={`${pendingStroke} ${circumference}`}
                     strokeDashoffset={-(attendingStroke + declinedStroke)}
                     strokeLinecap="round"
-                    className="cursor-pointer transition-all duration-200"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Pending: ${pendingCount} guests`}
+                    className="cursor-pointer transition-all duration-200 focus:outline-none"
                     onMouseEnter={() => setHoveredSegment('pending')}
                     onMouseLeave={() => setHoveredSegment(null)}
+                    onFocus={() => setHoveredSegment('pending')}
+                    onBlur={() => setHoveredSegment(null)}
                     onClick={() => onFilterClick?.('pending')}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onFilterClick?.('pending');
+                      }
+                    }}
                   />
                 </>
               )}
@@ -309,32 +342,41 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             {/* Donut Center Label / Live Hover Tooltip */}
             <div
               onClick={() => onFilterClick?.('all')}
-              className="absolute inset-0 flex flex-col items-center justify-center text-center cursor-pointer pointer-events-auto"
+              role="button"
+              tabIndex={0}
+              aria-label="Filter all guests"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onFilterClick?.('all');
+                }
+              }}
+              className="absolute inset-2 flex flex-col items-center justify-center text-center cursor-pointer pointer-events-auto rounded-full focus-visible:ring-2 focus-visible:ring-[#e08aa3] focus-visible:outline-none"
               title="Click to view all guests"
             >
               {hoveredSegment === 'attending' ? (
                 <>
                   <span className="text-[10px] font-label uppercase font-bold text-emerald-700">Attending</span>
                   <span className="text-base font-display font-extrabold text-emerald-700">{attendingCount}</span>
-                  <span className="text-[9px] text-[#b592a0]">{Math.round(attendingPercent)}%</span>
+                  <span className="text-[9px] text-[#7a4d5d]">{Math.round(attendingPercent)}%</span>
                 </>
               ) : hoveredSegment === 'declined' ? (
                 <>
                   <span className="text-[10px] font-label uppercase font-bold text-rose-600">Declined</span>
                   <span className="text-base font-display font-extrabold text-rose-600">{declinedCount}</span>
-                  <span className="text-[9px] text-[#b592a0]">{Math.round(declinedPercent)}%</span>
+                  <span className="text-[9px] text-[#7a4d5d]">{Math.round(declinedPercent)}%</span>
                 </>
               ) : hoveredSegment === 'pending' ? (
                 <>
                   <span className="text-[10px] font-label uppercase font-bold text-amber-600">Pending</span>
                   <span className="text-base font-display font-extrabold text-amber-600">{pendingCount}</span>
-                  <span className="text-[9px] text-[#b592a0]">{Math.round(pendingPercent)}%</span>
+                  <span className="text-[9px] text-[#7a4d5d]">{Math.round(pendingPercent)}%</span>
                 </>
               ) : (
                 <>
-                  <span className="text-[10px] font-label uppercase font-semibold text-[#b592a0]">Total</span>
-                  <span className="text-base font-display font-bold text-[#4a3038]">{totalInvited}</span>
-                  <span className="text-[9px] text-[#e08aa3] font-medium">Click filter</span>
+                  <span className="text-[10px] font-label uppercase tracking-wider font-bold text-[#4a3038]">Total</span>
+                  <span className="text-base font-display font-extrabold text-[#4a3038]">{totalInvited}</span>
+                  <span className="text-[9px] text-[#7a4d5d]">Parties</span>
                 </>
               )}
             </div>

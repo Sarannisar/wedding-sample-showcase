@@ -11,18 +11,29 @@ export const ScrollGuide: React.FC = () => {
   const [atBottom, setAtBottom] = useState(false);
 
   useEffect(() => {
+    let ticking = false;
+
     const check = () => {
       const nearBottom =
         window.innerHeight + window.scrollY >= document.body.scrollHeight - 140;
       setAtBottom(nearBottom);
       if (nearBottom) setVisible(false);
+      ticking = false;
     };
+
+    const onScrollOrResize = () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(check);
+      }
+    };
+
     check();
-    window.addEventListener('scroll', check, { passive: true });
-    window.addEventListener('resize', check);
+    window.addEventListener('scroll', onScrollOrResize, { passive: true });
+    window.addEventListener('resize', onScrollOrResize, { passive: true });
     return () => {
-      window.removeEventListener('scroll', check);
-      window.removeEventListener('resize', check);
+      window.removeEventListener('scroll', onScrollOrResize);
+      window.removeEventListener('resize', onScrollOrResize);
     };
   }, []);
 

@@ -85,21 +85,22 @@ export const Card3D: React.FC<Card3DProps> = ({
       observer.observe(cardRef.current);
     }
 
-    // Low Power Mode / Battery Saver autoplay fallback trigger
+    // Low Power Mode / Battery Saver autoplay fallback trigger on first user interaction
     const onUserInteraction = () => {
-      if (vid.paused) {
-        vid.play().catch(() => {});
+      if (vid.paused && cardRef.current) {
+        const rect = cardRef.current.getBoundingClientRect();
+        if (rect.top < window.innerHeight && rect.bottom > 0) {
+          vid.play().catch(() => {});
+        }
       }
     };
 
-    window.addEventListener('touchstart', onUserInteraction, { passive: true });
-    window.addEventListener('scroll', onUserInteraction, { passive: true });
-    window.addEventListener('click', onUserInteraction, { passive: true });
+    window.addEventListener('pointerdown', onUserInteraction, { once: true, passive: true });
+    window.addEventListener('click', onUserInteraction, { once: true, passive: true });
 
     return () => {
       observer.disconnect();
-      window.removeEventListener('touchstart', onUserInteraction);
-      window.removeEventListener('scroll', onUserInteraction);
+      window.removeEventListener('pointerdown', onUserInteraction);
       window.removeEventListener('click', onUserInteraction);
     };
   }, [bgVideoSrc]);

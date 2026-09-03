@@ -113,6 +113,6 @@ export const weddingConfig: WeddingConfig = {
     secondary: '#f7c1d0',
     surface: '#ffffff',
     text: '#4a3038',
-    muted: '#b592a0',
+    muted: '#7a4d5d',
   },
 };

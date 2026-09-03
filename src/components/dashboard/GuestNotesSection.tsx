@@ -207,7 +207,23 @@ export const GuestNotesSection: React.FC<GuestNotesSectionProps> = ({
               <div
                 key={invitee.id}
                 onClick={() => onGuestClick?.(invitee.id)}
-                className={`p-4 rounded-xl border transition-all cursor-pointer flex flex-col justify-between ${
+                role={onGuestClick ? 'button' : undefined}
+                tabIndex={onGuestClick ? 0 : undefined}
+                onKeyDown={
+                  onGuestClick
+                    ? (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          onGuestClick(invitee.id);
+                        }
+                      }
+                    : undefined
+                }
+                className={`p-4 rounded-xl border transition-all flex flex-col justify-between ${
+                  onGuestClick
+                    ? 'cursor-pointer focus-visible:ring-2 focus-visible:ring-[#e08aa3] focus-visible:outline-none'
+                    : ''
+                } ${
                   isDietary
                     ? 'border-amber-200 bg-[#fffdf7] hover:border-amber-300 shadow-xs'
                     : 'border-[#e08aa3]/20 bg-[#fffafc] hover:border-[#b05570]/30 shadow-xs'

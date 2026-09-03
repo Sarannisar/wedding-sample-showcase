@@ -46,7 +46,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ guestName }) => {
             style={{ fontSize: 'clamp(1.5rem, 4.5vw, 2rem)' }}
             className="font-serif italic text-[#5c1c2b] font-semibold leading-snug tracking-wide drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]"
           >
-            {guestName || 'Mohammed & Family'},
+            {guestName || 'Honored Guest'},
           </h3>
         </div>
 
@@ -75,7 +75,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ guestName }) => {
             </span>
 
             <span className="mt-6 sm:mt-8 mb-3 sm:mb-4 font-serif italic text-xl sm:text-2xl text-[#825464] block font-normal tracking-wide drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
-              with
+              {weddingConfig.couple.connector}
             </span>
 
             <span
@@ -86,9 +86,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ guestName }) => {
             </span>
           </h1>
 
-          <p className="font-serif italic text-xs sm:text-sm text-[#704655] mt-4 font-medium tracking-wide drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
-            Son of Mr. and Mrs. Najiullah
-          </p>
+          {weddingConfig.couple.groomParents && (
+            <p className="font-serif italic text-xs sm:text-sm text-[#704655] mt-4 font-medium tracking-wide drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
+              Son of {weddingConfig.couple.groomParents}
+            </p>
+          )}
         </div>
 
         {/* Bottom Gold Accent */}

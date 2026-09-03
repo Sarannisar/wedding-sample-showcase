@@ -1,11 +1,13 @@
 import React, { useMemo } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { useAmbientActive } from '@/lib/useAmbientActive';
 
 export const WatercolorBackground: React.FC = () => {
-  const prefersReducedMotion = useReducedMotion();
-  // 8 soft watercolor blobs
-  const blobs = useMemo(
-    () => [
+  const { isActive, prefersReducedMotion, isLowPowerDevice } = useAmbientActive();
+
+  // On low power / mobile devices, render 4 blobs instead of 8 to reduce GPU memory & blur composition overhead
+  const activeBlobs = useMemo(() => {
+    const allBlobs = [
       { id: 1, color: '#f8d7da', size: 360, x: '10%', y: '5%', dur: 24 },
       { id: 2, color: '#fcdfd5', size: 420, x: '80%', y: '15%', dur: 32 },
       { id: 3, color: '#f5d0dc', size: 300, x: '30%', y: '40%', dur: 28 },
@@ -14,13 +16,13 @@ export const WatercolorBackground: React.FC = () => {
       { id: 6, color: '#fed7d7', size: 440, x: '60%', y: '85%', dur: 30 },
       { id: 7, color: '#f7d6e0', size: 320, x: '45%', y: '20%', dur: 34 },
       { id: 8, color: '#ffe5d9', size: 400, x: '90%', y: '45%', dur: 29 },
-    ],
-    []
-  );
+    ];
+    return isLowPowerDevice ? allBlobs.slice(0, 4) : allBlobs;
+  }, [isLowPowerDevice]);
 
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 bg-[#fffafc]">
-      {blobs.map((blob) => (
+      {activeBlobs.map((blob) => (
         <motion.div
           key={blob.id}
           className="absolute rounded-full blur-3xl opacity-40 mix-blend-multiply filter"
@@ -32,7 +34,7 @@ export const WatercolorBackground: React.FC = () => {
             top: blob.y,
           }}
           animate={
-            prefersReducedMotion
+            prefersReducedMotion || !isActive
               ? undefined
               : {
                   x: [0, 40, -30, 20, 0],

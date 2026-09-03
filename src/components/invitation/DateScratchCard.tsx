@@ -174,7 +174,7 @@ export const DateScratchCard: React.FC<DateScratchCardProps> = ({
           <p className="font-arabic text-2xl text-[#b05570]">
             {weddingConfig.cultural.inshaAllah.arabic}
           </p>
-          <p className="font-serif italic text-xs text-[#a8808e] tracking-wider mt-0.5">
+          <p className="font-serif italic text-xs text-[#7a4d5d] tracking-wider mt-0.5">
             {weddingConfig.cultural.inshaAllah.transliteration}
           </p>
         </div>
@@ -195,7 +195,7 @@ export const DateScratchCard: React.FC<DateScratchCardProps> = ({
               <Calendar className="w-5 h-5" />
             </div>
 
-            <span className="font-label text-[10px] uppercase tracking-widest text-[#a8808e] font-bold">
+            <span className="font-label text-[10px] uppercase tracking-widest text-[#7a4d5d] font-bold">
               Mark Your Calendar
             </span>
 
