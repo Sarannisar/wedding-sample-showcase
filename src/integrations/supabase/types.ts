@@ -49,35 +49,47 @@ export type Database = {
       invitees: {
         Row: {
           created_at: string
+          first_opened_at: string | null
           guest_count: number
           id: string
           name: string
           notes: string | null
           phone: string | null
+          reminded_at: string | null
+          reminder_count: number
           responded_at: string | null
           rsvp: string
+          shared_at: string | null
           slug: string
         }
         Insert: {
           created_at?: string
+          first_opened_at?: string | null
           guest_count?: number
           id?: string
           name: string
           notes?: string | null
           phone?: string | null
+          reminded_at?: string | null
+          reminder_count?: number
           responded_at?: string | null
           rsvp?: string
+          shared_at?: string | null
           slug: string
         }
         Update: {
           created_at?: string
+          first_opened_at?: string | null
           guest_count?: number
           id?: string
           name?: string
           notes?: string | null
           phone?: string | null
+          reminded_at?: string | null
+          reminder_count?: number
           responded_at?: string | null
           rsvp?: string
+          shared_at?: string | null
           slug?: string
         }
         Relationships: []
