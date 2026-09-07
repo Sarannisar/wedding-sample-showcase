@@ -15,10 +15,10 @@ interface Petal {
 }
 
 export const AmbientPetals: React.FC = () => {
-  const { isActive, petalCount } = useAmbientActive();
+  const { isActive, petalCount, prefersReducedMotion } = useAmbientActive();
 
   const petals: Petal[] = useMemo(() => {
-    if (petalCount === 0) return [];
+    if (petalCount === 0 || prefersReducedMotion) return [];
     const colors = ['#f4c2c2', '#f7c1d0', '#fcd5ce', '#fad2e1', '#fbd0de', '#ffccd5'];
     return Array.from({ length: petalCount }).map((_, i) => ({
       id: i,
@@ -31,9 +31,9 @@ export const AmbientPetals: React.FC = () => {
       opacity: 0.35 + Math.random() * 0.45,
       color: colors[i % colors.length],
     }));
-  }, [petalCount]);
+  }, [petalCount, prefersReducedMotion]);
 
-  if (!isActive || petalCount === 0) return null;
+  if (prefersReducedMotion || petalCount === 0) return null;
 
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-10">
@@ -54,8 +54,8 @@ export const AmbientPetals: React.FC = () => {
             rotate: [p.rotateStart, p.rotateEnd],
           }}
           transition={{
-            duration: p.duration,
-            repeat: Infinity,
+            duration: !isActive ? 0 : p.duration,
+            repeat: !isActive ? 0 : Infinity,
             delay: p.delay,
             ease: 'linear',
           }}

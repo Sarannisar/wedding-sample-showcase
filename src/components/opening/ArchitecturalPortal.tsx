@@ -3,6 +3,7 @@ import { forwardRef, useImperativeHandle, useRef } from 'react';
 export interface ArchitecturalPortalHandle {
   leftDoor: HTMLDivElement | null;
   rightDoor: HTMLDivElement | null;
+  backgroundScene: HTMLDivElement | null;
 }
 
 interface ArchitecturalPortalProps {
@@ -14,10 +15,12 @@ export const ArchitecturalPortal = forwardRef<ArchitecturalPortalHandle, Archite
   ({ onClickDoor, isStarted = false }, ref) => {
     const leftDoorRef = useRef<HTMLDivElement>(null);
     const rightDoorRef = useRef<HTMLDivElement>(null);
+    const backgroundSceneRef = useRef<HTMLDivElement>(null);
 
     useImperativeHandle(ref, () => ({
       leftDoor: leftDoorRef.current,
       rightDoor: rightDoorRef.current,
+      backgroundScene: backgroundSceneRef.current,
     }));
 
     return (
@@ -30,7 +33,10 @@ export const ArchitecturalPortal = forwardRef<ArchitecturalPortalHandle, Archite
         {/* ========================================================
             BACKGROUND: BESPOKE WHITE & PASTEL BABY PINK PALACE SCENE
             ======================================================== */}
-        <div className="absolute inset-0 overflow-hidden flex items-center justify-center bg-[#fff5f9] pointer-events-none">
+        <div
+          ref={backgroundSceneRef}
+          className="absolute inset-0 overflow-hidden flex items-center justify-center bg-[#fff5f9] pointer-events-none transform-gpu"
+        >
           <img
             src="/assets/fancy_garden_palace.webp"
             alt="Royal Fairytale Garden Palace"

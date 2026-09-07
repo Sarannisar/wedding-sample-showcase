@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card3D } from '@/components/common/Card3D';
-import { updateRsvp } from '@/lib/supabase';
+import { updateRsvp, RsvpWriteResult } from '@/lib/supabase';
 import { Invitee, RsvpStatus } from '@/lib/types';
 import { useReveal } from '@/lib/useReveal';
 import { notify } from '@/lib/notify';
+import { getRsvpWindow, RsvpWindow } from '@/lib/rsvpDeadline';
+import { weddingConfig } from '@/config/weddingConfig';
 import confetti from 'canvas-confetti';
 import {
   Minus,
@@ -16,6 +18,9 @@ import {
   MessageSquare,
   RefreshCw,
   Edit3,
+  Clock,
+  Lock,
+  Phone,
 } from 'lucide-react';
 
 interface RsvpSectionProps {
@@ -33,6 +38,20 @@ interface LocalRsvpRecord {
 
 export const RsvpSection: React.FC<RsvpSectionProps> = ({ invitee, onRsvpSuccess }) => {
   const [localSaved, setLocalSaved] = useState<LocalRsvpRecord | null>(null);
+  const [isOutboxPending, setIsOutboxPending] = useState(false);
+
+  // Dynamic RSVP Window Calculation with 60s live ticker
+  const [windowState, setWindowState] = useState<RsvpWindow>(() =>
+    getRsvpWindow(invitee?.first_opened_at ?? invitee?.created_at)
+  );
+
+  useEffect(() => {
+    setWindowState(getRsvpWindow(invitee?.first_opened_at ?? invitee?.created_at));
+    const timer = setInterval(() => {
+      setWindowState(getRsvpWindow(invitee?.first_opened_at ?? invitee?.created_at));
+    }, 60000);
+    return () => clearInterval(timer);
+  }, [invitee?.first_opened_at, invitee?.created_at]);
 
   // Load from localStorage or DB
   useEffect(() => {
@@ -42,6 +61,10 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ invitee, onRsvpSuccess
       if (raw) {
         const parsed: LocalRsvpRecord = JSON.parse(raw);
         setLocalSaved(parsed);
+      }
+      const pendingRaw = localStorage.getItem(`wedding_rsvp_pending_${invitee.slug}`);
+      if (pendingRaw) {
+        setIsOutboxPending(true);
       }
     } catch {
       // Ignore JSON error
@@ -82,6 +105,44 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ invitee, onRsvpSuccess
     }
   }, [invitee?.rsvp, invitee?.guest_count, invitee?.notes]);
 
+  // Auto-retry outbox once if back online on mount
+  useEffect(() => {
+    if (!invitee?.slug || typeof navigator === 'undefined' || !navigator.onLine) return;
+    try {
+      const pendingRaw = localStorage.getItem(`wedding_rsvp_pending_${invitee.slug}`);
+      if (pendingRaw) {
+        const pending = JSON.parse(pendingRaw);
+        updateRsvp(
+          invitee.slug,
+          pending.rsvp,
+          pending.guestCount,
+          pending.note,
+          invitee.name
+        ).then((res) => {
+          if (res.ok) {
+            localStorage.removeItem(`wedding_rsvp_pending_${invitee.slug}`);
+            setIsOutboxPending(false);
+            setLocalSaved(pending);
+            notify.success('Your pending RSVP has been synchronized.');
+          }
+        });
+      }
+    } catch {
+      // Non-fatal
+    }
+  }, [invitee?.slug, invitee?.name]);
+
+  // Online listener: notify user to tap Retry if an error was previously raised
+  useEffect(() => {
+    const handleOnline = () => {
+      if (submitError) {
+        notify.info('Back online — tap Retry to send your RSVP.');
+      }
+    };
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [submitError]);
+
   const handleSelectOption = (status: RsvpStatus) => {
     setSelectedRsvp(status);
     setSubmitError(null);
@@ -103,6 +164,11 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ invitee, onRsvpSuccess
   const handleConfirm = async () => {
     if (!invitee) return;
 
+    if (!windowState.isOpen) {
+      notify.error(weddingConfig.rsvp?.lockedMessage || 'RSVP is now closed.');
+      return;
+    }
+
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       notify.error('You appear to be offline. Please reconnect to submit your RSVP.');
       setSubmitError('You are currently offline. Please check your internet connection.');
@@ -112,8 +178,24 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ invitee, onRsvpSuccess
     setIsSubmitting(true);
     setSubmitError(null);
 
+    const pendingRecord: LocalRsvpRecord = {
+      slug: invitee.slug,
+      rsvp: selectedRsvp,
+      guestCount: selectedRsvp === 'attending' ? guestCount : 0,
+      note: note.trim(),
+      respondedAt: new Date().toISOString(),
+    };
+
+    // Save pending outbox before network request
     try {
-      const success = await updateRsvp(
+      localStorage.setItem(`wedding_rsvp_pending_${invitee.slug}`, JSON.stringify(pendingRecord));
+      setIsOutboxPending(true);
+    } catch {
+      // Non-fatal
+    }
+
+    try {
+      const result: RsvpWriteResult = await updateRsvp(
         invitee.slug,
         selectedRsvp,
         selectedRsvp === 'attending' ? guestCount : 0,
@@ -121,21 +203,18 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ invitee, onRsvpSuccess
         invitee.name
       );
 
-      if (!success) {
-        throw new Error('Failed to record response in database.');
+      if (!result.ok) {
+        setSubmitError(result.message);
+        notify.error(result.message || 'Could not submit RSVP. Please tap Retry.');
+        return;
       }
 
-      // Save to localStorage
-      const record: LocalRsvpRecord = {
-        slug: invitee.slug,
-        rsvp: selectedRsvp,
-        guestCount: selectedRsvp === 'attending' ? guestCount : 0,
-        note: note.trim(),
-        respondedAt: new Date().toISOString(),
-      };
+      // Success: clear outbox, commit confirmed cache
       try {
-        localStorage.setItem(`wedding_rsvp_${invitee.slug}`, JSON.stringify(record));
-        setLocalSaved(record);
+        localStorage.removeItem(`wedding_rsvp_pending_${invitee.slug}`);
+        localStorage.setItem(`wedding_rsvp_${invitee.slug}`, JSON.stringify(pendingRecord));
+        setLocalSaved(pendingRecord);
+        setIsOutboxPending(false);
       } catch {
         // localStorage non-fatal
       }
@@ -166,8 +245,9 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ invitee, onRsvpSuccess
       }
     } catch (err: any) {
       console.error('Failed to submit RSVP:', err);
-      setSubmitError('Unable to send RSVP. Please tap Retry to submit again.');
-      notify.error('Could not submit RSVP. Please tap Retry.');
+      const msg = err?.message || 'Unable to send RSVP. Please tap Retry to submit again.';
+      setSubmitError(msg);
+      notify.error(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -175,12 +255,112 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ invitee, onRsvpSuccess
 
   const revealProps = useReveal();
 
+  if (!windowState.isOpen) {
+    return (
+      <motion.section {...revealProps} className="w-full max-w-xl mx-auto my-6 px-3">
+        <Card3D className="text-center py-8 px-6 sm:px-10">
+          <span className="font-label text-[10px] uppercase tracking-[0.35em] text-[#e79db0] font-semibold block mb-1">
+            RSVP STATUS
+          </span>
+          <h2 className="font-serif text-3xl text-[#4a3038] font-semibold mb-2">
+            RSVP Closed
+          </h2>
+
+          <div className="p-6 rounded-2xl bg-[#fff6f9]/90 border border-[#f2b8c6]/30 text-center space-y-4 max-w-md mx-auto my-4">
+            <div className="w-12 h-12 rounded-full bg-[#fdeef3] mx-auto flex items-center justify-center text-[#b05570]">
+              <Lock className="w-6 h-6" />
+            </div>
+
+            {activeStatus === 'attending' ? (
+              <>
+                <h4 className="font-serif text-xl font-bold text-[#4a3038]">Attending Confirmed</h4>
+                <p className="font-serif text-xs text-[#6f5860] leading-relaxed">
+                  You are recorded as attending ({guestCount} {guestCount === 1 ? 'guest' : 'guests'}).
+                </p>
+                {note && (
+                  <div className="p-3 rounded-lg bg-white border border-[#f2b8c6]/20 text-xs font-serif italic text-[#7a4d5d]">
+                    "{note}"
+                  </div>
+                )}
+              </>
+            ) : activeStatus === 'declined' ? (
+              <>
+                <h4 className="font-serif text-xl font-bold text-[#4a3038]">Response Recorded: Declined</h4>
+                <p className="font-serif text-xs text-[#6f5860] leading-relaxed">
+                  Thank you for your blessings and heartfelt wishes.
+                </p>
+                {note && (
+                  <div className="p-3 rounded-lg bg-white border border-[#f2b8c6]/20 text-xs font-serif italic text-[#7a4d5d]">
+                    "{note}"
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <h4 className="font-serif text-xl font-bold text-[#4a3038]">No Response Recorded</h4>
+                <p className="font-serif text-xs text-[#6f5860] leading-relaxed">
+                  The RSVP window closed on{' '}
+                  {windowState.deadline.toLocaleDateString('en-GB', {
+                    weekday: 'short',
+                    day: 'numeric',
+                    month: 'short',
+                  })}
+                  .
+                </p>
+              </>
+            )}
+
+            <div className="pt-2 border-t border-[#f2b8c6]/20">
+              <p className="font-serif text-xs text-[#b05570] italic leading-relaxed mb-4">
+                {weddingConfig.rsvp?.lockedMessage ||
+                  'RSVP is now closed. Please contact the family directly for any changes.'}
+              </p>
+              <a
+                href="https://wa.me/94772257533?text=Assalamu%20Alaikum%20Illyas%2C%20regarding%20my%20RSVP..."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#25D366] text-white font-label text-xs uppercase tracking-wider font-semibold shadow-sm hover:brightness-105 transition-all cursor-pointer"
+              >
+                <Phone className="w-3.5 h-3.5" />
+                <span>Contact Illyas (0772257533)</span>
+              </a>
+            </div>
+          </div>
+        </Card3D>
+      </motion.section>
+    );
+  }
+
   return (
     <motion.section
       {...revealProps}
       className="w-full max-w-xl mx-auto my-6 px-3"
     >
       <Card3D className="text-center py-8 px-6 sm:px-10">
+        {/* Soft urgency pill when <= 72 hours remaining */}
+        {windowState.hoursRemaining <= 72 && (
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#fdeef3] border border-[#f2b8c6]/40 text-[11px] font-label font-semibold text-[#b05570] uppercase tracking-wider mb-4 motion-safe:animate-pulse">
+            <Clock className="w-3.5 h-3.5" />
+            <span>
+              Please respond by{' '}
+              {windowState.deadline.toLocaleDateString('en-GB', {
+                weekday: 'short',
+                day: 'numeric',
+                month: 'short',
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </span>
+          </div>
+        )}
+
+        {/* Outbox pending badge */}
+        {isOutboxPending && (
+          <div className="mb-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-label uppercase tracking-wider font-semibold">
+            <span>⚠️ Not sent yet (will auto-send once online)</span>
+          </div>
+        )}
+
         {/* RSVP Header */}
         <span className="font-label text-[10px] uppercase tracking-[0.35em] text-[#e79db0] font-semibold block mb-1">
           KINDLY RESPOND
@@ -188,7 +368,7 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ invitee, onRsvpSuccess
         <h2 className="font-serif text-3xl text-[#4a3038] font-semibold mb-2">
           RSVP
         </h2>
-        <p className="font-label text-xs uppercase tracking-[0.25em] text-[#a8808e] font-semibold mb-6">
+        <p className="font-label text-xs uppercase tracking-[0.25em] text-[#7a4d5d] font-semibold mb-6">
           WILL YOU JOIN US?
         </p>
 

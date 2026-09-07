@@ -5,12 +5,12 @@ import { OpeningExperience } from '@/components/opening/OpeningExperience';
 import { InvitationSuite } from '@/components/invitation/InvitationSuite';
 import { WatercolorBackground } from '@/components/ambient/WatercolorBackground';
 import { AmbientPetals } from '@/components/ambient/AmbientPetals';
-import { fetchInviteeBySlug, logInviteeEvent } from '@/lib/supabase';
+import { fetchInviteeBySlug, logInviteeEvent, ensureFirstOpenedAt } from '@/lib/supabase';
 import { Invitee, RsvpStatus } from '@/lib/types';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { BackgroundMusic } from '@/components/audio/BackgroundMusic';
 import { weddingConfig } from '@/config/weddingConfig';
-import { WifiOff } from 'lucide-react';
+import { WifiOff, Wifi } from 'lucide-react';
 
 export const GuestInvitePage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -21,10 +21,15 @@ export const GuestInvitePage: React.FC = () => {
   const [isOffline, setIsOffline] = useState(
     typeof navigator !== 'undefined' ? !navigator.onLine : false
   );
+  const [backOnlineToast, setBackOnlineToast] = useState(false);
 
   // Offline / Online listeners
   useEffect(() => {
-    const handleOnline = () => setIsOffline(false);
+    const handleOnline = () => {
+      setIsOffline(false);
+      setBackOnlineToast(true);
+      setTimeout(() => setBackOnlineToast(false), 2500);
+    };
     const handleOffline = () => setIsOffline(true);
 
     window.addEventListener('online', handleOnline);
@@ -65,11 +70,12 @@ export const GuestInvitePage: React.FC = () => {
           setInvitee(data);
           setIsInvalidSlug(false);
 
-          // Log opened event once per session
+          // Log opened event once per session and ensure deadline anchor is saved
           const sessionKey = `invite_opened_${slug}`;
           if (!sessionStorage.getItem(sessionKey)) {
             sessionStorage.setItem(sessionKey, '1');
             void logInviteeEvent(data.id, 'opened');
+            void ensureFirstOpenedAt(data.id);
           }
         } else {
           // Slug was provided but does not exist in records
@@ -177,14 +183,34 @@ export const GuestInvitePage: React.FC = () => {
   }
 
   return (
-    <div className={`relative min-h-screen w-full bg-[#fffafc] overflow-x-hidden text-[#4a3038] ${isOffline && loadingStep === 'invitation' ? 'pt-10' : ''}`}>
-      {/* Offline Notice Banner (Step 22 #8) */}
-      {isOffline && (
-        <div className="fixed top-0 inset-x-0 z-[100] bg-amber-500 text-white text-xs font-label uppercase tracking-wider py-2 px-4 text-center flex items-center justify-center gap-2 shadow-md">
-          <WifiOff className="w-4 h-4" />
-          <span>You are currently offline. RSVP submission requires an internet connection.</span>
-        </div>
-      )}
+    <div className="relative min-h-screen w-full bg-[#fffafc] overflow-x-hidden text-[#4a3038]">
+      {/* Non-Disruptive Floating Offline / Online Status Pill (Item 10) */}
+      <AnimatePresence>
+        {isOffline && (
+          <motion.div
+            key="offline-pill"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[100] rounded-full px-4 py-2 bg-amber-600/95 text-white text-xs font-label uppercase tracking-wider flex items-center gap-2 shadow-xl backdrop-blur-md"
+          >
+            <WifiOff className="w-4 h-4" />
+            <span>You are currently offline</span>
+          </motion.div>
+        )}
+        {backOnlineToast && (
+          <motion.div
+            key="online-pill"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[100] rounded-full px-4 py-2 bg-emerald-600/95 text-white text-xs font-label uppercase tracking-wider flex items-center gap-2 shadow-xl backdrop-blur-md"
+          >
+            <Wifi className="w-4 h-4" />
+            <span>Back online</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Ambient Watercolor Background */}
       <WatercolorBackground />

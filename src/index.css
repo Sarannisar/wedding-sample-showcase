@@ -34,6 +34,10 @@ body {
   perspective: 1200px;
 }
 
+.perspective-1400 {
+  perspective: 1400px;
+}
+
 .preserve-3d {
   transform-style: preserve-3d;
 }

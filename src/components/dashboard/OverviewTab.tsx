@@ -1,30 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Invitee } from '@/lib/types';
 import { StatCard } from './StatCard';
-import { ResponseBar } from './ResponseBar';
 import { GuestNotesSection } from './GuestNotesSection';
 import { formatTimeAgo } from '@/lib/utils';
 import { printGuestList } from '@/lib/printList';
 import { exportSeatingCsv } from '@/lib/csvHelper';
 import { notify } from '@/lib/notify';
+import { getRsvpWindow } from '@/lib/rsvpDeadline';
 import {
   Users,
   UserCheck,
-  UserX,
   Clock,
   UserPlus,
   Send,
   Printer,
   FileSpreadsheet,
   PlusCircle,
-  Eye,
+  BellRing,
+  Lock,
+  TrendingUp,
+  MessageSquare,
 } from 'lucide-react';
 
-interface OverviewTabProps {
+export type OverviewFilter =
+  | 'all'
+  | 'attending'
+  | 'declined'
+  | 'pending'
+  | 'opened_unresponded'
+  | 'notsent'
+  | 'ignored';
+
+export interface OverviewTabProps {
   invitees: Invitee[];
   onNavigateToAdd?: () => void;
-  onFilterClick?: (status: 'all' | 'attending' | 'declined' | 'pending' | 'opened_unresponded' | 'notsent') => void;
+  onFilterClick?: (status: OverviewFilter) => void;
   onGuestClick?: (guestId: string) => void;
+  onRemindAll?: () => void;
 }
 
 export const OverviewTab: React.FC<OverviewTabProps> = ({
@@ -32,22 +44,59 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   onNavigateToAdd,
   onFilterClick,
   onGuestClick,
+  onRemindAll,
 }) => {
-  const [hoveredSegment, setHoveredSegment] = useState<'attending' | 'declined' | 'pending' | null>(null);
+  const [hoveredSegment, setHoveredSegment] = useState<'attending' | 'declined' | 'pending' | null>(
+    null
+  );
 
   const totalInvited = invitees.length;
-  const attendingList = invitees.filter((i) => i.rsvp === 'attending');
+  const attendingList = useMemo(() => invitees.filter((i) => i.rsvp === 'attending'), [invitees]);
   const attendingCount = attendingList.length;
-  const totalGuestCount = attendingList.reduce((acc, curr) => acc + (curr.guest_count || 1), 0);
-  const declinedCount = invitees.filter((i) => i.rsvp === 'declined').length;
-  const pendingCount = invitees.filter((i) => i.rsvp === 'pending').length;
-  const notSentCount = invitees.filter((i) => !i.shared_at).length;
-  const sentCount = totalInvited - notSentCount;
+  const totalGuestCount = useMemo(
+    () => attendingList.reduce((acc, curr) => acc + (curr.guest_count || 1), 0),
+    [attendingList]
+  );
+  const declinedCount = useMemo(
+    () => invitees.filter((i) => i.rsvp === 'declined').length,
+    [invitees]
+  );
+  const pendingCount = useMemo(
+    () => invitees.filter((i) => i.rsvp === 'pending').length,
+    [invitees]
+  );
+  const notSentCount = useMemo(
+    () => invitees.filter((i) => !i.shared_at).length,
+    [invitees]
+  );
 
-  // Task 3.2: Opened but not responded
-  const openedNotRespondedCount = invitees.filter(
-    (i) => i.rsvp === 'pending' && Boolean(i.opened_at)
-  ).length;
+  // Pending & sent count (eligible for reminder)
+  const pendingAndSentCount = useMemo(
+    () => invitees.filter((i) => i.rsvp === 'pending' && Boolean(i.shared_at)).length,
+    [invitees]
+  );
+
+  // Reminders metrics
+  const totalRemindersSent = useMemo(
+    () => invitees.reduce((acc, curr) => acc + (curr.reminder_count || 0), 0),
+    [invitees]
+  );
+  const guestsRemindedCount = useMemo(
+    () => invitees.filter((i) => (i.reminder_count || 0) > 0).length,
+    [invitees]
+  );
+
+  // RSVP deadline / lock metrics (Item 3)
+  const { lockedCount, openCount } = useMemo(() => {
+    let locked = 0;
+    let open = 0;
+    for (const inv of invitees) {
+      const win = getRsvpWindow(inv.first_opened_at ?? inv.created_at);
+      if (win.isOpen) open++;
+      else locked++;
+    }
+    return { lockedCount: locked, openCount: open };
+  }, [invitees]);
 
   const attendingPercent = totalInvited > 0 ? (attendingCount / totalInvited) * 100 : 0;
   const declinedPercent = totalInvited > 0 ? (declinedCount / totalInvited) * 100 : 0;
@@ -56,13 +105,51 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   const respondedPercent = totalInvited > 0 ? (respondedCount / totalInvited) * 100 : 0;
 
   // Last 8 responses
-  const respondedInvitees = invitees
-    .filter((i) => i.rsvp !== 'pending' && Boolean(i.responded_at))
-    .sort(
-      (a, b) =>
-        new Date(b.responded_at!).getTime() - new Date(a.responded_at!).getTime()
-    )
-    .slice(0, 8);
+  const respondedInvitees = useMemo(
+    () =>
+      invitees
+        .filter((i) => i.rsvp !== 'pending' && Boolean(i.responded_at))
+        .sort(
+          (a, b) =>
+            new Date(b.responded_at!).getTime() - new Date(a.responded_at!).getTime()
+        )
+        .slice(0, 8),
+    [invitees]
+  );
+
+  // Response velocity sparkline (last 14 days)
+  const sparklineData = useMemo(() => {
+    const days = 14;
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    const points: { dateStr: string; label: string; count: number }[] = [];
+
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const dateKey = `${y}-${m}-${day}`;
+      const label = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      points.push({ dateStr: dateKey, label, count: 0 });
+    }
+
+    for (const inv of invitees) {
+      if (inv.responded_at) {
+        const respDate = inv.responded_at.slice(0, 10);
+        const pt = points.find((p) => p.dateStr === respDate);
+        if (pt) pt.count++;
+      }
+    }
+
+    return points;
+  }, [invitees]);
+
+  const total14DayResponses = useMemo(
+    () => sparklineData.reduce((acc, p) => acc + p.count, 0),
+    [sparklineData]
+  );
 
   const handlePrint = (filter: 'all' | 'attending') => {
     if (invitees.length === 0) {
@@ -111,13 +198,25 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   const declinedStroke = (declinedCount / totalInvited) * circumference;
   const pendingStroke = (pendingCount / totalInvited) * circumference;
 
+  // Sparkline coordinates math
+  const sparkWidth = 260;
+  const sparkHeight = 40;
+  const maxCount = Math.max(...sparklineData.map((d) => d.count), 1);
+  const sparkPoints = sparklineData.map((d, index) => {
+    const x = (index / (sparklineData.length - 1)) * sparkWidth;
+    const y = sparkHeight - (d.count / maxCount) * (sparkHeight - 8) - 4;
+    return { x, y, ...d };
+  });
+  const sparkPointsStr = sparkPoints.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const sparkAreaStr = `0,${sparkHeight} ${sparkPointsStr} ${sparkWidth},${sparkHeight}`;
+
   return (
     <div className="space-y-6">
-      {/* Quick Action Bar for Print & Export */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-[#e08aa3]/15 shadow-sm">
+      {/* Top Action Bar for Print & Export */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-[#e08aa3]/15 shadow-xs">
         <div>
           <span className="font-display text-base font-bold text-[#4a3038] block">
-            Guest Overview & Metrics
+            Guest Overview &amp; Metrics
           </span>
           <span className="font-body text-xs text-[#b592a0]">
             {respondedCount} of {totalInvited} responded ({Math.round(respondedPercent)}%) • {totalGuestCount} attending headcount
@@ -154,7 +253,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         </div>
       </div>
 
-      {/* Task 2.2: Primary Stat Hierarchy (3 Prominent Primary Cards) */}
+      {/* Hero Stat Band: Attending / Headcount / Pending (Full Width 3 Cards with 4xl type) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
         <StatCard
           primary
@@ -194,281 +293,416 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         />
       </div>
 
-      {/* Task 2.2 & 3.2: Secondary Compact Row */}
+      {/* Slim 4-up Secondary Stats Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-        <StatCard
-          label="Total Invited"
-          value={totalInvited}
-          colorClass="text-[#704655]"
-          icon={<Users className="w-4 h-4 text-[#b592a0]" />}
-          subtext="Total on guest list"
-          onClick={() => onFilterClick?.('all')}
-        />
-        <StatCard
-          label="Declined"
-          value={declinedCount}
-          colorClass="text-rose-600"
-          icon={<UserX className="w-4 h-4 text-rose-500" />}
-          subtext={`${declinedCount} cannot attend`}
-          onClick={() => onFilterClick?.('declined')}
-        />
-        <StatCard
-          label="Links Sent"
-          value={sentCount}
-          colorClass="text-[#128C7E]"
-          icon={<Send className="w-4 h-4 text-[#25D366]" />}
-          subtext={`${sentCount} shared`}
+        {/* Not Sent */}
+        <div
           onClick={() => onFilterClick?.('notsent')}
-        />
-        <StatCard
-          label="Opened (Pending)"
-          value={openedNotRespondedCount}
-          colorClass="text-[#8a243e]"
-          icon={<Eye className="w-4 h-4 text-[#e08aa3]" />}
-          subtext={`${openedNotRespondedCount} viewed invite`}
-          onClick={() => onFilterClick?.('opened_unresponded')}
-        />
-      </div>
-
-      {/* RSVP Distribution & Task 2.3 Interactive Donut Chart */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <ResponseBar
-            attendingPercent={Math.round(attendingPercent)}
-            declinedPercent={Math.round(declinedPercent)}
-            pendingPercent={Math.round(pendingPercent)}
-          />
+          role="button"
+          tabIndex={0}
+          className="rounded-2xl p-4 bg-white/90 border border-[#e08aa3]/15 shadow-xs hover:border-[#128C7E]/40 hover:-translate-y-0.5 transition cursor-pointer flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-label uppercase tracking-wider font-semibold text-[#7a4d5d]">
+              Not Sent
+            </span>
+            <Send className="w-4 h-4 text-[#128C7E]" />
+          </div>
+          <div className="my-1.5">
+            <span className="font-display font-bold text-2xl text-[#128C7E]">
+              {notSentCount}
+            </span>
+          </div>
+          <span className="text-xs font-body text-[#7a4d5d]">
+            {notSentCount} awaiting link
+          </span>
         </div>
 
-        {/* Task 2.3: Interactive Donut Chart with Tooltips and Click Navigation */}
-        <div className="bg-white rounded-2xl p-5 border border-[#e08aa3]/15 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-5">
-          <div className="relative w-32 h-32 shrink-0">
-            <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-              <circle
-                cx="50"
-                cy="50"
-                r="40"
-                fill="none"
-                stroke="#f2b8c6"
-                strokeWidth="12"
-                opacity="0.2"
-              />
-              {totalInvited > 0 && (
-                <>
-                  {/* Attending segment */}
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    fill="none"
-                    stroke="#10b981"
-                    strokeWidth={hoveredSegment === 'attending' ? '14' : '12'}
-                    strokeDasharray={`${attendingStroke} ${circumference}`}
-                    strokeLinecap="round"
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`Attending: ${attendingCount} guests`}
-                    className="cursor-pointer transition-all duration-200 focus:outline-none"
-                    onMouseEnter={() => setHoveredSegment('attending')}
-                    onMouseLeave={() => setHoveredSegment(null)}
-                    onFocus={() => setHoveredSegment('attending')}
-                    onBlur={() => setHoveredSegment(null)}
-                    onClick={() => onFilterClick?.('attending')}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        onFilterClick?.('attending');
-                      }
-                    }}
-                  />
-                  {/* Declined segment */}
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    fill="none"
-                    stroke="#f43f5e"
-                    strokeWidth={hoveredSegment === 'declined' ? '14' : '12'}
-                    strokeDasharray={`${declinedStroke} ${circumference}`}
-                    strokeDashoffset={-attendingStroke}
-                    strokeLinecap="round"
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`Declined: ${declinedCount} guests`}
-                    className="cursor-pointer transition-all duration-200 focus:outline-none"
-                    onMouseEnter={() => setHoveredSegment('declined')}
-                    onMouseLeave={() => setHoveredSegment(null)}
-                    onFocus={() => setHoveredSegment('declined')}
-                    onBlur={() => setHoveredSegment(null)}
-                    onClick={() => onFilterClick?.('declined')}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        onFilterClick?.('declined');
-                      }
-                    }}
-                  />
-                  {/* Pending segment */}
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    fill="none"
-                    stroke="#f59e0b"
-                    strokeWidth={hoveredSegment === 'pending' ? '14' : '12'}
-                    strokeDasharray={`${pendingStroke} ${circumference}`}
-                    strokeDashoffset={-(attendingStroke + declinedStroke)}
-                    strokeLinecap="round"
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`Pending: ${pendingCount} guests`}
-                    className="cursor-pointer transition-all duration-200 focus:outline-none"
-                    onMouseEnter={() => setHoveredSegment('pending')}
-                    onMouseLeave={() => setHoveredSegment(null)}
-                    onFocus={() => setHoveredSegment('pending')}
-                    onBlur={() => setHoveredSegment(null)}
-                    onClick={() => onFilterClick?.('pending')}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        onFilterClick?.('pending');
-                      }
-                    }}
-                  />
-                </>
-              )}
-            </svg>
-
-            {/* Donut Center Label / Live Hover Tooltip */}
-            <div
-              onClick={() => onFilterClick?.('all')}
-              role="button"
-              tabIndex={0}
-              aria-label="Filter all guests"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  onFilterClick?.('all');
-                }
-              }}
-              className="absolute inset-2 flex flex-col items-center justify-center text-center cursor-pointer pointer-events-auto rounded-full focus-visible:ring-2 focus-visible:ring-[#e08aa3] focus-visible:outline-none"
-              title="Click to view all guests"
-            >
-              {hoveredSegment === 'attending' ? (
-                <>
-                  <span className="text-[10px] font-label uppercase font-bold text-emerald-700">Attending</span>
-                  <span className="text-base font-display font-extrabold text-emerald-700">{attendingCount}</span>
-                  <span className="text-[9px] text-[#7a4d5d]">{Math.round(attendingPercent)}%</span>
-                </>
-              ) : hoveredSegment === 'declined' ? (
-                <>
-                  <span className="text-[10px] font-label uppercase font-bold text-rose-600">Declined</span>
-                  <span className="text-base font-display font-extrabold text-rose-600">{declinedCount}</span>
-                  <span className="text-[9px] text-[#7a4d5d]">{Math.round(declinedPercent)}%</span>
-                </>
-              ) : hoveredSegment === 'pending' ? (
-                <>
-                  <span className="text-[10px] font-label uppercase font-bold text-amber-600">Pending</span>
-                  <span className="text-base font-display font-extrabold text-amber-600">{pendingCount}</span>
-                  <span className="text-[9px] text-[#7a4d5d]">{Math.round(pendingPercent)}%</span>
-                </>
-              ) : (
-                <>
-                  <span className="text-[10px] font-label uppercase tracking-wider font-bold text-[#4a3038]">Total</span>
-                  <span className="text-base font-display font-extrabold text-[#4a3038]">{totalInvited}</span>
-                  <span className="text-[9px] text-[#7a4d5d]">Parties</span>
-                </>
-              )}
-            </div>
+        {/* Pending & Sent with "Remind all" Shortcut */}
+        <div className="rounded-2xl p-4 bg-white/90 border border-[#e08aa3]/15 shadow-xs hover:border-amber-400 hover:-translate-y-0.5 transition flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-label uppercase tracking-wider font-semibold text-[#7a4d5d]">
+              Pending &amp; Sent
+            </span>
+            <Clock className="w-4 h-4 text-amber-500" />
           </div>
-
-          {/* Interactive Legend with click actions */}
-          <div className="space-y-2 text-xs font-body w-full sm:w-auto">
-            <button
-              onClick={() => onFilterClick?.('attending')}
-              onMouseEnter={() => setHoveredSegment('attending')}
-              onMouseLeave={() => setHoveredSegment(null)}
-              className="w-full flex items-center justify-between gap-3 p-1.5 rounded-lg hover:bg-emerald-50 transition cursor-pointer text-left"
-            >
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
-                <span className="text-[#4a3038] font-medium">Attending</span>
-              </div>
-              <span className="font-bold text-emerald-700">{attendingCount} ({Math.round(attendingPercent)}%)</span>
-            </button>
-
-            <button
-              onClick={() => onFilterClick?.('declined')}
-              onMouseEnter={() => setHoveredSegment('declined')}
-              onMouseLeave={() => setHoveredSegment(null)}
-              className="w-full flex items-center justify-between gap-3 p-1.5 rounded-lg hover:bg-rose-50 transition cursor-pointer text-left"
-            >
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0" />
-                <span className="text-[#4a3038] font-medium">Declined</span>
-              </div>
-              <span className="font-bold text-rose-600">{declinedCount} ({Math.round(declinedPercent)}%)</span>
-            </button>
-
-            <button
+          <div className="my-1 flex items-baseline justify-between">
+            <span
               onClick={() => onFilterClick?.('pending')}
-              onMouseEnter={() => setHoveredSegment('pending')}
-              onMouseLeave={() => setHoveredSegment(null)}
-              className="w-full flex items-center justify-between gap-3 p-1.5 rounded-lg hover:bg-amber-50 transition cursor-pointer text-left"
+              className="font-display font-bold text-2xl text-amber-600 cursor-pointer"
             >
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
-                <span className="text-[#4a3038] font-medium">Pending</span>
-              </div>
-              <span className="font-bold text-amber-600">{pendingCount} ({Math.round(pendingPercent)}%)</span>
-            </button>
+              {pendingAndSentCount}
+            </span>
+            {pendingAndSentCount > 0 && onRemindAll && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemindAll();
+                }}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-800 text-[10px] font-label font-bold uppercase tracking-wider transition cursor-pointer"
+                title="Open WhatsApp reminder queue for all pending guests"
+              >
+                <BellRing className="w-3 h-3" />
+                <span>Remind all</span>
+              </button>
+            )}
           </div>
+          <span className="text-xs font-body text-[#7a4d5d]">
+            {pendingAndSentCount} eligible for reminder
+          </span>
+        </div>
+
+        {/* Reminders Sent */}
+        <div
+          onClick={() => onFilterClick?.('all')}
+          role="button"
+          tabIndex={0}
+          className="rounded-2xl p-4 bg-white/90 border border-[#e08aa3]/15 shadow-xs hover:border-[#b05570]/40 hover:-translate-y-0.5 transition cursor-pointer flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-label uppercase tracking-wider font-semibold text-[#7a4d5d]">
+              Reminders Sent
+            </span>
+            <BellRing className="w-4 h-4 text-[#b05570]" />
+          </div>
+          <div className="my-1.5">
+            <span className="font-display font-bold text-2xl text-[#b05570]">
+              {totalRemindersSent}
+            </span>
+          </div>
+          <span className="text-xs font-body text-[#7a4d5d]">
+            across {guestsRemindedCount} guests
+          </span>
+        </div>
+
+        {/* RSVP Locked / Open */}
+        <div
+          onClick={() => onFilterClick?.('all')}
+          role="button"
+          tabIndex={0}
+          className="rounded-2xl p-4 bg-white/90 border border-[#e08aa3]/15 shadow-xs hover:border-[#4a3038]/40 hover:-translate-y-0.5 transition cursor-pointer flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-label uppercase tracking-wider font-semibold text-[#7a4d5d]">
+              RSVP Window
+            </span>
+            <Lock className="w-4 h-4 text-[#7a4d5d]" />
+          </div>
+          <div className="my-1.5">
+            <span className="font-display font-bold text-2xl text-[#4a3038]">
+              {lockedCount > 0 ? `${lockedCount} locked` : 'All Open'}
+            </span>
+          </div>
+          <span className="text-xs font-body text-[#7a4d5d]">
+            {openCount} guests still within window
+          </span>
         </div>
       </div>
 
-      {/* Recent Responses Stream */}
-      {respondedInvitees.length > 0 && (
-        <div className="bg-white rounded-2xl p-6 border border-[#e08aa3]/15 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="font-display text-base font-bold text-[#4a3038]">
-              Recent Activity &amp; Responses
+      {/* 12-Column Desktop Grid: Donut + Sparkline (col-span-5) & Recent Responses (col-span-7) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left: Donut Chart & Response Velocity Sparkline (col-span-5) */}
+        <div className="lg:col-span-5 bg-white rounded-2xl p-5 border border-[#e08aa3]/15 shadow-xs space-y-5">
+          <div className="flex items-center justify-between">
+            <h4 className="font-display text-sm font-bold text-[#4a3038]">
+              RSVP Status Distribution
             </h4>
-            <span className="font-label text-xs uppercase tracking-wider text-[#b592a0]">
-              Last {respondedInvitees.length} RSVPs
+            <span className="text-xs font-body text-[#b592a0]">
+              Click segment to filter
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {respondedInvitees.map((invitee) => (
-              <div
-                key={invitee.id}
-                className="p-3.5 rounded-xl border border-[#e08aa3]/15 bg-[#fffafc] flex items-center justify-between gap-3"
-              >
-                <div className="min-w-0">
-                  <span className="font-body text-sm font-semibold text-[#4a3038] block truncate">
-                    {invitee.name}
-                  </span>
-                  <span className="text-[11px] text-[#b592a0] block">
-                    {invitee.responded_at ? formatTimeAgo(invitee.responded_at) : 'Just now'}
-                  </span>
-                </div>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-5">
+            {/* Interactive SVG Donut */}
+            <div className="relative w-32 h-32 shrink-0">
+              <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="40"
+                  fill="none"
+                  stroke="#f2b8c6"
+                  strokeWidth="12"
+                  opacity="0.2"
+                />
+                {totalInvited > 0 && (
+                  <>
+                    {/* Attending segment */}
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      fill="none"
+                      stroke="#10b981"
+                      strokeWidth={hoveredSegment === 'attending' ? '14' : '12'}
+                      strokeDasharray={`${attendingStroke} ${circumference}`}
+                      strokeLinecap="round"
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Attending: ${attendingCount} guests`}
+                      className="cursor-pointer transition-all duration-200 focus:outline-none"
+                      onMouseEnter={() => setHoveredSegment('attending')}
+                      onMouseLeave={() => setHoveredSegment(null)}
+                      onFocus={() => setHoveredSegment('attending')}
+                      onBlur={() => setHoveredSegment(null)}
+                      onClick={() => onFilterClick?.('attending')}
+                    />
+                    {/* Declined segment */}
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      fill="none"
+                      stroke="#f43f5e"
+                      strokeWidth={hoveredSegment === 'declined' ? '14' : '12'}
+                      strokeDasharray={`${declinedStroke} ${circumference}`}
+                      strokeDashoffset={-attendingStroke}
+                      strokeLinecap="round"
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Declined: ${declinedCount} guests`}
+                      className="cursor-pointer transition-all duration-200 focus:outline-none"
+                      onMouseEnter={() => setHoveredSegment('declined')}
+                      onMouseLeave={() => setHoveredSegment(null)}
+                      onFocus={() => setHoveredSegment('declined')}
+                      onBlur={() => setHoveredSegment(null)}
+                      onClick={() => onFilterClick?.('declined')}
+                    />
+                    {/* Pending segment */}
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      fill="none"
+                      stroke="#f59e0b"
+                      strokeWidth={hoveredSegment === 'pending' ? '14' : '12'}
+                      strokeDasharray={`${pendingStroke} ${circumference}`}
+                      strokeDashoffset={-(attendingStroke + declinedStroke)}
+                      strokeLinecap="round"
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Pending: ${pendingCount} guests`}
+                      className="cursor-pointer transition-all duration-200 focus:outline-none"
+                      onMouseEnter={() => setHoveredSegment('pending')}
+                      onMouseLeave={() => setHoveredSegment(null)}
+                      onFocus={() => setHoveredSegment('pending')}
+                      onBlur={() => setHoveredSegment(null)}
+                      onClick={() => onFilterClick?.('pending')}
+                    />
+                  </>
+                )}
+              </svg>
 
-                <span
-                  className={`px-2 py-0.5 rounded-full text-xs font-label uppercase tracking-wider font-semibold shrink-0 ${
-                    invitee.rsvp === 'attending'
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : 'bg-rose-100 text-rose-800'
-                  }`}
-                >
-                  {invitee.rsvp === 'attending'
-                    ? `+${invitee.guest_count || 1}`
-                    : 'Declined'}
-                </span>
+              {/* Donut Center Label */}
+              <div
+                onClick={() => onFilterClick?.('all')}
+                role="button"
+                tabIndex={0}
+                aria-label="Filter all guests"
+                className="absolute inset-2 flex flex-col items-center justify-center text-center cursor-pointer pointer-events-auto rounded-full focus-visible:ring-2 focus-visible:ring-[#e08aa3] focus-visible:outline-none"
+                title="Click to view all guests"
+              >
+                {hoveredSegment === 'attending' ? (
+                  <>
+                    <span className="text-[10px] font-label uppercase font-bold text-emerald-700">Attending</span>
+                    <span className="text-base font-display font-extrabold text-emerald-700">{attendingCount}</span>
+                    <span className="text-[9px] text-[#7a4d5d]">{Math.round(attendingPercent)}%</span>
+                  </>
+                ) : hoveredSegment === 'declined' ? (
+                  <>
+                    <span className="text-[10px] font-label uppercase font-bold text-rose-600">Declined</span>
+                    <span className="text-base font-display font-extrabold text-rose-600">{declinedCount}</span>
+                    <span className="text-[9px] text-[#7a4d5d]">{Math.round(declinedPercent)}%</span>
+                  </>
+                ) : hoveredSegment === 'pending' ? (
+                  <>
+                    <span className="text-[10px] font-label uppercase font-bold text-amber-600">Pending</span>
+                    <span className="text-base font-display font-extrabold text-amber-600">{pendingCount}</span>
+                    <span className="text-[9px] text-[#7a4d5d]">{Math.round(pendingPercent)}%</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-[10px] font-label uppercase tracking-wider font-bold text-[#4a3038]">Total</span>
+                    <span className="text-base font-display font-extrabold text-[#4a3038]">{totalInvited}</span>
+                    <span className="text-[9px] text-[#7a4d5d]">Parties</span>
+                  </>
+                )}
               </div>
-            ))}
+            </div>
+
+            {/* Interactive Legend with click actions */}
+            <div className="space-y-2 text-xs font-body w-full sm:w-auto flex-1">
+              <button
+                onClick={() => onFilterClick?.('attending')}
+                onMouseEnter={() => setHoveredSegment('attending')}
+                onMouseLeave={() => setHoveredSegment(null)}
+                className="w-full flex items-center justify-between gap-3 p-1.5 rounded-lg hover:bg-emerald-50 transition cursor-pointer text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
+                  <span className="text-[#4a3038] font-medium">Attending</span>
+                </div>
+                <span className="font-bold text-emerald-700">
+                  {attendingCount} ({Math.round(attendingPercent)}%)
+                </span>
+              </button>
+
+              <button
+                onClick={() => onFilterClick?.('declined')}
+                onMouseEnter={() => setHoveredSegment('declined')}
+                onMouseLeave={() => setHoveredSegment(null)}
+                className="w-full flex items-center justify-between gap-3 p-1.5 rounded-lg hover:bg-rose-50 transition cursor-pointer text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0" />
+                  <span className="text-[#4a3038] font-medium">Declined</span>
+                </div>
+                <span className="font-bold text-rose-600">
+                  {declinedCount} ({Math.round(declinedPercent)}%)
+                </span>
+              </button>
+
+              <button
+                onClick={() => onFilterClick?.('pending')}
+                onMouseEnter={() => setHoveredSegment('pending')}
+                onMouseLeave={() => setHoveredSegment(null)}
+                className="w-full flex items-center justify-between gap-3 p-1.5 rounded-lg hover:bg-amber-50 transition cursor-pointer text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
+                  <span className="text-[#4a3038] font-medium">Pending</span>
+                </div>
+                <span className="font-bold text-amber-600">
+                  {pendingCount} ({Math.round(pendingPercent)}%)
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* Response Velocity Sparkline (Item 7) */}
+          <div className="pt-4 border-t border-gray-100 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-1.5 text-[#4a3038] font-semibold">
+                <TrendingUp className="w-3.5 h-3.5 text-[#b05570]" />
+                <span>Response Velocity (14 Days)</span>
+              </div>
+              <span className="text-[11px] text-[#7a4d5d] font-medium">
+                {total14DayResponses} replies received
+              </span>
+            </div>
+
+            <div className="relative bg-[#fffafc] rounded-xl p-2.5 border border-[#e08aa3]/15">
+              <svg
+                viewBox={`0 0 ${sparkWidth} ${sparkHeight}`}
+                className="w-full h-12 overflow-visible"
+              >
+                <defs>
+                  <linearGradient id="sparklineGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#e08aa3" stopOpacity="0.4" />
+                    <stop offset="100%" stopColor="#e08aa3" stopOpacity="0.0" />
+                  </linearGradient>
+                </defs>
+                {/* Area Fill */}
+                <polygon points={sparkAreaStr} fill="url(#sparklineGrad)" />
+                {/* Polyline Path */}
+                <polyline
+                  fill="none"
+                  stroke="#b05570"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  points={sparkPointsStr}
+                />
+                {/* Dots on points with > 0 replies */}
+                {sparkPoints.map((pt, idx) =>
+                  pt.count > 0 ? (
+                    <circle
+                      key={idx}
+                      cx={pt.x}
+                      cy={pt.y}
+                      r="3"
+                      className="fill-[#b05570] stroke-white stroke-[1.5]"
+                    >
+                      <title>{`${pt.label}: ${pt.count} response${pt.count > 1 ? 's' : ''}`}</title>
+                    </circle>
+                  ) : null
+                )}
+              </svg>
+
+              <div className="flex items-center justify-between text-[10px] text-[#b592a0] pt-1 font-body">
+                <span>{sparklineData[0]?.label}</span>
+                <span>Today</span>
+              </div>
+            </div>
           </div>
         </div>
-      )}
+
+        {/* Right: Recent Responses Stream (col-span-7) */}
+        <div className="lg:col-span-7 bg-white rounded-2xl p-5 sm:p-6 border border-[#e08aa3]/15 shadow-xs space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="font-display text-base font-bold text-[#4a3038]">
+                Recent Responses
+              </h4>
+              <p className="text-xs font-body text-[#b592a0]">
+                Latest confirmed attendance and messages
+              </p>
+            </div>
+            <button
+              onClick={() => onFilterClick?.('all')}
+              className="text-xs font-label uppercase tracking-wider font-semibold text-[#b05570] hover:underline cursor-pointer"
+            >
+              View all
+            </button>
+          </div>
+
+          {respondedInvitees.length === 0 ? (
+            <div className="py-8 text-center text-xs font-body text-[#b592a0] border border-dashed border-[#e08aa3]/20 rounded-xl">
+              No responses recorded yet. As guests submit their RSVPs, they will appear here.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {respondedInvitees.map((invitee) => (
+                <div
+                  key={invitee.id}
+                  onClick={() => onGuestClick?.(invitee.id)}
+                  role="button"
+                  tabIndex={0}
+                  className="p-3 rounded-xl border border-[#e08aa3]/15 bg-[#fffafc] hover:bg-[#fff0f4] transition cursor-pointer flex items-center justify-between gap-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <span className="font-body text-sm font-semibold text-[#4a3038] block truncate">
+                      {invitee.name}
+                    </span>
+                    <span className="text-[11px] text-[#b592a0] block">
+                      {invitee.responded_at ? formatTimeAgo(invitee.responded_at) : 'Just now'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {invitee.notes && (
+                      <span title="Guest included a note or prayer">
+                        <MessageSquare className="w-3.5 h-3.5 text-[#b05570]" />
+                      </span>
+                    )}
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-xs font-label uppercase tracking-wider font-semibold ${
+                        invitee.rsvp === 'attending'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-rose-100 text-rose-800'
+                      }`}
+                    >
+                      {invitee.rsvp === 'attending'
+                        ? `+${invitee.guest_count || 1}`
+                        : 'Declined'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Feature: Guest Prayers, Wishes & Special Requests Aggregator */}
       <GuestNotesSection

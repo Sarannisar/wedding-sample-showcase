@@ -1,10 +1,12 @@
 import React, { useState, useDeferredValue, useEffect, useMemo } from 'react';
 import { Invitee, InviteeEvent, RsvpStatus } from '@/lib/types';
 import { weddingConfig } from '@/config/weddingConfig';
-import { formatTimeAgo } from '@/lib/utils';
+import { formatTimeAgo, formatRelativeTime } from '@/lib/utils';
 import { exportInviteesToCsv } from '@/lib/csvHelper';
-import { fetchInviteeEvents } from '@/lib/supabase';
+import { fetchInviteeEvents, fetchLatestEventsMap, LatestEventsSummary } from '@/lib/supabase';
 import { notify } from '@/lib/notify';
+import { getRsvpWindow } from '@/lib/rsvpDeadline';
+import { InviteeTimeline } from './InviteeTimeline';
 import {
   Search,
   ExternalLink,
@@ -28,9 +30,19 @@ import {
   Eye,
   Activity,
   RotateCcw,
+  BellRing,
 } from 'lucide-react';
 
-interface AllInviteesTabProps {
+export type ChipFilter =
+  | 'all'
+  | 'attending'
+  | 'declined'
+  | 'pending'
+  | 'opened_unresponded'
+  | 'notsent'
+  | 'ignored';
+
+export interface AllInviteesTabProps {
   invitees: Invitee[];
   targetInviteeId?: string | null;
   onClearTargetInviteeId?: () => void;
@@ -42,15 +54,26 @@ interface AllInviteesTabProps {
   onBulkRestore?: (invitees: Invitee[]) => Promise<void>;
   onMarkShared: (id: string) => Promise<void>;
   onBulkMarkShared: (ids: string[]) => Promise<void>;
+  onRemindInvitee?: (id: string) => Promise<boolean>;
+  onBulkRemind?: (ids: string[]) => Promise<boolean>;
+  openReminderQueue?: boolean;
+  onResetReminderQueue?: () => void;
   onUpdateInvitee: (
     id: string,
     updates: Partial<Pick<Invitee, 'name' | 'phone' | 'notes' | 'rsvp' | 'guest_count' | 'responded_at'>>
   ) => Promise<void>;
 }
 
-type SortColumn = 'name' | 'rsvp' | 'guest_count' | 'shared_at' | 'responded_at' | 'created_at';
-type SortDirection = 'asc' | 'desc';
-type ChipFilter = 'all' | 'attending' | 'declined' | 'pending' | 'opened_unresponded' | 'notsent';
+export type SortColumn =
+  | 'name'
+  | 'rsvp'
+  | 'guest_count'
+  | 'shared_at'
+  | 'responded_at'
+  | 'created_at'
+  | 'activity'
+  | 'reminders';
+export type SortDirection = 'asc' | 'desc';
 
 export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
   invitees,
@@ -64,6 +87,10 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
   onBulkRestore,
   onMarkShared,
   onBulkMarkShared,
+  onRemindInvitee,
+  onBulkRemind: _onBulkRemind,
+  openReminderQueue,
+  onResetReminderQueue,
   onUpdateInvitee,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -90,6 +117,31 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [queue, setQueue] = useState<Invitee[] | null>(null);
   const [queueIndex, setQueueIndex] = useState(0);
+
+  // Events map for aggregate activity (Step 6)
+  const [eventsMap, setEventsMap] = useState<Record<string, LatestEventsSummary>>({});
+
+  useEffect(() => {
+    let mounted = true;
+    const loadEventsMap = async () => {
+      try {
+        const data = await fetchLatestEventsMap();
+        if (mounted) setEventsMap(data);
+      } catch (err) {
+        console.error('Failed to load events map:', err);
+      }
+    };
+    loadEventsMap();
+    return () => {
+      mounted = false;
+    };
+  }, [invitees]);
+
+  // Reminder queue state (Item 4)
+  const [reminderQueue, setReminderQueue] = useState<Invitee[] | null>(null);
+  const [reminderIndex, setReminderIndex] = useState(0);
+  const [overrideRecentReminded, setOverrideRecentReminded] = useState(false);
+  const [copiedReminderText, setCopiedReminderText] = useState(false);
 
   // Sorting state
   const [sortColumn, setSortColumn] = useState<SortColumn>('created_at');
@@ -147,14 +199,23 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
     let pending = 0;
     let opened_unresponded = 0;
     let notsent = 0;
+    let ignored = 0;
+    const now = Date.now();
     for (const i of invitees) {
       if (i.rsvp === 'attending') attending++;
       else if (i.rsvp === 'declined') declined++;
       else if (i.rsvp === 'pending') {
         pending++;
-        if (i.opened_at) opened_unresponded++;
+        if (i.opened_at || eventsMap[i.id]?.lastOpenedAt) opened_unresponded++;
       }
-      if (!i.shared_at) notsent++;
+      if (!i.shared_at) {
+        notsent++;
+      } else {
+        const isOpened = Boolean(i.opened_at || eventsMap[i.id]?.lastOpenedAt);
+        if (!isOpened && now - new Date(i.shared_at).getTime() > 48 * 3600 * 1000) {
+          ignored++;
+        }
+      }
     }
     return {
       all: invitees.length,
@@ -163,8 +224,9 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
       pending,
       opened_unresponded,
       notsent,
+      ignored,
     };
-  }, [invitees]);
+  }, [invitees, eventsMap]);
 
   // Filtered invitees (memoized on invitees, deferred search query, and active chip filter)
   const filteredInvitees = useMemo(() => {
@@ -188,12 +250,24 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
       if (chipFilter === 'attending') matchesChip = invitee.rsvp === 'attending';
       else if (chipFilter === 'declined') matchesChip = invitee.rsvp === 'declined';
       else if (chipFilter === 'pending') matchesChip = invitee.rsvp === 'pending';
-      else if (chipFilter === 'opened_unresponded') matchesChip = invitee.rsvp === 'pending' && Boolean(invitee.opened_at);
+      else if (chipFilter === 'opened_unresponded')
+        matchesChip =
+          invitee.rsvp === 'pending' &&
+          Boolean(invitee.opened_at || eventsMap[invitee.id]?.lastOpenedAt);
       else if (chipFilter === 'notsent') matchesChip = !invitee.shared_at;
+      else if (chipFilter === 'ignored') {
+        const isSent = Boolean(invitee.shared_at);
+        const isOpened = Boolean(invitee.opened_at || eventsMap[invitee.id]?.lastOpenedAt);
+        matchesChip =
+          isSent &&
+          !isOpened &&
+          Boolean(invitee.shared_at) &&
+          Date.now() - new Date(invitee.shared_at!).getTime() > 48 * 3600 * 1000;
+      }
 
       return matchesSearch && matchesChip;
     });
-  }, [invitees, deferredSearchQuery, chipFilter]);
+  }, [invitees, deferredSearchQuery, chipFilter, eventsMap]);
 
   // Sorted invitees (memoized on filtered list, column, and direction)
   const sortedInvitees = useMemo(() => {
@@ -215,6 +289,23 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
         case 'responded_at':
           comparison = (a.responded_at || '').localeCompare(b.responded_at || '');
           break;
+        case 'activity': {
+          const aTime = eventsMap[a.id]?.lastOpenedAt || a.opened_at || '';
+          const bTime = eventsMap[b.id]?.lastOpenedAt || b.opened_at || '';
+          comparison = aTime.localeCompare(bTime);
+          break;
+        }
+        case 'reminders': {
+          const aCount = a.reminder_count || 0;
+          const bCount = b.reminder_count || 0;
+          comparison = aCount - bCount;
+          if (comparison === 0) {
+            const aTime = a.reminded_at || '';
+            const bTime = b.reminded_at || '';
+            comparison = aTime.localeCompare(bTime);
+          }
+          break;
+        }
         case 'created_at':
         default:
           comparison = (a.created_at || '').localeCompare(b.created_at || '');
@@ -222,7 +313,7 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
       }
       return sortDirection === 'asc' ? comparison : -comparison;
     });
-  }, [filteredInvitees, sortColumn, sortDirection]);
+  }, [filteredInvitees, sortColumn, sortDirection, eventsMap]);
 
   // Pagination calculation
   const totalItems = sortedInvitees.length;
@@ -249,11 +340,79 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
     return `${origin}/invite/${slug}`;
   };
 
-  const getWhatsAppMessage = (invitee: Invitee) => {
+  const buildWhatsAppMessage = (invitee: Invitee, template?: string) => {
     const url = getInviteUrl(invitee.slug);
-    return weddingConfig.whatsapp.messageTemplate
+    const tmpl = template || weddingConfig.whatsapp.messageTemplate;
+    return tmpl
       .replace(/GUEST_NAME/g, invitee.name)
       .replace(/GUEST_LINK/g, url);
+  };
+
+  const startReminderQueue = (selectedOnly = false) => {
+    let eligible = invitees.filter((i) => i.rsvp === 'pending' && Boolean(i.shared_at));
+    if (selectedOnly && selectedIds.length > 0) {
+      eligible = eligible.filter((i) => selectedIds.includes(i.id));
+    }
+    // Guard against closed RSVP window (Item 3)
+    eligible = eligible.filter((i) => {
+      const win = getRsvpWindow(i.first_opened_at ?? i.created_at);
+      return win.isOpen;
+    });
+
+    if (eligible.length === 0) {
+      notify.info('No pending guests with sent links are currently eligible for reminders.');
+      return;
+    }
+
+    setReminderQueue(eligible);
+    setReminderIndex(0);
+    setOverrideRecentReminded(false);
+    setCopiedReminderText(false);
+  };
+
+  useEffect(() => {
+    if (openReminderQueue) {
+      startReminderQueue();
+      onResetReminderQueue?.();
+    }
+  }, [openReminderQueue]);
+
+  const sendReminderCurrentAndAdvance = async () => {
+    if (!reminderQueue) return;
+    const current = reminderQueue[reminderIndex];
+    const tmpl =
+      weddingConfig.whatsapp.reminderTemplate || weddingConfig.whatsapp.messageTemplate;
+    const message = buildWhatsAppMessage(current, tmpl);
+    const phoneParam = current.phone ? current.phone.replace(/[^0-9]/g, '') : '';
+    const waUrl = phoneParam
+      ? `https://wa.me/${phoneParam}?text=${encodeURIComponent(message)}`
+      : `https://wa.me/?text=${encodeURIComponent(message)}`;
+
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
+    if (onRemindInvitee) {
+      await onRemindInvitee(current.id);
+    }
+
+    if (reminderIndex + 1 >= reminderQueue.length) {
+      setReminderQueue(null);
+      setReminderIndex(0);
+      notify.success('Completed reminder queue!');
+    } else {
+      setReminderIndex((i) => i + 1);
+      setCopiedReminderText(false);
+    }
+  };
+
+  const skipReminderCurrent = () => {
+    if (!reminderQueue) return;
+    if (reminderIndex + 1 >= reminderQueue.length) {
+      setReminderQueue(null);
+      setReminderIndex(0);
+      notify.info('Completed reminder queue.');
+    } else {
+      setReminderIndex((i) => i + 1);
+      setCopiedReminderText(false);
+    }
   };
 
   const handleCopyLink = (invitee: Invitee) => {
@@ -265,7 +424,7 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
   };
 
   const handleCopyWhatsAppText = (invitee: Invitee) => {
-    const message = getWhatsAppMessage(invitee);
+    const message = buildWhatsAppMessage(invitee);
     navigator.clipboard.writeText(message);
     setCopiedTextId(invitee.id);
     notify.success(`Copied WhatsApp message for ${invitee.name}`);
@@ -273,7 +432,7 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
   };
 
   const openWhatsApp = (invitee: Invitee) => {
-    const message = getWhatsAppMessage(invitee);
+    const message = buildWhatsAppMessage(invitee);
     const phoneParam = invitee.phone ? invitee.phone.replace(/[^0-9]/g, '') : '';
     const waUrl = phoneParam
       ? `https://wa.me/${phoneParam}?text=${encodeURIComponent(message)}`
@@ -522,17 +681,29 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
           )}
         </div>
 
-        {/* Export CSV Button */}
-        <button
-          onClick={() => {
-            exportInviteesToCsv(filteredInvitees);
-            notify.success(`Exported ${filteredInvitees.length} guests to CSV`);
-          }}
-          className="flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl border border-[#e08aa3]/30 text-[#b05570] hover:bg-[#e08aa3]/10 text-xs font-label uppercase tracking-wider font-semibold transition-colors cursor-pointer shrink-0"
-        >
-          <Download className="w-4 h-4" />
-          <span>Export CSV ({filteredInvitees.length})</span>
-        </button>
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => startReminderQueue(false)}
+            className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-label uppercase tracking-wider font-semibold transition-colors cursor-pointer"
+            title="Send WhatsApp reminder to pending guests with sent invitations"
+          >
+            <BellRing className="w-4 h-4 text-amber-600" />
+            <span>Remind Pending</span>
+          </button>
+
+          {/* Export CSV Button */}
+          <button
+            onClick={() => {
+              exportInviteesToCsv(filteredInvitees);
+              notify.success(`Exported ${filteredInvitees.length} guests to CSV`);
+            }}
+            className="flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl border border-[#e08aa3]/30 text-[#b05570] hover:bg-[#e08aa3]/10 text-xs font-label uppercase tracking-wider font-semibold transition-colors cursor-pointer"
+          >
+            <Download className="w-4 h-4" />
+            <span>Export CSV ({filteredInvitees.length})</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter Chips Row with Live Badges */}
@@ -648,6 +819,26 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
           </span>
         </button>
 
+        {/* Ignored Chip (Item 6) */}
+        <button
+          onClick={() => handleSelectChip('ignored')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-label uppercase tracking-wider font-semibold transition-all cursor-pointer shrink-0 ${
+            chipFilter === 'ignored'
+              ? 'bg-rose-700 text-white shadow-xs'
+              : 'bg-white border border-rose-200 text-rose-700 hover:bg-rose-50'
+          }`}
+          title="Sent >48h ago but never opened"
+        >
+          <span>Ignored</span>
+          <span
+            className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+              chipFilter === 'ignored' ? 'bg-white/25 text-white' : 'bg-rose-100 text-rose-800'
+            }`}
+          >
+            {counts.ignored}
+          </span>
+        </button>
+
         {(searchQuery || chipFilter !== 'all') && (
           <button
             onClick={clearAllFilters}
@@ -659,9 +850,38 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
         )}
       </div>
 
-      {/* Bulk actions bar */}
+      {/* Mobile Sort Control (Item 8) */}
+      <div className="sm:hidden flex items-center justify-between gap-2 bg-white px-3 py-2 rounded-xl border border-[#e08aa3]/20 shadow-xs text-xs font-body">
+        <span className="text-[#7a4d5d] font-label uppercase tracking-wider text-[11px] font-semibold shrink-0">
+          Sort by:
+        </span>
+        <select
+          value={`${sortColumn}_${sortDirection}`}
+          onChange={(e) => {
+            const [col, dir] = e.target.value.split('_') as [SortColumn, SortDirection];
+            setSortColumn(col);
+            setSortDirection(dir);
+            setCurrentPage(1);
+          }}
+          className="flex-1 bg-transparent text-[#4a3038] font-medium text-xs focus:outline-none cursor-pointer"
+        >
+          <option value="created_at_desc">Newest Added</option>
+          <option value="created_at_asc">Oldest Added</option>
+          <option value="name_asc">Name (A → Z)</option>
+          <option value="name_desc">Name (Z → A)</option>
+          <option value="rsvp_asc">RSVP Status</option>
+          <option value="guest_count_desc">Guest Count (High → Low)</option>
+          <option value="guest_count_asc">Guest Count (Low → High)</option>
+          <option value="activity_desc">Activity (Recent first)</option>
+          <option value="reminders_desc">Reminders (Most first)</option>
+          <option value="shared_at_desc">Sent Link (Recent first)</option>
+          <option value="responded_at_desc">Responded (Recent first)</option>
+        </select>
+      </div>
+
+      {/* Bulk actions bar (Sticky on mobile, Item 8) */}
       {selectedIds.length > 0 && (
-        <div className="bg-[#fff6f9] rounded-2xl p-3 px-4 border border-[#e08aa3]/25 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs animate-in fade-in">
+        <div className="bg-[#fff6f9] rounded-2xl p-3 px-4 border border-[#e08aa3]/30 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xl sm:shadow-xs fixed bottom-4 left-3 right-3 z-40 sm:static sm:z-auto animate-in fade-in">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-[#b05570] animate-pulse" />
             <span className="text-xs font-label uppercase tracking-wider text-[#b05570] font-semibold">
@@ -699,6 +919,14 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
             >
               <Check className="w-3.5 h-3.5" />
               <span>Mark Sent</span>
+            </button>
+            <button
+              onClick={() => startReminderQueue(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-label uppercase tracking-wider font-semibold transition-colors cursor-pointer"
+              title="Remind selected guests"
+            >
+              <BellRing className="w-3.5 h-3.5 text-amber-600" />
+              <span>Remind ({selectedIds.length})</span>
             </button>
             <button
               onClick={startQueue}
@@ -769,216 +997,146 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
         </div>
       ) : (
         <>
-          {/* Mobile Stacked Card View (visible on < md) */}
-          <div className="grid grid-cols-1 gap-3 md:hidden">
+          {/* Mobile Stacked Card View (visible below sm, Item 8) */}
+          <div className="sm:hidden space-y-3">
             {paginatedInvitees.map((invitee) => {
               const isSelected = selectedIds.includes(invitee.id);
               const isTrailOpen = expandedTrailId === invitee.id;
+              const summary = eventsMap[invitee.id];
 
               return (
                 <div
                   key={invitee.id}
                   id={`invitee-card-${invitee.id}`}
-                  className={`bg-white rounded-2xl p-4 border transition-all shadow-xs ${
+                  className={`bg-white rounded-2xl p-4 border transition-all shadow-xs space-y-3 ${
                     isSelected
                       ? 'border-[#b05570] bg-[#fedae3]/40 ring-1 ring-[#b05570]'
-                      : 'border-[#e08aa3]/15'
+                      : 'border-[#e08aa3]/20'
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2 flex-1">
+                  {/* Line 1: Checkbox + Name + RSVP Pill */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
                       <input
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => toggleSelect(invitee.id)}
-                        className="w-4.5 h-4.5 accent-[#b05570] cursor-pointer rounded shrink-0"
+                        className="w-5 h-5 accent-[#b05570] cursor-pointer rounded shrink-0"
                       />
                       {editingId === invitee.id ? (
-                        <div className="space-y-2 py-1 flex-1 pr-2">
+                        <div className="space-y-1.5 flex-1 pr-2">
                           <input
                             type="text"
                             value={editName}
                             onChange={(e) => setEditName(e.target.value)}
-                            className="w-full px-2.5 py-1.5 rounded-lg border border-[#e08aa3] text-sm focus:outline-none bg-white font-medium text-[#4a3038]"
+                            className="w-full px-2 py-1 rounded-lg border border-[#e08aa3] text-sm font-medium text-[#4a3038]"
                             placeholder="Guest Name"
                             autoFocus
                           />
                           <input
                             type="text"
                             value={editPhone}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              const sanitized = val.startsWith('+')
-                                ? '+' + val.substring(1).replace(/\D/g, '')
-                                : val.replace(/\D/g, '');
-                              setEditPhone(sanitized);
-                            }}
-                            className="w-full px-2.5 py-1.5 rounded-lg border border-[#e08aa3] text-xs focus:outline-none bg-white text-gray-700 font-mono"
-                            placeholder="Phone (e.g. 0771234567 or +971...)"
+                            onChange={(e) => setEditPhone(e.target.value)}
+                            className="w-full px-2 py-1 rounded-lg border border-[#e08aa3] text-xs font-mono text-gray-700"
+                            placeholder="Phone (+94...)"
                           />
                           <div className="flex items-center gap-2 pt-1">
                             <button
                               onClick={() => saveEditing(invitee.id)}
                               disabled={savingId === invitee.id}
-                              className="px-3 py-1.5 rounded-lg bg-[#b05570] text-white text-xs font-label uppercase tracking-wider font-semibold hover:bg-[#8f3e55] flex items-center gap-1 shadow-xs cursor-pointer disabled:opacity-50"
+                              className="px-3 py-1 rounded-lg bg-[#b05570] text-white text-xs font-semibold"
                             >
-                              {savingId === invitee.id ? (
-                                <span className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                              ) : (
-                                <Check className="w-3.5 h-3.5" />
-                              )}
-                              <span>Save</span>
+                              Save
                             </button>
                             <button
                               onClick={cancelEditing}
-                              className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-xs font-label uppercase tracking-wider font-semibold hover:bg-gray-100 cursor-pointer"
+                              className="px-3 py-1 rounded-lg border border-gray-200 text-gray-600 text-xs font-semibold"
                             >
                               Cancel
                             </button>
                           </div>
                         </div>
                       ) : (
-                        <div>
-                          <h4 className="font-display text-sm font-bold text-[#4a3038]">
-                            {invitee.name}
-                          </h4>
-                          {invitee.phone && (
-                            <span className="text-xs font-body text-[#b592a0] block">
-                              {invitee.phone}
-                            </span>
-                          )}
-                        </div>
+                        <span className="font-display font-bold text-base text-[#4a3038] truncate">
+                          {invitee.name}
+                        </span>
                       )}
                     </div>
 
-                    <div className="flex items-center gap-1">
-                      <span
-                        className={`text-[10px] font-label uppercase tracking-wider font-bold rounded-full px-2 py-0.5 border ${
-                          invitee.rsvp === 'attending'
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : invitee.rsvp === 'declined'
-                            ? 'bg-rose-50 text-rose-700 border-rose-200'
-                            : 'bg-amber-50 text-amber-700 border-amber-200'
-                        }`}
-                      >
-                        {invitee.rsvp === 'attending'
-                          ? `Attending (${invitee.guest_count || 1})`
-                          : invitee.rsvp}
-                      </span>
-                    </div>
+                    <span
+                      className={`text-[10px] font-label uppercase tracking-wider font-bold rounded-full px-2.5 py-1 border shrink-0 ${
+                        invitee.rsvp === 'attending'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : invitee.rsvp === 'declined'
+                          ? 'bg-rose-50 text-rose-700 border-rose-200'
+                          : 'bg-amber-50 text-amber-700 border-amber-200'
+                      }`}
+                    >
+                      {invitee.rsvp === 'attending'
+                        ? `Attending (+${invitee.guest_count || 1})`
+                        : invitee.rsvp}
+                    </span>
                   </div>
 
-                  {/* Notes / Dietary */}
+                  {/* Line 2: Phone + Guest Count */}
+                  <div className="flex items-center justify-between text-xs text-[#7a4d5d] font-body">
+                    <span>
+                      {invitee.phone ? (
+                        <span className="font-mono text-gray-700">{invitee.phone}</span>
+                      ) : (
+                        <span className="text-gray-400 italic">No phone recorded</span>
+                      )}
+                    </span>
+                    <span className="font-medium text-[#4a3038]">
+                      {invitee.guest_count || 1} guest{(invitee.guest_count || 1) > 1 ? 's' : ''}
+                    </span>
+                  </div>
+
+                  {/* Notes / Dietary if present */}
                   {invitee.notes && (
-                    <div className="my-2 p-2 rounded-lg bg-[#fffafc] border border-[#f2b8c6]/30 text-xs font-body text-[#704655] italic">
+                    <div className="p-2.5 rounded-xl bg-[#fffafc] border border-[#f2b8c6]/30 text-xs font-body text-[#704655] italic">
                       "{invitee.notes}"
                     </div>
                   )}
 
-                  {/* Meta Details Row */}
-                  <div className="flex items-center justify-between text-[11px] text-[#b592a0] font-body pt-2 border-t border-gray-100">
-                    <div className="flex items-center gap-2">
-                      <span>
-                        Sent:{' '}
-                        {invitee.shared_at ? (
-                          <span className="text-[#128C7E] font-medium">{formatTimeAgo(invitee.shared_at)}</span>
-                        ) : (
-                          'No'
-                        )}
-                      </span>
-                      <span>•</span>
-                      <span>
-                        Reply:{' '}
-                        {invitee.responded_at ? (
-                          <span className="text-[#4a3038] font-medium">{formatTimeAgo(invitee.responded_at)}</span>
-                        ) : (
-                          'None'
-                        )}
-                      </span>
-                    </div>
-
+                  {/* Line 3: Activity Caption & Reminders */}
+                  <div className="flex items-center justify-between text-xs pt-1 border-t border-gray-100 font-body">
                     <button
                       onClick={() => toggleActivityTrail(invitee.id)}
-                      className="text-[#b05570] hover:underline font-label uppercase text-[10px] font-semibold flex items-center gap-1"
+                      className="text-left font-medium text-[#b05570] hover:underline flex items-center gap-1.5 cursor-pointer"
                     >
-                      <Activity className="w-3 h-3" />
-                      <span>Activity</span>
+                      <Eye className="w-3.5 h-3.5 text-[#e08aa3]" />
+                      <span>
+                        {summary?.lastOpenedAt || invitee.opened_at
+                          ? `Opened ${formatRelativeTime(summary?.lastOpenedAt || invitee.opened_at!)} · ${summary?.openCount || 1}×`
+                          : 'Never opened'}
+                      </span>
                     </button>
+
+                    {invitee.reminder_count && invitee.reminder_count > 0 ? (
+                      <span className="text-[11px] text-[#b05570] font-medium flex items-center gap-1">
+                        <BellRing className="w-3 h-3" />
+                        <span>{invitee.reminder_count}×</span>
+                      </span>
+                    ) : null}
                   </div>
 
-                  {/* Mobile Activity Trail */}
-                  {isTrailOpen && (
-                    <div className="mt-3 p-3 bg-[#fffafc] rounded-xl border border-[#e08aa3]/20 text-xs">
-                      <div className="font-label uppercase tracking-wider text-[10px] font-bold text-[#b05570] mb-2 flex items-center gap-1">
-                        <Activity className="w-3 h-3" />
-                        <span>Activity History</span>
-                      </div>
-                      {loadingTrailId === invitee.id ? (
-                        <div className="py-2 text-center text-gray-400">Loading events...</div>
-                      ) : (
-                        <div className="space-y-1.5 font-body">
-                          <div className="flex items-center justify-between text-gray-600">
-                            <span>Link Created</span>
-                            <span className="text-gray-400">{formatTimeAgo(invitee.created_at)}</span>
-                          </div>
-                          {invitee.shared_at && (
-                            <div className="flex items-center justify-between text-[#128C7E]">
-                              <span>WhatsApp Link Sent</span>
-                              <span>{formatTimeAgo(invitee.shared_at)}</span>
-                            </div>
-                          )}
-                          {invitee.responded_at && (
-                            <div className="flex items-center justify-between text-emerald-700 font-medium">
-                              <span>RSVP Submitted ({invitee.rsvp})</span>
-                              <span>{formatTimeAgo(invitee.responded_at)}</span>
-                            </div>
-                          )}
-                          {activityEvents[invitee.id]?.filter(
-                            (e) => !['created', 'sent', 'responded'].includes(e.type)
-                          ).map((ev) => (
-                            <div key={ev.id} className="flex items-center justify-between text-gray-600">
-                              <span className="capitalize">{ev.type}</span>
-                              <span className="text-gray-400">{formatTimeAgo(ev.created_at)}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Mobile Action Buttons */}
-                  <div className="flex items-center justify-end gap-1.5 mt-3 pt-2 border-t border-gray-100 flex-wrap">
-                    {/* Edit Guest Details Button */}
-                    {editingId === invitee.id ? (
-                      <button
-                        onClick={cancelEditing}
-                        className="p-1.5 rounded-lg border border-gray-300 text-gray-700 bg-gray-50 text-xs font-label uppercase font-semibold flex items-center gap-1 cursor-pointer"
-                        title="Cancel edit"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                        <span>Cancel</span>
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => startEditing(invitee)}
-                        className="p-1.5 rounded-lg border border-[#e08aa3]/30 text-[#b05570] hover:bg-[#fff5f8] cursor-pointer"
-                        title="Edit guest name or phone"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                    )}
-
+                  {/* Line 4: Action row with >=44px touch targets (Item 8) */}
+                  <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-gray-100">
+                    {/* WhatsApp */}
                     <button
                       onClick={() => openWhatsApp(invitee)}
-                      className="px-2.5 py-1.5 rounded-lg bg-[#25D366] text-white font-label text-xs uppercase tracking-wider font-semibold flex items-center gap-1"
+                      className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-[#25D366] text-white hover:bg-[#128C7E] transition cursor-pointer shadow-xs"
+                      title="Send WhatsApp invitation"
                     >
-                      <Send className="w-3 h-3" />
-                      <span>WhatsApp</span>
+                      <Send className="w-4 h-4" />
                     </button>
+
+                    {/* Copy Link */}
                     <button
                       onClick={() => handleCopyLink(invitee)}
-                      className="p-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
-                      title="Copy link"
+                      className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 transition cursor-pointer"
+                      title="Copy invitation link"
                     >
                       {copiedId === invitee.id ? (
                         <Check className="w-4 h-4 text-emerald-600" />
@@ -986,30 +1144,58 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
                         <Copy className="w-4 h-4" />
                       )}
                     </button>
-                    <a
-                      href={`/invite/${invitee.slug}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
-                      title="Preview invite"
+
+                    {/* Edit Details */}
+                    <button
+                      onClick={() => startEditing(invitee)}
+                      className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl border border-[#e08aa3]/30 text-[#b05570] hover:bg-[#fff5f8] transition cursor-pointer"
+                      title="Edit guest name or phone"
                     >
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
+                      <Pencil className="w-4 h-4" />
+                    </button>
+
+                    {/* Delete */}
                     <button
                       onClick={() => requestSingleDelete(invitee)}
-                      className="p-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 cursor-pointer"
-                      title="Delete invitation"
+                      className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                      title="Delete guest"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
+
+                    {/* Activity Toggle */}
+                    <button
+                      onClick={() => toggleActivityTrail(invitee.id)}
+                      className={`min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl border transition cursor-pointer ${
+                        isTrailOpen
+                          ? 'border-[#b05570] bg-[#fff0f4] text-[#b05570]'
+                          : 'border-gray-200 text-gray-500 hover:bg-gray-50'
+                      }`}
+                      title="Toggle activity timeline"
+                    >
+                      <Activity className="w-4 h-4" />
+                    </button>
                   </div>
+
+                  {/* Inline Timeline Drawer inside mobile card (Item 6) */}
+                  {isTrailOpen && (
+                    <div className="pt-2 border-t border-[#e08aa3]/20">
+                      <div className="bg-[#fffafc] rounded-xl p-3 border border-[#e08aa3]/20">
+                        <InviteeTimeline
+                          invitee={invitee}
+                          events={activityEvents[invitee.id] || []}
+                          isLoading={loadingTrailId === invitee.id}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
 
-          {/* Desktop Table View (visible on >= md) */}
-          <div className="hidden md:block bg-white rounded-2xl border border-[#e08aa3]/15 shadow-sm overflow-hidden">
+          {/* Desktop Table View (visible on >= sm, Item 8) */}
+          <div className="hidden sm:block bg-white rounded-2xl border border-[#e08aa3]/15 shadow-sm overflow-hidden">
             <div className="overflow-x-auto max-h-[70vh]">
               <table className="w-full text-left border-collapse">
                 <thead className="sticky top-0 bg-[#fffafc]/95 backdrop-blur z-10 border-b border-[#e08aa3]/20 shadow-xs">
@@ -1062,6 +1248,36 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
                       <div className="flex items-center justify-center gap-1">
                         <span>Guests</span>
                         {sortColumn === 'guest_count' ? (
+                          sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3 text-gray-300" />
+                        )}
+                      </div>
+                    </th>
+
+                    {/* Sortable Activity (Item 6) */}
+                    <th
+                      onClick={() => handleSort('activity')}
+                      className="py-3.5 px-4 font-semibold text-[#4a3038] cursor-pointer hover:text-[#b05570] transition select-none"
+                    >
+                      <div className="flex items-center gap-1">
+                        <span>Activity</span>
+                        {sortColumn === 'activity' ? (
+                          sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3 text-gray-300" />
+                        )}
+                      </div>
+                    </th>
+
+                    {/* Sortable Reminders (Item 4) */}
+                    <th
+                      onClick={() => handleSort('reminders')}
+                      className="py-3.5 px-4 font-semibold text-[#4a3038] cursor-pointer hover:text-[#b05570] transition select-none hidden lg:table-cell"
+                    >
+                      <div className="flex items-center gap-1">
+                        <span>Reminders</span>
+                        {sortColumn === 'reminders' ? (
                           sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5" /> : <ArrowDown className="w-3.5 h-3.5" />
                         ) : (
                           <ArrowUpDown className="w-3 h-3 text-gray-300" />
@@ -1247,6 +1463,48 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
                             {invitee.rsvp === 'attending' ? invitee.guest_count || 1 : '—'}
                           </td>
 
+                          {/* Activity Column (Item 6) */}
+                          <td className="py-3.5 px-4 text-xs font-body">
+                            <button
+                              onClick={() => toggleActivityTrail(invitee.id)}
+                              className="text-left group cursor-pointer"
+                              title="Click to view full activity timeline"
+                            >
+                              {eventsMap[invitee.id]?.lastOpenedAt || invitee.opened_at ? (
+                                <span className="inline-flex items-center gap-1.5 text-[#b05570] font-medium group-hover:underline">
+                                  <Eye className="w-3.5 h-3.5 text-[#e08aa3]" />
+                                  <span>
+                                    Opened {formatRelativeTime(eventsMap[invitee.id]?.lastOpenedAt || invitee.opened_at!)} · {eventsMap[invitee.id]?.openCount || 1}×
+                                  </span>
+                                </span>
+                              ) : (
+                                <span className="text-[#b592a0]">
+                                  Never opened
+                                </span>
+                              )}
+                            </button>
+                          </td>
+
+                          {/* Reminders Column (Item 4) */}
+                          <td className="py-3.5 px-4 text-xs font-body hidden lg:table-cell">
+                            {invitee.reminder_count && invitee.reminder_count > 0 ? (
+                              <span
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#fdeef3] text-[#b05570] font-semibold text-[11px]"
+                                title={`Last reminded: ${invitee.reminded_at ? new Date(invitee.reminded_at).toLocaleString() : ''}`}
+                              >
+                                <BellRing className="w-3 h-3 text-[#b05570]" />
+                                <span>{invitee.reminder_count}×</span>
+                                {invitee.reminded_at && (
+                                  <span className="text-[10px] text-[#7a4d5d] font-normal">
+                                    ({formatRelativeTime(invitee.reminded_at)})
+                                  </span>
+                                )}
+                              </span>
+                            ) : (
+                              <span className="text-[#b592a0]">0</span>
+                            )}
+                          </td>
+
                           {/* Sent Status */}
                           <td className="py-3.5 px-4 hidden lg:table-cell">
                             {invitee.shared_at ? (
@@ -1373,97 +1631,39 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
                           </td>
                         </tr>
 
-                        {/* Expandable Activity Timeline Row */}
+                        {/* Expandable Activity Timeline Row (Item 6) */}
                         {isTrailOpen && (
-                          <tr className="bg-[#fffafc]/90 border-b border-[#e08aa3]/20">
-                            <td colSpan={7} className="p-4 pl-12">
-                              <div className="max-w-2xl bg-white rounded-xl p-4 border border-[#e08aa3]/25 shadow-xs">
-                                <div className="flex items-center justify-between mb-3 border-b border-gray-100 pb-2">
+                          <tr className="bg-[#fffafc]/95 border-b border-[#e08aa3]/20">
+                            <td colSpan={9} className="p-4 pl-12">
+                              <div className="max-w-2xl bg-white rounded-2xl p-5 border border-[#e08aa3]/25 shadow-xs space-y-4">
+                                <div className="flex items-center justify-between border-b border-gray-100 pb-2.5">
                                   <div className="flex items-center gap-2 text-xs font-label uppercase tracking-wider font-bold text-[#b05570]">
                                     <Activity className="w-4 h-4" />
-                                    <span>Activity Trail for {invitee.name}</span>
+                                    <span>Activity Timeline for {invitee.name}</span>
                                   </div>
-                                  <span className="text-[11px] text-gray-400 font-body">
-                                    Slug: /invite/{invitee.slug}
-                                  </span>
+                                  {(() => {
+                                    const win = getRsvpWindow(invitee.first_opened_at ?? invitee.created_at);
+                                    return (
+                                      <span
+                                        className={`text-[11px] font-label font-medium px-2.5 py-0.5 rounded-full ${
+                                          !win.isOpen
+                                            ? 'bg-rose-100 text-rose-800'
+                                            : win.isLate
+                                            ? 'bg-amber-100 text-amber-800'
+                                            : 'bg-[#fff0f4] text-[#b05570]'
+                                        }`}
+                                      >
+                                        RSVP: {win.isOpen ? `Open until ${win.deadline.toLocaleDateString()}` : 'Closed'} ({win.isLate ? 'Late invite' : 'Standard'})
+                                      </span>
+                                    );
+                                  })()}
                                 </div>
 
-                                {loadingTrailId === invitee.id ? (
-                                  <div className="py-4 text-center text-xs text-gray-400 font-body">
-                                    Loading activity history...
-                                  </div>
-                                ) : (
-                                  <div className="space-y-3 relative before:absolute before:inset-0 before:left-2.5 before:w-0.5 before:bg-[#e08aa3]/20">
-                                    {/* Created Event */}
-                                    <div className="flex items-start gap-3 relative pl-6">
-                                      <div className="w-2.5 h-2.5 rounded-full bg-blue-500 absolute left-1.5 top-1 ring-4 ring-white" />
-                                      <div className="text-xs font-body flex-1 flex items-center justify-between">
-                                        <span className="font-semibold text-gray-700">Guest link created</span>
-                                        <span className="text-gray-400">{formatTimeAgo(invitee.created_at)}</span>
-                                      </div>
-                                    </div>
-
-                                    {/* Sent Event */}
-                                    {invitee.shared_at && (
-                                      <div className="flex items-start gap-3 relative pl-6">
-                                        <div className="w-2.5 h-2.5 rounded-full bg-[#25D366] absolute left-1.5 top-1 ring-4 ring-white" />
-                                        <div className="text-xs font-body flex-1 flex items-center justify-between">
-                                          <span className="font-semibold text-[#128C7E]">
-                                            Invitation sent via WhatsApp
-                                          </span>
-                                          <span className="text-gray-400">{formatTimeAgo(invitee.shared_at)}</span>
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {/* Responded Event */}
-                                    {invitee.responded_at && (
-                                      <div className="flex items-start gap-3 relative pl-6">
-                                        <div
-                                          className={`w-2.5 h-2.5 rounded-full absolute left-1.5 top-1 ring-4 ring-white ${
-                                            invitee.rsvp === 'attending'
-                                              ? 'bg-emerald-500'
-                                              : 'bg-rose-500'
-                                          }`}
-                                        />
-                                        <div className="text-xs font-body flex-1 flex items-center justify-between">
-                                          <div>
-                                            <span
-                                              className={`font-semibold ${
-                                                invitee.rsvp === 'attending'
-                                                  ? 'text-emerald-700'
-                                                  : 'text-rose-700'
-                                              }`}
-                                            >
-                                              RSVP: {invitee.rsvp.toUpperCase()}
-                                            </span>
-                                            {invitee.rsvp === 'attending' && (
-                                              <span className="text-gray-600 ml-2">
-                                                ({invitee.guest_count} guest{invitee.guest_count !== 1 ? 's' : ''})
-                                              </span>
-                                            )}
-                                          </div>
-                                          <span className="text-gray-400">{formatTimeAgo(invitee.responded_at)}</span>
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {/* Any additional logged events */}
-                                    {activityEvents[invitee.id]?.filter(
-                                      (e) => !['created', 'sent', 'responded'].includes(e.type)
-                                    ).map((ev) => (
-                                      <div key={ev.id} className="flex items-start gap-3 relative pl-6">
-                                        <div className="w-2.5 h-2.5 rounded-full bg-purple-400 absolute left-1.5 top-1 ring-4 ring-white" />
-                                        <div className="text-xs font-body flex-1 flex items-center justify-between">
-                                          <span className="font-semibold text-gray-700 capitalize">
-                                            {ev.type}
-                                          </span>
-                                          <span className="text-gray-400">{formatTimeAgo(ev.created_at)}</span>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
+                                <InviteeTimeline
+                                  invitee={invitee}
+                                  events={activityEvents[invitee.id] || []}
+                                  isLoading={loadingTrailId === invitee.id}
+                                />
                               </div>
                             </td>
                           </tr>
@@ -1785,6 +1985,145 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
                 <span>{isBulkDeleting ? 'Deleting...' : 'Yes, Delete All'}</span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* WhatsApp Reminder Queue Modal (Item 4) */}
+      {reminderQueue && reminderQueue.length > 0 && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-[#e08aa3]/30 space-y-5">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-full bg-amber-50 flex items-center justify-center text-amber-600">
+                  <BellRing className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-display text-base font-bold text-[#4a3038]">
+                    WhatsApp Reminder Queue
+                  </h3>
+                  <span className="text-xs font-body text-[#b592a0]">
+                    Guest {reminderIndex + 1} of {reminderQueue.length}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setReminderQueue(null);
+                  setReminderIndex(0);
+                }}
+                className="p-1.5 rounded-xl text-gray-400 hover:text-gray-600 hover:bg-gray-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Current Guest Card */}
+            {(() => {
+              const current = reminderQueue[reminderIndex];
+              const isRecent = Boolean(
+                current.reminded_at &&
+                Date.now() - new Date(current.reminded_at).getTime() < 48 * 3600 * 1000
+              );
+              const tmpl =
+                weddingConfig.whatsapp.reminderTemplate ||
+                weddingConfig.whatsapp.messageTemplate;
+              const msg = buildWhatsAppMessage(current, tmpl);
+
+              return (
+                <div className="space-y-4">
+                  <div className="bg-[#fffafc] rounded-2xl p-4 border border-[#e08aa3]/20 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-display font-bold text-lg text-[#4a3038]">
+                        {current.name}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-label uppercase tracking-wider font-bold bg-amber-100 text-amber-800">
+                        Pending RSVP
+                      </span>
+                    </div>
+
+                    <div className="text-xs text-[#7a4d5d] space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span>Phone:</span>
+                        <span className="font-mono text-gray-800">
+                          {current.phone || 'No phone recorded'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span>Reminders Sent:</span>
+                        <span className="font-medium">
+                          {current.reminder_count || 0} times
+                          {current.reminded_at && ` (${formatRelativeTime(current.reminded_at)})`}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 48h Recent Reminder Guard */}
+                  {isRecent && (
+                    <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 space-y-1.5">
+                      <div className="flex items-center gap-1.5 font-semibold text-amber-800">
+                        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>Recently reminded {formatRelativeTime(current.reminded_at!)}</span>
+                      </div>
+                      <label className="flex items-center gap-2 cursor-pointer pt-1 font-body">
+                        <input
+                          type="checkbox"
+                          checked={overrideRecentReminded}
+                          onChange={(e) => setOverrideRecentReminded(e.target.checked)}
+                          className="w-4 h-4 accent-amber-600 rounded cursor-pointer"
+                        />
+                        <span>Send reminder anyway</span>
+                      </label>
+                    </div>
+                  )}
+
+                  {/* Message Preview */}
+                  <div>
+                    <span className="text-[11px] font-label uppercase tracking-wider text-[#7a4d5d] font-semibold block mb-1">
+                      Message Copy
+                    </span>
+                    <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 text-xs font-mono text-gray-700 whitespace-pre-wrap max-h-32 overflow-y-auto">
+                      {msg}
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center justify-between gap-2 pt-2">
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(msg);
+                        setCopiedReminderText(true);
+                        setTimeout(() => setCopiedReminderText(false), 2000);
+                        notify.success('Copied reminder text');
+                      }}
+                      className="px-3 py-2.5 rounded-xl border border-gray-200 text-xs font-label uppercase tracking-wider font-semibold text-gray-700 hover:bg-gray-50 flex items-center gap-1.5 cursor-pointer"
+                    >
+                      {copiedReminderText ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>Copy text</span>
+                    </button>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={skipReminderCurrent}
+                        className="px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-label uppercase tracking-wider font-semibold text-gray-600 hover:bg-gray-100 cursor-pointer"
+                      >
+                        Skip
+                      </button>
+
+                      <button
+                        onClick={sendReminderCurrentAndAdvance}
+                        disabled={isRecent && !overrideRecentReminded}
+                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#25D366] text-white text-xs font-label uppercase tracking-wider font-semibold hover:bg-[#128C7E] transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-sm"
+                      >
+                        <Send className="w-4 h-4" />
+                        <span>Open WhatsApp</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}

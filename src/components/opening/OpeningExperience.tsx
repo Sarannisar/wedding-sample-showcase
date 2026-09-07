@@ -50,6 +50,7 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
 
     const leftDoor = portalRef.current?.leftDoor;
     const rightDoor = portalRef.current?.rightDoor;
+    const backgroundScene = portalRef.current?.backgroundScene;
 
     onDoorsOpening?.();
 
@@ -59,7 +60,7 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
 
     if (prefersReducedMotion) {
       if (leftDoor && rightDoor) {
-        gsap.set([leftDoor, rightDoor], { xPercent: (i) => (i === 0 ? -102 : 102) });
+        gsap.set([leftDoor, rightDoor], { xPercent: (i) => (i === 0 ? -108 : 108), opacity: 0 });
       }
       setIsCardVisible(true);
       return;
@@ -67,32 +68,46 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
 
     const tl = gsap.timeline();
 
-    if (leftDoor && rightDoor) {
-      // Direct GPU hardware-accelerated door slide (0 React re-renders, locked 60/120fps)
-      tl.to([leftDoor, rightDoor], {
-        xPercent: (i) => (i === 0 ? -102 : 102),
-        duration: 2.2,
-        ease: 'power2.inOut',
-        force3D: true,
-      });
+    // Walk-Through Parallax: Palace scene pushes gently forward as grand doors part into periphery
+    if (backgroundScene) {
+      gsap.set(backgroundScene, { scale: 0.94 });
+      tl.to(backgroundScene, { scale: 1.04, duration: 2.4, ease: 'power2.out' }, 0);
     }
 
-    // Gentle camera push into fairytale scene
+    if (leftDoor && rightDoor) {
+      tl.to(
+        [leftDoor, rightDoor],
+        {
+          xPercent: (i) => (i === 0 ? -108 : 108),
+          scale: 1.06,
+          duration: 2.2,
+          ease: 'power3.inOut',
+          force3D: true,
+        },
+        0
+      );
+      tl.to(
+        [leftDoor, rightDoor],
+        {
+          opacity: 0.35,
+          duration: 0.8,
+          ease: 'power2.in',
+        },
+        1.2
+      );
+    }
+
     tl.to(
       sceneRef.current,
       {
-        scale: 1.05,
+        scale: 1.02,
         duration: 2.4,
         ease: 'power2.out',
-        force3D: true,
       },
-      0.1
-    )
-      // Reveal monogram popup card smoothly
-      .call(() => {
-        setIsCardVisible(true);
-      }, undefined, '-=1.2')
-      .to({}, { duration: 1.6 });
+      0
+    ).call(() => {
+      setIsCardVisible(true);
+    }, undefined, '-=1.0');
   };
 
   const handleEnterInvitation = () => {

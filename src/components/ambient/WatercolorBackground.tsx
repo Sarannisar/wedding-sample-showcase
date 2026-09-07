@@ -34,19 +34,23 @@ export const WatercolorBackground: React.FC = () => {
             top: blob.y,
           }}
           animate={
-            prefersReducedMotion || !isActive
-              ? undefined
+            prefersReducedMotion
+              ? { x: 0, y: 0, scale: 1 }
               : {
                   x: [0, 40, -30, 20, 0],
                   y: [0, -50, 30, -20, 0],
                   scale: [1, 1.15, 0.95, 1.08, 1],
                 }
           }
-          transition={{
-            duration: blob.dur,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
+          transition={
+            prefersReducedMotion
+              ? { duration: 0 }
+              : {
+                  duration: !isActive ? 0 : blob.dur,
+                  repeat: !isActive ? 0 : Infinity,
+                  ease: 'easeInOut',
+                }
+          }
         />
       ))}
       {/* Light parchment noise overlay */}

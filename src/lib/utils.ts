@@ -90,3 +90,28 @@ export function formatTimeAgo(isoString?: string | null): string {
   if (diffDays < 7) return `${diffDays}d ago`;
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
+
+/**
+ * Returns formatted relative time (e.g. "just now", "2 minutes ago", "3 hours ago", "5 days ago")
+ */
+export function formatRelativeTime(isoString?: string | null): string {
+  if (!isoString) return 'never';
+  const date = new Date(isoString);
+  const now = new Date();
+  const diffSec = Math.round((date.getTime() - now.getTime()) / 1000);
+
+  const absDiff = Math.abs(diffSec);
+  if (absDiff < 45) return 'just now';
+
+  const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+  if (absDiff < 3600) {
+    const mins = Math.round(diffSec / 60);
+    return rtf.format(mins, 'minute');
+  }
+  if (absDiff < 86400) {
+    const hours = Math.round(diffSec / 3600);
+    return rtf.format(hours, 'hour');
+  }
+  const days = Math.round(diffSec / 86400);
+  return rtf.format(days, 'day');
+}

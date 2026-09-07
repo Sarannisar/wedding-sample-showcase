@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   fetchInvitees,
   createInvitee,
@@ -9,6 +9,8 @@ import {
   restoreBulkInvitees,
   markInviteeShared,
   markBulkInviteesShared,
+  markInviteeReminded,
+  markBulkInviteesReminded,
   updateInvitee,
   isSupabaseConfigured,
   supabase,
@@ -16,10 +18,11 @@ import {
 import { Invitee } from '@/lib/types';
 import { weddingConfig } from '@/config/weddingConfig';
 import { OverviewTab } from '@/components/dashboard/OverviewTab';
-import { AllInviteesTab } from '@/components/dashboard/AllInviteesTab';
+import { AllInviteesTab, ChipFilter } from '@/components/dashboard/AllInviteesTab';
 import { AddImportTab } from '@/components/dashboard/AddImportTab';
 import { notify } from '@/lib/notify';
 import { exportDatabaseSnapshot } from '@/lib/backupHelper';
+import { formatRelativeTime } from '@/lib/utils';
 import {
   LayoutDashboard,
   Users,
@@ -28,50 +31,63 @@ import {
   Download,
 } from 'lucide-react';
 
-type ConnectionStatus = 'live' | 'polling' | 'offline';
-
 export const DashboardPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'all' | 'add'>('overview');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'attending' | 'declined' | 'pending' | 'opened_unresponded' | 'notsent'>('all');
   const [invitees, setInvitees] = useState<Invitee[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'overview' | 'all' | 'add'>('overview');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'live' | 'polling' | 'offline'>('polling');
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date>(new Date());
   const [targetInviteeId, setTargetInviteeId] = useState<string | null>(null);
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>(
-    isSupabaseConfigured ? 'connecting' as any : 'polling'
-  );
+  const [statusFilter, setStatusFilter] = useState<ChipFilter>('all');
+  const [openReminderQueue, setOpenReminderQueue] = useState(false);
 
-  const loadData = useCallback(async (isSilent = false) => {
-    if (!isSilent) setLoading(true);
-    else setRefreshing(true);
+  // Sync ref to avoid stale closure inside realtime event handlers
+  const connectionStatusRef = useRef(connectionStatus);
+  useEffect(() => {
+    connectionStatusRef.current = connectionStatus;
+  }, [connectionStatus]);
+
+  const refreshInvitees = useCallback(async () => {
     try {
       const data = await fetchInvitees();
       setInvitees(data);
+      setLastSyncedAt(new Date());
     } catch (err) {
-      console.error('Failed to load invitees:', err);
-      notify.error('Could not refresh guest list.');
-    } finally {
-      if (!isSilent) setLoading(false);
-      else setRefreshing(false);
+      console.error('Failed to refresh invitees:', err);
     }
   }, []);
 
-  const connectionStatusRef = React.useRef<ConnectionStatus>(
-    isSupabaseConfigured ? 'connecting' as any : 'polling'
-  );
+  const loadData = useCallback(async (isBackground = false) => {
+    if (!isBackground) setIsLoading(true);
+    else setIsRefreshing(true);
+    try {
+      const data = await fetchInvitees();
+      setInvitees(data);
+      setLastSyncedAt(new Date());
+    } catch (err) {
+      console.error('Error fetching invitees:', err);
+      notify.error('Could not load invitees. Operating in local mode.');
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, []);
 
-  const updateStatus = (status: ConnectionStatus) => {
-    connectionStatusRef.current = status;
-    setConnectionStatus(status);
-  };
-
+  // Initial fetch
   useEffect(() => {
     loadData();
+  }, [loadData]);
 
-    // Supabase Realtime channel subscription with status tracking
+  // Set up Supabase Realtime subscription
+  useEffect(() => {
+    const updateStatus = (status: 'live' | 'polling' | 'offline') => {
+      setConnectionStatus(status);
+    };
+
     if (isSupabaseConfigured && supabase) {
       const channel = supabase
-        .channel('dashboard-realtime-invitees')
+        .channel('dashboard-invitees-realtime')
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'invitees' },
@@ -89,7 +105,6 @@ export const DashboardPage: React.FC = () => {
           }
         });
 
-      // Fallback polling interval in case realtime is interrupted
       const fallbackInterval = setInterval(() => {
         if (connectionStatusRef.current === 'polling') {
           void loadData(true);
@@ -109,26 +124,6 @@ export const DashboardPage: React.FC = () => {
     }
   }, [loadData]);
 
-  // Online / Offline window listeners
-  useEffect(() => {
-    const handleOnline = () => {
-      if (isSupabaseConfigured) setConnectionStatus('live');
-      else setConnectionStatus('polling');
-      void loadData(true);
-    };
-    const handleOffline = () => {
-      setConnectionStatus('offline');
-      notify.info('You are offline. Dashboard changes will sync when connected.');
-    };
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, [loadData]);
-
   const handleAddInvitee = async (name: string, phone?: string | null) => {
     const newInvitee = await createInvitee(name, phone);
     setInvitees((prev) => [newInvitee, ...prev]);
@@ -142,65 +137,149 @@ export const DashboardPage: React.FC = () => {
   };
 
   const handleDeleteInvitee = async (id: string) => {
-    await deleteInvitee(id);
-    setInvitees((prev) => prev.filter((i) => i.id !== id));
+    const prev = invitees;
+    setInvitees((curr) => curr.filter((i) => i.id !== id));
+    const ok = await deleteInvitee(id);
+    if (!ok) {
+      setInvitees(prev);
+      notify.error('Could not delete invitee. Refreshing from the server…');
+      await refreshInvitees();
+    }
   };
 
   const handleBulkDelete = async (ids: string[]) => {
-    await deleteBulkInvitees(ids);
-    setInvitees((prev) => prev.filter((i) => !ids.includes(i.id)));
+    const prev = invitees;
+    const idSet = new Set(ids);
+    setInvitees((curr) => curr.filter((i) => !idSet.has(i.id)));
+    const ok = await deleteBulkInvitees(ids);
+    if (!ok) {
+      setInvitees(prev);
+      notify.error('Could not delete invitees. Refreshing from the server…');
+      await refreshInvitees();
+    }
   };
 
   const handleRestoreInvitee = async (invitee: Invitee) => {
-    await restoreInvitee(invitee);
-    setInvitees((prev) => {
-      if (prev.some((i) => i.id === invitee.id)) return prev;
-      return [invitee, ...prev];
-    });
+    const prev = invitees;
+    setInvitees((curr) => (curr.some((i) => i.id === invitee.id) ? curr : [invitee, ...curr]));
+    const ok = await restoreInvitee(invitee);
+    if (!ok) {
+      setInvitees(prev);
+      notify.error('Could not restore invitee. Refreshing from the server…');
+      await refreshInvitees();
+    }
   };
 
   const handleBulkRestore = async (restoredList: Invitee[]) => {
-    const success = await restoreBulkInvitees(restoredList);
-    if (success) {
-      setInvitees((prev) => {
-        const existingIds = new Set(prev.map((i) => i.id));
-        const toAdd = restoredList.filter((i) => !existingIds.has(i.id));
-        return [...toAdd, ...prev];
-      });
-      notify.success(`Restored ${restoredList.length} invitees`);
+    const prev = invitees;
+    const existingIds = new Set(prev.map((i) => i.id));
+    const toAdd = restoredList.filter((i) => !existingIds.has(i.id));
+    setInvitees([...toAdd, ...prev]);
+
+    const ok = await restoreBulkInvitees(restoredList);
+    if (!ok) {
+      setInvitees(prev);
+      notify.error('Could not restore invitees. Refreshing from the server…');
+      await refreshInvitees();
     } else {
-      notify.error('Failed to restore invitees. Please try again.');
+      notify.success(`Restored ${restoredList.length} invitees`);
     }
   };
 
   const handleMarkShared = async (id: string) => {
-    const sharedAt = await markInviteeShared(id);
-    setInvitees((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, shared_at: sharedAt } : i))
+    const prev = invitees;
+    const optimisticTime = new Date().toISOString();
+    setInvitees((curr) =>
+      curr.map((i) => (i.id === id ? { ...i, shared_at: optimisticTime } : i))
     );
+    const sharedAt = await markInviteeShared(id);
+    if (!sharedAt) {
+      setInvitees(prev);
+      notify.error('Could not mark invitee as sent. Refreshing from the server…');
+      await refreshInvitees();
+    } else {
+      setInvitees((curr) =>
+        curr.map((i) => (i.id === id ? { ...i, shared_at: sharedAt } : i))
+      );
+    }
   };
 
   const handleBulkMarkShared = async (ids: string[]) => {
+    const prev = invitees;
+    const idSet = new Set(ids);
+    const optimisticTime = new Date().toISOString();
+    setInvitees((curr) =>
+      curr.map((i) => (idSet.has(i.id) ? { ...i, shared_at: optimisticTime } : i))
+    );
     const sharedAt = await markBulkInviteesShared(ids);
-    if (sharedAt) {
-      const idSet = new Set(ids);
-      setInvitees((prev) =>
-        prev.map((i) => (idSet.has(i.id) ? { ...i, shared_at: sharedAt } : i))
+    if (!sharedAt) {
+      setInvitees(prev);
+      notify.error('Failed to mark invitees as sent. Refreshing from the server…');
+      await refreshInvitees();
+    } else {
+      setInvitees((curr) =>
+        curr.map((i) => (idSet.has(i.id) ? { ...i, shared_at: sharedAt } : i))
       );
       notify.success(`Marked ${ids.length} invitees as sent`);
-    } else {
-      notify.error('Failed to mark invitees as sent. Please try again.');
     }
+  };
+
+  const handleRemindInvitee = async (id: string) => {
+    const prev = invitees;
+    const optimisticTime = new Date().toISOString();
+    setInvitees((curr) =>
+      curr.map((i) =>
+        i.id === id
+          ? {
+              ...i,
+              reminded_at: optimisticTime,
+              reminder_count: (i.reminder_count || 0) + 1,
+            }
+          : i
+      )
+    );
+    const ok = await markInviteeReminded(id);
+    if (!ok) {
+      setInvitees(prev);
+      notify.error('Could not record reminder. Refreshing from the server…');
+      await refreshInvitees();
+      return false;
+    }
+    return true;
+  };
+
+  const handleBulkRemind = async (ids: string[]) => {
+    const prev = invitees;
+    const idSet = new Set(ids);
+    const optimisticTime = new Date().toISOString();
+    setInvitees((curr) =>
+      curr.map((i) =>
+        idSet.has(i.id)
+          ? {
+              ...i,
+              reminded_at: optimisticTime,
+              reminder_count: (i.reminder_count || 0) + 1,
+            }
+          : i
+      )
+    );
+    const ok = await markBulkInviteesReminded(ids);
+    if (!ok) {
+      setInvitees(prev);
+      notify.error('Failed to record some reminders. Refreshing from the server…');
+      await refreshInvitees();
+      return false;
+    }
+    return true;
   };
 
   const handleUpdateInvitee = async (
     id: string,
     updates: Partial<Pick<Invitee, 'name' | 'phone' | 'notes' | 'rsvp' | 'guest_count' | 'responded_at'>>
   ) => {
-    const success = await updateInvitee(id, updates);
-    if (!success) return;
-    setInvitees((prev) =>
-      prev.map((i) => {
+    const prev = invitees;
+    setInvitees((curr) =>
+      curr.map((i) => {
         if (i.id !== id) return i;
         const next = { ...i, ...updates };
         if (updates.rsvp === 'pending') {
@@ -210,6 +289,12 @@ export const DashboardPage: React.FC = () => {
         return next;
       })
     );
+    const ok = await updateInvitee(id, updates);
+    if (!ok) {
+      setInvitees(prev);
+      notify.error('Could not save guest changes. Refreshing from the server…');
+      await refreshInvitees();
+    }
   };
 
   const handleNavigateToAll = (targetId?: string) => {
@@ -248,7 +333,7 @@ export const DashboardPage: React.FC = () => {
               </p>
             </div>
 
-            {/* Connection Status Badge */}
+            {/* Connection Status Badge & Last Synced Timestamp */}
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/20 text-[11px] font-label font-medium">
               <span
                 className={`w-2 h-2 rounded-full ${
@@ -260,11 +345,9 @@ export const DashboardPage: React.FC = () => {
                 }`}
               />
               <span className="text-white/90">
-                {connectionStatus === 'live'
-                  ? 'Live'
-                  : connectionStatus === 'polling'
-                  ? 'Auto-syncing'
-                  : 'Offline'}
+                {connectionStatus === 'offline'
+                  ? 'Offline'
+                  : `Synced ${formatRelativeTime(lastSyncedAt.toISOString())}`}
               </span>
             </div>
 
@@ -284,11 +367,11 @@ export const DashboardPage: React.FC = () => {
                 void loadData(true);
                 notify.info('Refreshing guest list...');
               }}
-              disabled={refreshing || loading}
+              disabled={isRefreshing || isLoading}
               className="p-2 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white transition-colors cursor-pointer disabled:opacity-50"
               title="Refresh Dashboard Data"
             >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>
@@ -336,7 +419,7 @@ export const DashboardPage: React.FC = () => {
         </div>
 
         {/* Tab Content with Skeleton Loading (Step 16 #27) */}
-        {loading ? (
+        {isLoading ? (
           <div className="space-y-6 animate-pulse">
             {/* Skeleton Stat Cards */}
             {/* Skeleton Quick Action Bar */}
@@ -370,29 +453,30 @@ export const DashboardPage: React.FC = () => {
               {[...Array(4)].map((_, i) => (
                 <div
                   key={i}
-                  className="h-24 rounded-2xl bg-white/70 border border-[#e08aa3]/10 p-4 flex flex-col justify-between"
+                  className="h-20 rounded-2xl bg-white/70 border border-[#e08aa3]/10 p-4 flex flex-col justify-between"
                 >
                   <div className="h-2.5 bg-[#e08aa3]/15 rounded w-20" />
                   <div className="h-6 bg-[#e08aa3]/20 rounded w-12" />
-                  <div className="h-2 bg-[#e08aa3]/10 rounded w-16" />
                 </div>
               ))}
             </div>
 
-            {/* Skeleton Donut & Progress Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-pulse">
-              <div className="h-40 rounded-2xl bg-white/70 border border-[#e08aa3]/10 p-5 flex items-center gap-5">
-                <div className="w-28 h-28 rounded-full border-8 border-[#e08aa3]/20 shrink-0" />
-                <div className="space-y-2 flex-1">
-                  <div className="h-3 bg-[#e08aa3]/15 rounded w-32" />
-                  <div className="h-2.5 bg-[#e08aa3]/10 rounded w-48" />
-                  <div className="h-2.5 bg-[#e08aa3]/10 rounded w-40" />
+            {/* Donut & Recent Activity Skeleton matching 12-column grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-pulse">
+              <div className="lg:col-span-5 h-72 rounded-2xl bg-white/70 border border-[#e08aa3]/10 p-5 flex flex-col items-center justify-center gap-4">
+                <div className="w-32 h-32 rounded-full bg-[#e08aa3]/15 shrink-0" />
+                <div className="space-y-2 w-full max-w-xs">
+                  <div className="h-3 bg-[#e08aa3]/20 rounded w-3/4 mx-auto" />
+                  <div className="h-2.5 bg-[#e08aa3]/10 rounded w-1/2 mx-auto" />
                 </div>
               </div>
-              <div className="h-40 rounded-2xl bg-white/70 border border-[#e08aa3]/10 p-5 space-y-3">
-                <div className="h-4 bg-[#e08aa3]/20 rounded w-36" />
-                <div className="h-2.5 bg-[#e08aa3]/10 rounded w-full" />
-                <div className="h-2.5 bg-[#e08aa3]/10 rounded w-5/6" />
+              <div className="lg:col-span-7 h-72 rounded-2xl bg-white/70 border border-[#e08aa3]/10 p-5 space-y-4">
+                <div className="h-4 bg-[#e08aa3]/20 rounded w-44" />
+                <div className="space-y-3">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="h-10 bg-[#e08aa3]/10 rounded-xl w-full" />
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -410,6 +494,10 @@ export const DashboardPage: React.FC = () => {
                   setTargetInviteeId(guestId);
                   setActiveTab('all');
                 }}
+                onRemindAll={() => {
+                  setActiveTab('all');
+                  setOpenReminderQueue(true);
+                }}
               />
             )}
             {activeTab === 'all' && (
@@ -425,6 +513,10 @@ export const DashboardPage: React.FC = () => {
                 onBulkRestore={handleBulkRestore}
                 onMarkShared={handleMarkShared}
                 onBulkMarkShared={handleBulkMarkShared}
+                onRemindInvitee={handleRemindInvitee}
+                onBulkRemind={handleBulkRemind}
+                openReminderQueue={openReminderQueue}
+                onResetReminderQueue={() => setOpenReminderQueue(false)}
                 onUpdateInvitee={handleUpdateInvitee}
               />
             )}

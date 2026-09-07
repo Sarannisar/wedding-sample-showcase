@@ -43,6 +43,12 @@ export interface WeddingConfig {
   };
   whatsapp: {
     messageTemplate: string; // contains GUEST_NAME and GUEST_LINK placeholders
+    reminderTemplate?: string;
+  };
+  rsvp?: {
+    standardCutoffDaysBefore: number;
+    lateCutoffDaysBefore: number;
+    lockedMessage: string;
   };
   theme: {
     name: string;
@@ -105,6 +111,13 @@ export const weddingConfig: WeddingConfig = {
   whatsapp: {
     messageTemplate:
       "Assalamu Alaikum GUEST_NAME\n\nThe family of Mr. and Mrs. Illyas cordially invite you to their daughter Safiyya's Wedding Ceremony on Saturday 12th December 2026 at Glen Reception Hall from 12:30pm onwards.\n\nView your personal invitation here: GUEST_LINK",
+    reminderTemplate:
+      "Assalamu Alaikum GUEST_NAME\n\nA gentle reminder about Safiyya & Sharrafuth's Wedding Ceremony on Saturday 12th December 2026 at Glen Reception Hall, 12:30pm onwards.\n\nWe would love to know if you can join us — please confirm here: GUEST_LINK",
+  },
+  rsvp: {
+    standardCutoffDaysBefore: 7,
+    lateCutoffDaysBefore: 1,
+    lockedMessage: 'RSVP is now closed. Please contact the family directly for any changes.',
   },
   theme: {
     name: 'Baby Pink Pastel',

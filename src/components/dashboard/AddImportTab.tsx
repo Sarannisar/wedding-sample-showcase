@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Invitee } from '@/lib/types';
 import { parseCsvContent, SAMPLE_CSV_CONTENT } from '@/lib/csvHelper';
 import { validateBackupJson } from '@/lib/backupHelper';
@@ -35,32 +35,7 @@ interface StagedCsvRow {
   selected: boolean;
 }
 
-function normalizeDigits(val?: string | null): string {
-  if (!val) return '';
-  return val.replace(/\D/g, '');
-}
-
-function isSameContact(
-  nameA: string,
-  phoneA: string | undefined | null,
-  nameB: string,
-  phoneB: string | undefined | null
-): boolean {
-  const cleanNameA = nameA.trim().toLowerCase();
-  const cleanNameB = nameB.trim().toLowerCase();
-  if (cleanNameA !== cleanNameB) return false;
-
-  const digitsA = normalizeDigits(phoneA);
-  const digitsB = normalizeDigits(phoneB);
-
-  if (digitsA && digitsB) {
-    return digitsA === digitsB;
-  }
-  if (!digitsA && !digitsB) {
-    return true;
-  }
-  return digitsA === digitsB;
-}
+import { isSameContact, buildContactKey, normalizeName } from '@/lib/contactMatch';
 
 export const AddImportTab: React.FC<AddImportTabProps> = ({
   existingInvitees = [],
@@ -84,6 +59,13 @@ export const AddImportTab: React.FC<AddImportTabProps> = ({
   const [stagedRows, setStagedRows] = useState<StagedCsvRow[] | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isCommittingImport, setIsCommittingImport] = useState(false);
+
+  // Soft warning signal when a name matches an existing contact but phone differs or is missing
+  const nameConflictMatch = useMemo(() => {
+    if (!name.trim()) return null;
+    const norm = normalizeName(name);
+    return existingInvitees.find((inv) => normalizeName(inv.name) === norm);
+  }, [name, existingInvitees]);
 
   const handleSingleSubmit = async () => {
     if (!name.trim()) return;
@@ -181,12 +163,12 @@ export const AddImportTab: React.FC<AddImportTabProps> = ({
         const currentDbList =
           existingInvitees.length > 0 ? existingInvitees : await fetchInvitees();
 
-        // Pre-index database contacts for O(1) lookup
-        const dbNamePhoneSet = new Set(
-          currentDbList.map(
-            (inv) => `${inv.name.trim().toLowerCase()}::${normalizeDigits(inv.phone)}`
-          )
-        );
+        // Pre-index database contacts with non-empty phones for O(1) lookup
+        const dbNamePhoneSet = new Set<string>();
+        for (const inv of currentDbList) {
+          const key = buildContactKey(inv.name, inv.phone);
+          if (key) dbNamePhoneSet.add(key);
+        }
 
         const staged: StagedCsvRow[] = [];
         const seenInFile = new Set<string>();
@@ -216,35 +198,37 @@ export const AddImportTab: React.FC<AddImportTabProps> = ({
             continue;
           }
 
-          const fileKey = `${rowName.toLowerCase()}::${normalizeDigits(formattedPhone)}`;
+          const contactKey = buildContactKey(rowName, formattedPhone);
 
-          // 2. Duplicate against database (O(1) Set lookup)
-          if (dbNamePhoneSet.has(fileKey)) {
+          // 2. Duplicate against database (only when contactKey exists, i.e. both have non-empty phones)
+          if (contactKey && dbNamePhoneSet.has(contactKey)) {
             staged.push({
               id,
               name: rowName,
               phone: formattedPhone,
               status: 'duplicate',
-              reason: 'Already in guest list',
+              reason: 'Already in guest list with matching phone',
               selected: false,
             });
             continue;
           }
 
-          // 3. Duplicate within CSV (O(1) Set lookup)
-          if (seenInFile.has(fileKey)) {
+          // 3. Duplicate within CSV (only when contactKey exists)
+          if (contactKey && seenInFile.has(contactKey)) {
             staged.push({
               id,
               name: rowName,
               phone: formattedPhone,
               status: 'duplicate',
-              reason: 'Duplicate in this CSV',
+              reason: 'Duplicate entry in uploaded file',
               selected: false,
             });
             continue;
           }
 
-          seenInFile.add(fileKey);
+          if (contactKey) {
+            seenInFile.add(contactKey);
+          }
 
           // 4. Valid New Row
           staged.push({
@@ -343,6 +327,14 @@ export const AddImportTab: React.FC<AddImportTabProps> = ({
                   onChange={(e) => setName(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#e08aa3] focus:ring-1 focus:ring-[#e08aa3]"
                 />
+                {nameConflictMatch && !isSameContact(nameConflictMatch.name, nameConflictMatch.phone, name, phone) && (
+                  <div className="mt-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 flex items-start gap-2 font-body">
+                    <span className="text-amber-600 font-bold">⚠️</span>
+                    <span>
+                      Someone named "{nameConflictMatch.name}" already exists ({nameConflictMatch.phone || 'no phone recorded'}). Add anyway?
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div>

@@ -1,6 +1,20 @@
 import { createClient } from '@supabase/supabase-js';
 import { Invitee, InviteeEvent, InviteeEventType, RsvpStatus } from './types';
 import { generateSlug, formatPhoneNumber } from './utils';
+import { getRsvpWindow } from './rsvpDeadline';
+import { weddingConfig } from '@/config/weddingConfig';
+
+export type RsvpWriteResult =
+  | { ok: true; source: 'remote' }
+  | { ok: false; reason: 'offline' | 'network' | 'rejected' | 'not-configured'; message: string };
+
+export interface LatestEventsSummary {
+  lastOpenedAt?: string;
+  openCount: number;
+  lastSentAt?: string;
+  respondedAt?: string;
+  lastRemindedAt?: string;
+}
 
 const rawSupabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseUrl = rawSupabaseUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
@@ -453,11 +467,48 @@ export async function updateRsvp(
   guestCount: number,
   notes?: string,
   fallbackName?: string
-): Promise<boolean> {
+): Promise<RsvpWriteResult> {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    return {
+      ok: false,
+      reason: 'offline',
+      message: 'You appear to be offline. Please reconnect to submit your RSVP.',
+    };
+  }
+
   const respondedAt = new Date().toISOString();
 
   if (isSupabaseConfigured && supabase) {
     try {
+      // 1. Fetch current invitee state to verify deadline window
+      const { data: existingRows, error: fetchErr } = await supabase
+        .from('invitees')
+        .select('id, first_opened_at, created_at')
+        .eq('slug', slug)
+        .limit(1);
+
+      if (fetchErr) {
+        return {
+          ok: false,
+          reason: 'rejected',
+          message: fetchErr.message || 'Failed to verify invite details.',
+        };
+      }
+
+      const existing = existingRows && existingRows.length > 0 ? existingRows[0] : null;
+      const anchor = existing ? existing.first_opened_at || existing.created_at : null;
+      const window = getRsvpWindow(anchor);
+      if (!window.isOpen) {
+        return {
+          ok: false,
+          reason: 'rejected',
+          message:
+            weddingConfig.rsvp?.lockedMessage ||
+            'RSVP is now closed. Please contact the family directly for any changes.',
+        };
+      }
+
+      // 2. Perform remote update
       const { data, error } = await supabase
         .from('invitees')
         .update({
@@ -469,70 +520,117 @@ export async function updateRsvp(
         .eq('slug', slug)
         .select();
 
-      if (!error && data && data.length > 0) {
-        logInviteeEvent(data[0].id, 'responded');
-        return true;
+      if (error) {
+        return {
+          ok: false,
+          reason: 'rejected',
+          message: error.message || 'Could not update RSVP on server.',
+        };
       }
 
-      // If no row matched in Supabase, create it so the RSVP is not lost
-      if (!error && (!data || data.length === 0)) {
-        const { data: inserted, error: insertError } = await supabase
-          .from('invitees')
-          .insert([
-            {
-              name: fallbackName || slug,
-              slug,
-              rsvp,
-              guest_count: rsvp === 'attending' ? guestCount : 0,
-              notes: notes || null,
-              responded_at: respondedAt,
-            },
-          ])
-          .select();
-        if (!insertError && inserted && inserted.length > 0) {
-          logInviteeEvent(inserted[0].id, 'responded');
-          return true;
+      if (data && data.length > 0) {
+        const updatedRow = data[0] as Invitee;
+        const local = getLocalInvitees();
+        const index = local.findIndex((i) => i.slug.toLowerCase() === slug.toLowerCase());
+        if (index !== -1) {
+          local[index] = { ...local[index], ...updatedRow };
+          saveLocalInvitees(local);
+        } else {
+          local.unshift(updatedRow);
+          saveLocalInvitees(local);
         }
+        logInviteeEvent(updatedRow.id, 'responded');
+        return { ok: true, source: 'remote' };
       }
-      if (error) console.error('Supabase RSVP update error:', error);
-    } catch (err) {
+
+      // 3. Fallback insert if row didn't exist in Supabase
+      const { data: inserted, error: insertError } = await supabase
+        .from('invitees')
+        .insert([
+          {
+            name: fallbackName || slug,
+            slug,
+            rsvp,
+            guest_count: rsvp === 'attending' ? guestCount : 0,
+            notes: notes || null,
+            responded_at: respondedAt,
+          },
+        ])
+        .select();
+
+      if (insertError) {
+        return {
+          ok: false,
+          reason: 'rejected',
+          message: insertError.message || 'Could not save new RSVP.',
+        };
+      }
+
+      if (inserted && inserted.length > 0) {
+        const createdRow = inserted[0] as Invitee;
+        const local = getLocalInvitees();
+        local.unshift(createdRow);
+        saveLocalInvitees(local);
+        logInviteeEvent(createdRow.id, 'responded');
+        return { ok: true, source: 'remote' };
+      }
+
+      return {
+        ok: false,
+        reason: 'rejected',
+        message: 'No response row returned from server.',
+      };
+    } catch (err: any) {
       console.error('Supabase RSVP update failed:', err);
+      return {
+        ok: false,
+        reason: 'network',
+        message: err?.message || 'Network error occurred while submitting RSVP.',
+      };
     }
   }
 
-  const local = getLocalInvitees();
-  const index = local.findIndex((i) => i.slug.toLowerCase() === slug.toLowerCase());
-  if (index !== -1) {
-    local[index] = {
-      ...local[index],
-      rsvp,
-      guest_count: rsvp === 'attending' ? guestCount : 0,
-      notes: notes || local[index].notes || null,
-      responded_at: respondedAt,
-    };
-    saveLocalInvitees(local);
-    logInviteeEvent(local[index].id, 'responded');
-    return true;
-  } else {
-    const newGuest: Invitee = {
-      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `inv-${Date.now()}`,
-      name: fallbackName || slug,
-      slug,
-      phone: null,
-      rsvp,
-      guest_count: rsvp === 'attending' ? guestCount : 0,
-      notes: notes || null,
-      responded_at: respondedAt,
-      created_at: new Date().toISOString(),
-    };
-    local.unshift(newGuest);
-    saveLocalInvitees(local);
-    logInviteeEvent(newGuest.id, 'responded');
-    return true;
+  // If Supabase is NOT configured: write local mirror only in DEV mode
+  if (import.meta.env.DEV) {
+    const local = getLocalInvitees();
+    const index = local.findIndex((i) => i.slug.toLowerCase() === slug.toLowerCase());
+    if (index !== -1) {
+      local[index] = {
+        ...local[index],
+        rsvp,
+        guest_count: rsvp === 'attending' ? guestCount : 0,
+        notes: notes || local[index].notes || null,
+        responded_at: respondedAt,
+      };
+      saveLocalInvitees(local);
+      logInviteeEvent(local[index].id, 'responded');
+    } else {
+      const newGuest: Invitee = {
+        id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `inv-${Date.now()}`,
+        name: fallbackName || slug,
+        slug,
+        phone: null,
+        rsvp,
+        guest_count: rsvp === 'attending' ? guestCount : 0,
+        notes: notes || null,
+        responded_at: respondedAt,
+        created_at: new Date().toISOString(),
+      };
+      local.unshift(newGuest);
+      saveLocalInvitees(local);
+      logInviteeEvent(newGuest.id, 'responded');
+    }
+    return { ok: true, source: 'remote' };
   }
+
+  return {
+    ok: false,
+    reason: 'not-configured',
+    message: 'Database connection is not configured.',
+  };
 }
 
-export async function markInviteeShared(id: string): Promise<string> {
+export async function markInviteeShared(id: string): Promise<string | null> {
   const sharedAt = new Date().toISOString();
 
   if (isSupabaseConfigured && supabase) {
@@ -540,9 +638,11 @@ export async function markInviteeShared(id: string): Promise<string> {
       const { error } = await supabase.from('invitees').update({ shared_at: sharedAt }).eq('id', id);
       if (error) {
         console.error('Supabase shared_at update failed:', error);
+        return null;
       }
     } catch (err) {
       console.error('Supabase shared_at update failed:', err);
+      return null;
     }
   }
 
@@ -685,4 +785,127 @@ export async function deleteBulkInvitees(ids: string[]): Promise<boolean> {
   const filtered = local.filter((i) => !ids.includes(i.id));
   saveLocalInvitees(filtered);
   return true;
+}
+
+export async function ensureFirstOpenedAt(inviteeId: string): Promise<void> {
+  const nowIso = new Date().toISOString();
+  if (isSupabaseConfigured && supabase) {
+    try {
+      await supabase
+        .from('invitees')
+        .update({ first_opened_at: nowIso })
+        .eq('id', inviteeId)
+        .is('first_opened_at', null);
+    } catch {
+      // Non-fatal fire-and-forget
+    }
+  }
+  const local = getLocalInvitees();
+  const index = local.findIndex((i) => i.id === inviteeId);
+  if (index !== -1 && !local[index].first_opened_at) {
+    local[index].first_opened_at = nowIso;
+    saveLocalInvitees(local);
+  }
+}
+
+export async function markInviteeReminded(id: string): Promise<boolean> {
+  const remindedAt = new Date().toISOString();
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data: current } = await supabase
+        .from('invitees')
+        .select('reminder_count')
+        .eq('id', id)
+        .single();
+
+      const nextCount = (current?.reminder_count || 0) + 1;
+      const { error } = await supabase
+        .from('invitees')
+        .update({ reminded_at: remindedAt, reminder_count: nextCount })
+        .eq('id', id);
+
+      if (error) {
+        console.error('Supabase markInviteeReminded error:', error);
+        return false;
+      }
+    } catch (err) {
+      console.error('Supabase markInviteeReminded failed:', err);
+      return false;
+    }
+  }
+
+  const local = getLocalInvitees();
+  const index = local.findIndex((i) => i.id === id);
+  if (index !== -1) {
+    local[index].reminded_at = remindedAt;
+    local[index].reminder_count = (local[index].reminder_count || 0) + 1;
+    saveLocalInvitees(local);
+  }
+  logInviteeEvent(id, 'reminded');
+  return true;
+}
+
+export async function markBulkInviteesReminded(ids: string[]): Promise<boolean> {
+  if (!ids || ids.length === 0) return true;
+  let allOk = true;
+  for (const id of ids) {
+    const ok = await markInviteeReminded(id);
+    if (!ok) allOk = false;
+  }
+  return allOk;
+}
+
+export async function fetchLatestEventsMap(): Promise<Record<string, LatestEventsSummary>> {
+  const map: Record<string, LatestEventsSummary> = {};
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('invitee_events')
+        .select('invitee_id, type, created_at')
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        for (const row of data) {
+          if (!map[row.invitee_id]) {
+            map[row.invitee_id] = { openCount: 0 };
+          }
+          const item = map[row.invitee_id];
+          if (row.type === 'opened') {
+            item.openCount++;
+            if (!item.lastOpenedAt) item.lastOpenedAt = row.created_at;
+          } else if (row.type === 'sent' && !item.lastSentAt) {
+            item.lastSentAt = row.created_at;
+          } else if (row.type === 'responded' && !item.respondedAt) {
+            item.respondedAt = row.created_at;
+          } else if (row.type === 'reminded' && !item.lastRemindedAt) {
+            item.lastRemindedAt = row.created_at;
+          }
+        }
+        return map;
+      }
+    } catch (err) {
+      console.error('Supabase fetchLatestEventsMap failed:', err);
+    }
+  }
+
+  const localEvents = getLocalEvents();
+  for (const row of localEvents) {
+    if (!map[row.invitee_id]) {
+      map[row.invitee_id] = { openCount: 0 };
+    }
+    const item = map[row.invitee_id];
+    if (row.type === 'opened') {
+      item.openCount++;
+      if (!item.lastOpenedAt) item.lastOpenedAt = row.created_at;
+    } else if (row.type === 'sent' && !item.lastSentAt) {
+      item.lastSentAt = row.created_at;
+    } else if (row.type === 'responded' && !item.respondedAt) {
+      item.respondedAt = row.created_at;
+    } else if (row.type === 'reminded' && !item.lastRemindedAt) {
+      item.lastRemindedAt = row.created_at;
+    }
+  }
+  return map;
 }
