@@ -5,6 +5,7 @@ import { formatTimeAgo, formatRelativeTime } from '@/lib/utils';
 import { exportInviteesToCsv } from '@/lib/csvHelper';
 import { fetchInviteeEvents, fetchLatestEventsMap, LatestEventsSummary } from '@/lib/supabase';
 import { notify } from '@/lib/notify';
+import { getInviteUrl, getShareableInviteUrl } from '@/lib/shareLinks';
 import { getRsvpWindow } from '@/lib/rsvpDeadline';
 import { InviteeTimeline } from './InviteeTimeline';
 import {
@@ -335,13 +336,8 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
     setCurrentPage(1);
   };
 
-  const getInviteUrl = (slug: string) => {
-    const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    return `${origin}/invite/${slug}`;
-  };
-
   const buildWhatsAppMessage = (invitee: Invitee, template?: string) => {
-    const url = getInviteUrl(invitee.slug);
+    const url = getShareableInviteUrl(invitee.slug);
     const tmpl = template || weddingConfig.whatsapp.messageTemplate;
     return tmpl
       .replace(/GUEST_NAME/g, invitee.name)
