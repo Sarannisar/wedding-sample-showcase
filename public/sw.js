@@ -1,8 +1,8 @@
-const CACHE_NAME = 'wedding-invite-v1';
+// Bump CACHE_VERSION whenever the offline cache should be rebuilt.
+const CACHE_VERSION = 'v2';
+const CACHE_NAME = `wedding-invite-${CACHE_VERSION}`;
 
 const STATIC_PRECACHE = [
-  '/',
-  '/index.html',
   '/manifest.webmanifest',
   '/photo_circular.png',
   '/fonts/KaushanScript-Regular.ttf',
@@ -17,63 +17,99 @@ const STATIC_PRECACHE = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_PRECACHE).catch((err) => {
-        console.warn('Some offline cache items skipped:', err);
-      });
-    }).then(() => self.skipWaiting())
+    caches
+      .open(CACHE_NAME)
+      .then((cache) =>
+        cache.addAll(STATIC_PRECACHE).catch((err) => {
+          console.warn('Some offline cache items skipped:', err);
+        })
+      )
+      .then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(keys.map((key) => (key !== CACHE_NAME ? caches.delete(key) : undefined)))
+      )
+      .then(() => self.clients.claim())
   );
 });
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
+function isVersionedAsset(url) {
+  return url.pathname.startsWith('/assets/') && /\.[a-f0-9]{8,}\./i.test(url.pathname);
+}
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
 
-  // Skip non-GET requests and Supabase API / WebSocket requests
-  if (request.method !== 'GET' || request.url.includes('/rest/v1') || request.url.includes('supabase.co')) {
+  if (
+    request.method !== 'GET' ||
+    request.url.includes('/rest/v1') ||
+    request.url.includes('/functions/v1') ||
+    request.url.includes('supabase.co')
+  ) {
     return;
   }
 
-  // Handle static assets & navigation
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+
+  // HTML navigations: always network-first so a freshly published version wins.
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', clone));
+          }
+          return networkResponse;
+        })
+        .catch(() =>
+          caches.match('/index.html').then((cached) => cached || caches.match('/'))
+        )
+    );
+    return;
+  }
+
+  // Hashed build assets are immutable: cache-first is safe.
+  // Everything else is stale-while-revalidate.
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
-      if (cachedResponse) {
-        // Fetch in background to revalidate cache
-        fetch(request).then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, networkResponse));
+      const networkFetch = fetch(request)
+        .then((networkResponse) => {
+          if (
+            networkResponse &&
+            networkResponse.status === 200 &&
+            networkResponse.type === 'basic'
+          ) {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
           }
-        }).catch(() => {});
+          return networkResponse;
+        })
+        .catch(() => undefined);
+
+      if (cachedResponse) {
+        if (!isVersionedAsset(url)) {
+          networkFetch.catch(() => {});
+        }
         return cachedResponse;
       }
 
-      // Network-first with cache fallback
-      return fetch(request).then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
-          const responseClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
-        }
-        return networkResponse;
-      }).catch(() => {
-        // Offline fallback for navigation
-        if (request.mode === 'navigate') {
-          return caches.match('/') || caches.match('/index.html');
-        }
-        return new Response('Offline', { status: 503, statusText: 'Offline' });
-      });
+      return networkFetch.then(
+        (res) => res || new Response('Offline', { status: 503, statusText: 'Offline' })
+      );
     })
   );
 });
