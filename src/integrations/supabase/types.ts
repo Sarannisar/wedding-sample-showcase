@@ -54,6 +54,7 @@ export type Database = {
           id: string
           name: string
           notes: string | null
+          opened_at: string | null
           phone: string | null
           reminded_at: string | null
           reminder_count: number
@@ -69,6 +70,7 @@ export type Database = {
           id?: string
           name: string
           notes?: string | null
+          opened_at?: string | null
           phone?: string | null
           reminded_at?: string | null
           reminder_count?: number
@@ -84,6 +86,7 @@ export type Database = {
           id?: string
           name?: string
           notes?: string | null
+          opened_at?: string | null
           phone?: string | null
           reminded_at?: string | null
           reminder_count?: number
