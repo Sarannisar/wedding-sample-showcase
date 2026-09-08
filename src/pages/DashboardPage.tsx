@@ -23,12 +23,16 @@ import { AddImportTab } from '@/components/dashboard/AddImportTab';
 import { notify } from '@/lib/notify';
 import { exportDatabaseSnapshot } from '@/lib/backupHelper';
 import { formatRelativeTime } from '@/lib/utils';
+import { DashboardLogin } from '@/components/dashboard/DashboardLogin';
+import { isSessionExpired, signOutAdmin, ADMIN_NAME } from '@/lib/dashboardAuth';
 import {
   LayoutDashboard,
   Users,
   UserPlus,
   RefreshCw,
   Download,
+  LogOut,
+  ShieldCheck,
 } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
@@ -41,6 +45,75 @@ export const DashboardPage: React.FC = () => {
   const [targetInviteeId, setTargetInviteeId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<ChipFilter>('all');
   const [openReminderQueue, setOpenReminderQueue] = useState(false);
+
+  // Authentication State
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isAuthChecking, setIsAuthChecking] = useState<boolean>(true);
+
+  // Verify Supabase Auth session and enforce 5-day / 30-day session expiry
+  useEffect(() => {
+    let mounted = true;
+
+    const verifyAuth = async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        if (mounted) {
+          setIsAuthenticated(true);
+          setIsAuthChecking(false);
+        }
+        return;
+      }
+
+      // Check if session has exceeded custom lifetime
+      if (isSessionExpired()) {
+        await signOutAdmin();
+        if (mounted) {
+          setIsAuthenticated(false);
+          setIsAuthChecking(false);
+          notify.info('Your session has expired. Please enter your password to continue.');
+        }
+        return;
+      }
+
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (mounted) {
+          setIsAuthenticated(Boolean(data.session));
+          setIsAuthChecking(false);
+        }
+      } catch {
+        if (mounted) {
+          setIsAuthenticated(false);
+          setIsAuthChecking(false);
+        }
+      }
+    };
+
+    void verifyAuth();
+
+    const { data: authListener } = supabase?.auth.onAuthStateChange((_event, session) => {
+      if (mounted) {
+        if (!session) {
+          setIsAuthenticated(false);
+        } else if (isSessionExpired()) {
+          void signOutAdmin();
+          setIsAuthenticated(false);
+        } else {
+          setIsAuthenticated(true);
+        }
+      }
+    }) || { data: { subscription: null } };
+
+    return () => {
+      mounted = false;
+      authListener.subscription?.unsubscribe();
+    };
+  }, []);
+
+  const handleSignOut = async () => {
+    await signOutAdmin();
+    setIsAuthenticated(false);
+    notify.info('Logged out of dashboard.');
+  };
 
   // Sync ref to avoid stale closure inside realtime event handlers
   const connectionStatusRef = useRef(connectionStatus);
@@ -74,13 +147,17 @@ export const DashboardPage: React.FC = () => {
     }
   }, []);
 
-  // Initial fetch
+  // Initial fetch when authenticated
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (isAuthenticated) {
+      void loadData();
+    }
+  }, [isAuthenticated, loadData]);
 
-  // Set up Supabase Realtime subscription
+  // Set up Supabase Realtime subscription when authenticated
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     const updateStatus = (status: 'live' | 'polling' | 'offline') => {
       setConnectionStatus(status);
     };
@@ -122,7 +199,7 @@ export const DashboardPage: React.FC = () => {
       }, 15000);
       return () => clearInterval(timer);
     }
-  }, [loadData]);
+  }, [isAuthenticated, loadData]);
 
   const handleAddInvitee = async (name: string, phone?: string | null) => {
     const newInvitee = await createInvitee(name, phone);
@@ -304,6 +381,23 @@ export const DashboardPage: React.FC = () => {
     }
   };
 
+  if (isAuthChecking) {
+    return (
+      <div className="min-h-screen w-full bg-[#fffafc] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 rounded-full border-2 border-[#e08aa3]/30 border-t-[#e08aa3] animate-spin" />
+          <span className="font-label text-xs uppercase tracking-widest text-[#b592a0]">
+            Verifying Host Security...
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <DashboardLogin onLoginSuccess={() => setIsAuthenticated(true)} />;
+  }
+
   return (
     <div className="min-h-screen bg-[#fffafc] flex flex-col text-[#4a3038]">
       {/* Header Bar */}
@@ -323,7 +417,7 @@ export const DashboardPage: React.FC = () => {
           </div>
 
           {/* Right: Realtime status & Refresh Button */}
-          <div className="flex items-center gap-4 text-center sm:text-right">
+          <div className="flex items-center gap-3 sm:gap-4 text-center sm:text-right flex-wrap justify-center">
             <div>
               <span className="font-label text-xs uppercase tracking-wider text-[#f7c1d0] block">
                 Wedding Date
@@ -351,6 +445,12 @@ export const DashboardPage: React.FC = () => {
               </span>
             </div>
 
+            {/* Host Identity Badge */}
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-xl bg-black/20 text-white text-xs font-label">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#f7c1d0]" />
+              <span>Host: <strong>{ADMIN_NAME}</strong></span>
+            </div>
+
             {/* 1-Click JSON Snapshot Backup */}
             <button
               onClick={() => exportDatabaseSnapshot(invitees)}
@@ -372,6 +472,16 @@ export const DashboardPage: React.FC = () => {
               title="Refresh Dashboard Data"
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </button>
+
+            {/* Log Out button */}
+            <button
+              onClick={handleSignOut}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-rose-600/90 active:scale-95 text-white text-xs font-semibold transition cursor-pointer border border-white/20"
+              title="Log Out of Dashboard"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Log Out</span>
             </button>
           </div>
         </div>

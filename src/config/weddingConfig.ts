@@ -50,6 +50,12 @@ export interface WeddingConfig {
     lateCutoffDaysBefore: number;
     lockedMessage: string;
   };
+  admin: {
+    email: string;
+    name: string;
+    defaultSessionDays: number;
+    rememberMeSessionDays: number;
+  };
   theme: {
     name: string;
     bg: string;
@@ -118,6 +124,12 @@ export const weddingConfig: WeddingConfig = {
     standardCutoffDaysBefore: 7,
     lateCutoffDaysBefore: 1,
     lockedMessage: 'RSVP is now closed. Please contact the family directly for any changes.',
+  },
+  admin: {
+    email: 'safiyya@mywedding.com',
+    name: 'Safiyya',
+    defaultSessionDays: 5,
+    rememberMeSessionDays: 30,
   },
   theme: {
     name: 'Baby Pink Pastel',
