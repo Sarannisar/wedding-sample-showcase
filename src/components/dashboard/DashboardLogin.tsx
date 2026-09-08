@@ -170,11 +170,30 @@ export const DashboardLogin: React.FC<DashboardLoginProps> = ({ onLoginSuccess }
 
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#b592a0] hover:text-[#7a4d5d] transition cursor-pointer p-1"
-                  title={showPassword ? 'Hide password' : 'Show password'}
+                  onMouseDown={() => setShowPassword(true)}
+                  onMouseUp={() => setShowPassword(false)}
+                  onMouseLeave={() => setShowPassword(false)}
+                  onTouchStart={() => setShowPassword(true)}
+                  onTouchEnd={() => setShowPassword(false)}
+                  onTouchCancel={() => setShowPassword(false)}
+                  onKeyDown={(e) => {
+                    if (e.key === ' ' || e.key === 'Enter') {
+                      e.preventDefault();
+                      setShowPassword(true);
+                    }
+                  }}
+                  onKeyUp={() => setShowPassword(false)}
+                  onBlur={() => setShowPassword(false)}
+                  onContextMenu={(e) => e.preventDefault()}
+                  className={`absolute right-3.5 top-1/2 -translate-y-1/2 transition-all cursor-pointer p-1 rounded-md select-none touch-none ${
+                    showPassword
+                      ? 'text-[#b05570] bg-[#fff0f4] scale-110'
+                      : 'text-[#b592a0] hover:text-[#7a4d5d]'
+                  }`}
+                  title="Press and hold to view password"
+                  aria-label="Press and hold to view password"
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPassword ? <Eye className="w-4 h-4 text-[#b05570]" /> : <EyeOff className="w-4 h-4" />}
                 </button>
               </div>
             </div>
