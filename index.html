@@ -26,13 +26,29 @@
       href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Great+Vibes&family=Kaushan+Script&family=Josefin+Sans:wght@300;400;500;600&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
       rel="stylesheet"
     />
-    <!-- High-Priority Critical Asset Preloading for Instant Door Experience -->
-    <link rel="preload" as="image" href="/assets/fancy_door_left.webp" type="image/webp" fetchpriority="high" />
-    <link rel="preload" as="image" href="/assets/fancy_door_right.webp" type="image/webp" fetchpriority="high" />
-    <link rel="preload" as="image" href="/assets/fancy_garden_palace.webp" type="image/webp" fetchpriority="high" />
-    <link rel="preload" as="image" href="/assets/door_handle_crest_left.webp" type="image/webp" fetchpriority="high" />
-    <link rel="preload" as="image" href="/assets/door_handle_crest_right.webp" type="image/webp" fetchpriority="high" />
-    <link rel="preload" as="image" href="/assets/invite_card_bg_poster.webp" type="image/webp" />
+    <!-- High-Priority Critical Asset Preloading for Instant Door Experience (invitation routes only) -->
+    <script>
+      (function () {
+        if (location.pathname.indexOf('/dashboard') === 0) return;
+        var assets = [
+          ['/assets/fancy_door_left.webp', 'high'],
+          ['/assets/fancy_door_right.webp', 'high'],
+          ['/assets/fancy_garden_palace.webp', 'high'],
+          ['/assets/door_handle_crest_left.webp', 'high'],
+          ['/assets/door_handle_crest_right.webp', 'high'],
+          ['/assets/invite_card_bg_poster.webp', 'auto']
+        ];
+        assets.forEach(function (a) {
+          var l = document.createElement('link');
+          l.rel = 'preload';
+          l.as = 'image';
+          l.type = 'image/webp';
+          l.href = a[0];
+          l.setAttribute('fetchpriority', a[1]);
+          document.head.appendChild(l);
+        });
+      })();
+    </script>
   </head>
   <body class="bg-[#fdf9f5] text-[#2d1a22] font-body selection:bg-[#e8a4b4]/30 selection:text-[#b05570] overflow-x-hidden antialiased">
     <div id="root"></div>
