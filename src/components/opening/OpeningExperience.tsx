@@ -7,14 +7,12 @@ import { MonogramReveal } from './MonogramReveal';
 interface OpeningExperienceProps {
   onOpenComplete: () => void;
   onDoorsOpening?: () => void;
-  onEnterStart?: () => void;
   guestName?: string;
 }
 
 export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
   onOpenComplete,
   onDoorsOpening,
-  onEnterStart,
   guestName,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -115,7 +113,6 @@ export const OpeningExperience: React.FC<OpeningExperienceProps> = ({
     isTransitioningRef.current = true;
 
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-    onEnterStart?.();
 
     if (!containerRef.current) {
       onOpenComplete();

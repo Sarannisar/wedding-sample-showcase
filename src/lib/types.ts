@@ -25,21 +25,3 @@ export interface InviteeEvent {
   type: InviteeEventType;
   created_at: string;
 }
-
-export interface DashboardStats {
-  totalInvited: number;
-  attending: number;
-  declined: number;
-  pending: number;
-  totalGuestCount: number;
-  responseRate: {
-    attendingPercent: number;
-    declinedPercent: number;
-    pendingPercent: number;
-  };
-}
-
-export interface SupabaseResult<T> {
-  data: T | null;
-  error: Error | null;
-}
