@@ -1,9 +1,12 @@
 // Bump CACHE_VERSION whenever the offline cache should be rebuilt.
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const CACHE_NAME = `wedding-invite-${CACHE_VERSION}`;
 
 const STATIC_PRECACHE = [
   '/manifest.webmanifest',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/apple-touch-icon.png',
   '/photo_circular.png',
   '/fonts/KaushanScript-Regular.ttf',
   '/assets/logo_saad_sheen_crest.png',

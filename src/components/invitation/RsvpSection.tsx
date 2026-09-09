@@ -7,6 +7,7 @@ import { useReveal } from '@/lib/useReveal';
 import { notify } from '@/lib/notify';
 import { getRsvpWindow, RsvpWindow } from '@/lib/rsvpDeadline';
 import { weddingConfig } from '@/config/weddingConfig';
+import { getHostRsvpWhatsAppUrl } from '@/lib/shareLinks';
 import confetti from 'canvas-confetti';
 import {
   Minus,
@@ -21,6 +22,7 @@ import {
   Clock,
   Lock,
   Phone,
+  MessageCircle,
 } from 'lucide-react';
 
 interface RsvpSectionProps {
@@ -556,13 +558,39 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ invitee, onRsvpSuccess
                 </>
               )}
 
-              <button
-                onClick={() => setStep(1)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white border border-[#e08aa3]/30 text-xs font-label uppercase tracking-widest text-[#b05570] hover:bg-[#fff2f6] transition cursor-pointer shadow-xs"
-              >
-                <Edit3 className="w-3.5 h-3.5" />
-                <span>Change response</span>
-              </button>
+              {/* 1-Tap WhatsApp Host Nudge */}
+              {weddingConfig.admin.whatsappNotificationNumber && (
+                <div className="pt-3 border-t border-[#f2b8c6]/30 space-y-2">
+                  <span className="font-label text-[10px] uppercase tracking-wider text-[#a8808e] font-semibold block">
+                    Quick Update for Host ({weddingConfig.admin.name})
+                  </span>
+                  <a
+                    href={getHostRsvpWhatsAppUrl({
+                      hostPhone: weddingConfig.admin.whatsappNotificationNumber,
+                      guestName: invitee?.name || 'Guest',
+                      rsvp: selectedRsvp === 'declined' ? 'declined' : 'attending',
+                      guestCount: selectedRsvp === 'attending' ? guestCount : 0,
+                      notes: note,
+                    })}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] active:scale-[0.99] text-white text-xs font-label uppercase tracking-wider font-semibold shadow-sm transition-all cursor-pointer"
+                  >
+                    <MessageCircle className="w-4 h-4 shrink-0" />
+                    <span>Send Confirmation to Host on WhatsApp</span>
+                  </a>
+                </div>
+              )}
+
+              <div className="pt-2">
+                <button
+                  onClick={() => setStep(1)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white border border-[#e08aa3]/30 text-xs font-label uppercase tracking-widest text-[#b05570] hover:bg-[#fff2f6] transition cursor-pointer shadow-xs"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>Change response</span>
+                </button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

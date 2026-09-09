@@ -55,6 +55,7 @@ export interface WeddingConfig {
     name: string;
     defaultSessionDays: number;
     rememberMeSessionDays: number;
+    whatsappNotificationNumber?: string;
   };
   theme: {
     name: string;
@@ -130,6 +131,7 @@ export const weddingConfig: WeddingConfig = {
     name: 'Safiyya',
     defaultSessionDays: 5,
     rememberMeSessionDays: 30,
+    whatsappNotificationNumber: import.meta.env.VITE_HOST_WHATSAPP_NUMBER || '+94772257533',
   },
   theme: {
     name: 'Baby Pink Pastel',

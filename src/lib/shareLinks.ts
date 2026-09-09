@@ -32,3 +32,31 @@ export function getShareableInviteUrl(slug: string): string {
     slug
   )}&o=${encodeURIComponent(origin)}`;
 }
+
+export interface HostRsvpNudgeParams {
+  hostPhone: string;
+  guestName: string;
+  rsvp: 'attending' | 'declined' | string;
+  guestCount: number;
+  notes?: string | null;
+}
+
+export function getHostRsvpWhatsAppUrl({
+  hostPhone,
+  guestName,
+  rsvp,
+  guestCount,
+  notes,
+}: HostRsvpNudgeParams): string {
+  const cleanPhone = hostPhone.replace(/\D/g, '');
+  const isAttending = rsvp === 'attending';
+
+  let message = '';
+  if (isAttending) {
+    message = `Assalamu Alaikum! I have confirmed my RSVP for Safiyya & Sharrafuth's Wedding Ceremony on Saturday 12th December 2026.\n\n👤 Guest: ${guestName}\n✅ Status: Attending (${guestCount} ${guestCount === 1 ? 'guest' : 'guests'})\n📝 Notes: ${notes?.trim() || 'None'}\n\nLooking forward to celebrating with you insha Allah!`;
+  } else {
+    message = `Assalamu Alaikum! Regretfully I am unable to attend Safiyya & Sharrafuth's Wedding Ceremony on Saturday 12th December 2026.\n\n👤 Guest: ${guestName}\n❌ Status: Regretfully Declined\n📝 Notes: ${notes?.trim() || 'None'}\n\nWishing you both immense blessings and happiness insha Allah!`;
+  }
+
+  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+}

@@ -3,7 +3,7 @@ import { Invitee } from '@/lib/types';
 import { StatCard } from './StatCard';
 import { GuestNotesSection } from './GuestNotesSection';
 import { formatTimeAgo } from '@/lib/utils';
-import { printGuestList } from '@/lib/printList';
+import { printGuestList, printDayOfCoordinatorSheet } from '@/lib/printList';
 import { exportSeatingCsv } from '@/lib/csvHelper';
 import { notify } from '@/lib/notify';
 import { getRsvpWindow } from '@/lib/rsvpDeadline';
@@ -20,6 +20,7 @@ import {
   Lock,
   TrendingUp,
   MessageSquare,
+  ClipboardCheck,
 } from 'lucide-react';
 
 export type OverviewFilter =
@@ -169,6 +170,15 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
     notify.success(`Exported seating chart with ${attendingCount} parties.`);
   };
 
+  const handlePrintDayOfSheet = () => {
+    if (invitees.length === 0) {
+      notify.info('No guests to print yet.');
+      return;
+    }
+    printDayOfCoordinatorSheet(invitees);
+    notify.success('Opening Day-Of Reception & Usher Roster...');
+  };
+
   if (totalInvited === 0) {
     return (
       <div className="bg-white rounded-3xl p-10 border border-[#e08aa3]/20 shadow-card-3d text-center max-w-xl mx-auto my-8">
@@ -249,6 +259,15 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           >
             <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
             <span>Seating CSV</span>
+          </button>
+
+          <button
+            onClick={handlePrintDayOfSheet}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 text-purple-800 hover:bg-purple-100 transition border border-purple-200 text-xs font-label uppercase tracking-wider font-medium cursor-pointer"
+            title="Print coordinator & usher check-in sheet with checkboxes & history"
+          >
+            <ClipboardCheck className="w-3.5 h-3.5 text-purple-600" />
+            <span>Day-Of Sheet</span>
           </button>
         </div>
       </div>
