@@ -1,224 +1,335 @@
-# Invitation Bloom
+# 🌸 Safiyya & Sharrafuth — Wedding Invitation & Host Dashboard
 
-BUILD
+A bespoke, production-ready, full-stack digital wedding invitation platform and administrative management suite built for **Safiyya & Sharrafuth's Wedding Ceremony** on **Saturday, 12th December 2026** at **Glen Reception Hall, Dehiwala**.
 
-Build a complete, full-stack personalized digital invitation web app using React (Vite), Tailwind CSS, Framer Motion for animations, and Supabase as the backend database. The app has two parts: a beautiful guest-facing invitation page unique per invitee, and an internal host dashboard. Every guest gets a unique URL like /invite/their-name-slug where their name appears personalized throughout. The host manages all invitees, views RSVPs, and shares via WhatsApp from a dashboard at /dashboard.
-
-The app must include:
-
-- A full-screen animated loader screen before the invitation reveals
-
-- A live countdown timer to the event date
-
-- An animated background canvas matching the chosen theme
-
-- Floating ambient elements falling or drifting across the full page
-
-- All page sections animate in via scroll reveal using Framer Motion useInView
-
-- Two event cards, each tapping to open Google Maps
-
-- A 3-step RSVP flow with guest count selector
-
-- A one-tap WhatsApp share button on the invitation page
-
-- A dashboard with Overview, All Invitees, and Add and Import tabs
-
-- CSV bulk import for invitees
-
-- No login required for the dashboard
+Built with **React 18**, **TypeScript**, **Vite**, **Tailwind CSS**, **Framer Motion**, and **Supabase** (PostgreSQL, Row-Level Security, and Edge Functions).
 
 ---
 
-CONTENT
-
-Event type: Wedding Ceremony
-
-Primary hosts: Mr. and Mrs. Ilyas
-
-Honoree 1 name: Sharrafuth Najiullah
-
-Honoree 2 name: Safiyya Ilyas
-
-Connecting word between honorees: and
-
-Opening line: بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ
-
-Opening line translation: In the Name of Almighty Allah, The Most Gracious, The Most Merciful
-
-Invitation body text: extend their warm greetings and have the pleasure of inviting you and your family to grace the wedding ceremony of their daughter
-
-Cultural phrase below honoree names: إِنْ شَاءَ اللَّهُ with Insha Allah below it in small italic
-
-Event 1 label: Wedding Ceremony
-
-Event 1 day and date: Saturday, 12th December 2026
-
-Event 1 time:  12:30 PM onwards
-
-Event 1 venue name: Glen Reception Hall
-
-Event 1 venue address: 325 Attidiya Rd, Dehiwala-Mount Lavinia
-
-Event 1 Google Maps URL: https://maps.app.goo.gl/edSeLip4NdWWpk4X9
-
-Closing blessing: May Almighty Allah bless this marriage with love, happiness, understanding, good health, and endless prosperity
-
-Cultural closing word: Ameen 
-
-Cultural closing in script: آمِيْن 
-
-WhatsApp message template: Assalamu Alaikum GUEST_NAME! The family of Mr. and Mrs. Ilyas cordially invite you to their daughters' Wedding Ceremony on Saturday 12th December 2026 at Glen Reception Hall from 12:30pm onwards. View your personal invitation here: GUEST_LINK
+## Table of Contents
+1. [Platform Architecture & Overview](#platform-architecture--overview)
+2. [The Guest Invitation Experience (`/invite/:slug`)](#the-guest-invitation-experience-inviteslug)
+   - [Interactive Gate & Double-Door Opening](#1-interactive-gate--double-door-opening)
+   - [Personalized Hero & Islamic Calligraphy](#2-personalized-hero--islamic-calligraphy)
+   - [Live Countdown Clock](#3-live-countdown-clock)
+   - [Event & Venue Details with Google Maps](#4-event--venue-details-with-google-maps)
+   - [Smart 3-Step RSVP Engine](#5-smart-3-step-rsvp-engine)
+   - [1-Tap WhatsApp Host RSVP Nudge](#6-1-tap-whatsapp-host-rsvp-nudge)
+   - [RSVP Deadline & Lock Protection](#7-rsvp-deadline--lock-protection)
+   - [PWA Offline Support & Audio Nasheed Player](#8-pwa-offline-support--audio-nasheed-player)
+3. [The Host Administrative Dashboard (`/dashboard`)](#the-host-administrative-dashboard-dashboard)
+   - [Bridal Authentication & Security](#1-bridal-authentication--security)
+   - [Overview & Analytics Tab](#2-overview--analytics-tab)
+   - [All Invitees Management Center](#3-all-invitees-management-center)
+   - [Printable Day-Of Reception & Usher Roster](#4-printable-day-of-reception--usher-roster)
+   - [Add & CSV Bulk Import Tab](#5-add--csv-bulk-import-tab)
+4. [Configuration & Environment Variables](#configuration--environment-variables)
+5. [Local Development & Deployment Commands](#local-development--deployment-commands)
 
 ---
 
-STYLE
+## Platform Architecture & Overview
 
-Theme name: Soft Floral
+The platform is divided into two distinct, interconnected systems:
 
-Page background color: #fdf9f5
-
-Primary accent color: #b05570
-
-Secondary accent color: #e8a4b4
-
-Card surface color: #ffffff
-
-Text primary color: #2d1a22
-
-Text muted color: #9a7080
-
-Display font for names and headings: Playfair Display
-
-Body font for paragraphs: Lora 
-
-Label font for caps and small text: Josefin Sans
-
-Script font for ampersand and decorative text: Great Vibes
-
-Arabic font: Amiri
-
-Animated background type: Eight large soft watercolor blobs drifting slowly, very low opacity, pastel rose and peach colors
-
-Floating element type: Rose petals in pink and blush, falling from the top with slight horizontal drift
-
-Number of floating elements: 28
-
-Loader animation type: A rose SVG that draws itself petal by petal using Framer Motion pathLength from 0 to 1, with staggered delays per petal
-
-Loader background color: #fdf9f5
-
-Card style: White or parchment surface, 1px border in accent color at 20 percent opacity, inset 10px inner border at 0.5px in accent color at 12 percent opacity, four CSS corner brackets using before and after pseudo elements in accent color at 18px length and 1.5px weight, shimmer sweep animation using a gradient moving left to right over 7 seconds.
-
-Scroll reveal: Every section fades in from y 28 to 0 with opacity 0 to 1, duration 0.8 seconds, easing cubic-bezier 0.22 1 0.36 1, triggered once using Framer Motion useInView with margin minus 60px.
-
-Hover on event cards: translateY minus 4px with box shadow increase, duration 0.3 seconds.
-
-Countdown style: Display font, weight 300, clamp 40px to 64px, primary accent color, tabular-nums, text shadow glow in accent color at 25 percent opacity.
-
-Hero stagger: Each element enters 0.25 seconds after the previous one, from y 20 to 0 with opacity 0 to 1.
+```
+                                  ┌───────────────────────────────┐
+                                  │   Supabase Cloud Database    │
+                                  │   (PostgreSQL + Auth + RLS)   │
+                                  └──────────────┬────────────────┘
+                                                 │
+                        ┌────────────────────────┴────────────────────────┐
+                        │                                                 │
+                        ▼                                                 ▼
+        ┌──────────────────────────────┐                  ┌──────────────────────────────┐
+        │   Guest Invitation Client    │                  │  Host Administrative Portal  │
+        │      `/invite/:slug`         │                  │         `/dashboard`         │
+        ├──────────────────────────────┤                  ├──────────────────────────────┤
+        │ • Double-door 3D animation   │                  │ • Password-only Bridal Auth  │
+        │ • Personalized name & audio  │                  │ • Live Attendance Donut      │
+        │ • 3-Step RSVP + Confetti     │                  │ • 14-Day Response Sparkline  │
+        │ • 1-Tap WhatsApp Host Nudge  │                  │ • Modular Guest List Table   │
+        │ • Add to Calendar & Maps     │                  │ • Day-Of Usher Check-in Sheet│
+        │ • Installable PWA cache      │                  │ • CSV Bulk Import & Export   │
+        └──────────────────────────────┘                  └──────────────────────────────┘
+```
 
 ---
 
-DASHBOARD
+## The Guest Invitation Experience (`/invite/:slug`)
 
-Route: /dashboard. No authentication required.
+Every invited guest receives a personalized, shareable URL formatted as `https://<domain>/invite/<guest-slug>` (e.g., `/invite/dr-farhan-family`).
 
-Header bar: Event name and honoree names on the left, event date on the right. Background uses a dark version of the theme color.
+### 1. Interactive Gate & Double-Door Opening
+- **Visual Presentation**: When a guest opens their link, they are welcomed by an ornate royal palace gate featuring high-resolution doors (`fancy_door_left.webp` & `fancy_door_right.webp`) adorned with golden door handle crests.
+- **Micro-Interaction**: Clicking or tapping the handle unlatches the gate with a smooth 3D swing opening animation powered by Framer Motion, revealing the invitation card underneath with a soft golden bloom.
+- **Audio Nasheed Accompaniment**: Unlatching the gate smoothly starts the traditional wedding background instrumental/nasheed, with a persistent sound control button in the top corner allowing guests to mute or adjust playback anytime.
 
-Three tabs: Overview, All Invitees, Add and Import.
+### 2. Personalized Hero & Islamic Calligraphy
+- **Sacred Invocations**: Features authentic Arabic calligraphic rendering of *Bismillahir Rahmanir Raheem* (بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ) with its English translation.
+- **Personalized Guest Salutation**: The guest's exact name is dynamically injected into the invitation text (e.g., *"Dear Dr. Farhan & Family, the family of Mr. and Mrs. Ilyas cordially invite you..."*).
+- **Couple Presentation**: Features the names **Safiyya Ilyas & Sharrafuth Najiullah** set in elegant typography with cultural inscriptions (*Insha Allah* / إِنْ شَاءَ اللَّهُ).
 
-Overview tab:
+### 3. Live Countdown Clock
+- Real-time countdown clock displaying remaining **Days**, **Hours**, **Minutes**, and **Seconds** until Saturday, 12th December 2026, 12:30 PM.
+- Automatically updates in real time and transforms into a celebration banner once the event commences.
 
-Stat cards in a responsive grid showing Total Invited, Attending, Declined, Pending, and Total Guest Count. Each card has a small uppercase label and a large number. Green for attending, red for declined, amber for pending, accent color for total guests.
+### 4. Event & Venue Details with Google Maps
+- **Ceremony Card**:
+  - **Date**: Saturday, 12th December 2026 (٣ رَجَب ١٤٤٨)
+  - **Time**: 12:30 PM onwards
+  - **Venue**: Glen Reception Hall, 325 Attidiya Rd, Dehiwala-Mount Lavinia
+- **One-Tap Actions**:
+  - **Get Directions**: Opens Google Maps directly pinned to Glen Reception Hall with coordinates.
+  - **Add to Calendar**: Generates an `.ics` calendar invite compatible with Apple Calendar, Google Calendar, and Microsoft Outlook.
 
-Response rate bar below the cards: a horizontal bar split into green, red, and amber segments with percentages. Animate the width on mount.
+### 5. Smart 3-Step RSVP Engine
+An intuitive multi-step form built into a 3D perspective card:
+1. **Step 1 — Attendance Choice**: Guest chooses between **"Joyfully Accept"** (Emerald) or **"Regretfully Decline"** (Rose).
+2. **Step 2 — Party Size & Dietary Notes**:
+   - If attending, a circular stepper (`-` / `+`) allows selecting the confirmed party headcount (1 to 10 guests).
+   - A multi-line text input lets guests submit special dietary requirements (e.g., vegetarian, allergies) or personal congratulations/du'as to the bride and groom.
+3. **Step 3 — Celebration & Confetti**:
+   - Submitting the RSVP triggers an instant colorful confetti cannon burst (`canvas-confetti`).
+   - The card transitions to a confirmation state summarizing confirmed party size and notes.
+   - An **"Edit Response"** button allows guests to adjust their response if their plans change before the deadline.
 
-Recent responses list below that: last 8 who responded, showing name, timestamp, and RSVP status.
+### 6. 1-Tap WhatsApp Host RSVP Nudge
+- Immediately upon completing their RSVP, guests see a dedicated card:
+  > **Quick Update for Host (Safiyya)**
+  > `[ Send Confirmation to Host on WhatsApp ]`
+- **How It Works**:
+  - Tapping this button opens WhatsApp directly addressed to the host's phone number (`HOST_WHATSAPP_NUMBER`).
+  - Pre-fills a beautifully formatted Islamic confirmation message with the guest's name, attendance decision, confirmed seats, and notes.
+  - **Zero Server Setup**: Works seamlessly on mobile and desktop without requiring any external email delivery service or webhook infrastructure.
 
-All Invitees tab:
+### 7. RSVP Deadline & Lock Protection
+- Governed by [`src/lib/rsvpDeadline.ts`](file:///d:/new_invite/src/lib/rsvpDeadline.ts).
+- Standard invitations have a cutoff of **7 days before the ceremony**; late invitations have a cutoff of **1 day before**.
+- **Lock Guard**: If a guest has submitted custom dietary notes or the cutoff deadline passes, the status is automatically locked to prevent accidental modifications, displaying a friendly prompt advising them to contact the family directly.
 
-Search input that filters the table live by name or slug.
-
-Filter pills for All, Pending, Attending, Declined.
-
-Table with columns: Name, Invitation Link, RSVP status, Guest count, Response date, Actions.
-
-Actions per row: WA button in WhatsApp green that opens a personalized WhatsApp message, View button that opens their invitation in a new tab, Copy button that copies the link, Delete button with a confirmation prompt.
-
-Row count shown below the table.
-
-Add and Import tab:
-
-Left panel: single invitee form with Name input required and WhatsApp number optional. Create Invitation button. On success show the generated link with a Copy button.
-
-Right panel: CSV upload area with dashed border. Accepts files with columns name and phone. Shows import progress. Shows sample CSV format in a code block.
+### 8. PWA Offline Support & Audio Nasheed Player
+- Installable on iOS and Android devices as a standalone Progressive Web App.
+- Uses Service Worker caching (`public/sw.js` v3) to precache images, fonts, and stylesheets so guests can revisit their invitation even with intermittent connectivity.
+- Accompanied by high-resolution multi-size icons (192px, 512px, Apple touch icon).
 
 ---
 
-SHARING AND RSVP
+## The Host Administrative Dashboard (`/dashboard`)
 
-Unique invitation URLs follow the pattern /invite/slug where slug is the guest name lowercased with spaces replaced by hyphens and special characters removed. Duplicate names get a number suffix like mohammed-2.
+The host dashboard allows the bride and family to oversee RSVPs, manage invitees, coordinate reminders, and print day-of check-in sheets.
 
-RSVP has three states. State one shows two buttons: Yes with a positive emoji and No with a graceful emoji. State two for Yes shows a guest count selector from 1 to 20 with minus and plus buttons, plus Back and Confirm buttons. State two for No shows a confirmation message with Back and Confirm. State three shows a warm thank you for attending or a graceful message for declined. On confirm, update Supabase with rsvp status, guest count, and responded_at timestamp. No page reload.
+### 1. Bridal Authentication & Security
+- **Access Route**: `/dashboard`
+- **Password-Only Login**: Designed specifically for the bride (**Safiyya**). She never has to type her email on mobile or desktop — `safiyya@mywedding.com` is automatically used.
+- **Press-and-Hold Reveal**: To prevent shoulder-surfing, the password reveal button only reveals the password while actively being held down, automatically re-masking when released.
+- **Flexible Session Management**:
+  - **Default**: Session is remembered for **5 days** before requiring re-entry.
+  - **Remember Me**: Checking "Remember Me" extends session persistence to **30 days**.
+- **Alternative Login**: A subtle *"login with different email?"* toggle allows co-hosts or developers to authenticate with other admin credentials.
+- **Row-Level Security (RLS)**: Enforced directly at the PostgreSQL database layer, preventing unauthenticated read or write access to the invitee database.
 
-WhatsApp share button is full width, WhatsApp green gradient, with inline SVG logo. On click it builds the personalized message using the guest name and slug, then opens https://wa.me/?text= with the message URL encoded.
+---
 
-Supabase table to create before connecting:
+### 2. Overview & Analytics Tab
 
-create table invitees (
+Provides an executive summary of wedding attendance and response velocity:
 
-  id uuid primary key default gen_random_uuid(),
+1. **Hero KPI Cards**:
+   - **Attending Parties**: Total number of confirmed invitations with percentage progress bar.
+   - **Total Headcount**: Sum total of confirmed seats across all attending parties.
+   - **Declined & Pending**: Exact counts of declined responses and pending outstanding invitations.
+   - **Sent Invitations & Reminders**: Total links sent via WhatsApp and total reminders delivered.
+2. **Interactive Attendance Donut Chart**:
+   - An SVG-rendered breakdown of Attending vs. Declined vs. Pending guests with animated segment hover states.
+3. **14-Day RSVP Velocity Sparkline**:
+   - Tracks response volume per day over the previous two weeks to monitor response trends.
+4. **Recent Response Activity Feed**:
+   - Live timeline of the last 8 responses received with guest name, status, and relative time (e.g., *"2 hours ago"*).
+5. **Guest Notes & Dietary Summary**:
+   - Automatically collates all dietary requirements and personal notes submitted by guests into a dedicated, searchable section for the caterer.
+6. **Top Action Bar**:
+   - **Print All**: Opens a printable master PDF guest list.
+   - **Print Attending**: Generates a clean list of attending guests.
+   - **Seating CSV**: Downloads a CSV file with party sizes and guest names for seating chart planning.
+   - **Day-Of Sheet**: Launches the comprehensive Reception & Usher Check-in Sheet.
 
-  name text not null,
+---
 
-  slug text not null unique,
+### 3. All Invitees Management Center
 
-  phone text,
+The centerpiece of guest management, refactored into modular subcomponents in `src/components/dashboard/invitees/`:
 
-  rsvp text not null default pending check (rsvp in (pending, attending, declined)),
+#### A. Invitees Toolbar ([`InviteesToolbar.tsx`](file:///d:/new_invite/src/components/dashboard/invitees/InviteesToolbar.tsx))
+- **Live Search**: Instant real-time filtering by guest name, phone number (`+94...`), or invitation URL slug.
+- **Real-Time Chip Filters with Dynamic Count Badges**:
+  - `All`: Total guest list count.
+  - `Attending`: Confirmed parties.
+  - `Declined`: Parties unable to attend.
+  - `Pending`: Unanswered invitations.
+  - `Opened (Unresponded)`: Guests who opened their link but haven't submitted an RSVP.
+  - `Not Sent`: Guests who haven't received their WhatsApp invite link yet.
+  - `Ignored (48h+)`: Invitations sent over 48 hours ago that haven't been opened.
+- **Mobile Sort Dropdown**: Quick sorting by Name (A-Z), RSVP status, Headcount, Activity, Sent Date, or Responded Date.
+- **Toolbar Action Buttons**:
+  - **Remind Pending**: Initiates a guided reminder flow for pending guests.
+  - **Export CSV**: Downloads the currently filtered list as a CSV spreadsheet.
+  - **Day-Of Sheet**: Opens the reception roster for the currently filtered selection.
 
-  guest_count integer not null default 0,
+#### B. Batch Action Bar ([`BatchActionBar.tsx`](file:///d:/new_invite/src/components/dashboard/invitees/BatchActionBar.tsx))
+- Appears whenever one or more guests are selected (sticky on mobile).
+- **Select All Filtered**: Allows selecting all matching guests across pagination pages with 1 click.
+- **Bulk Mark Sent**: Marks all selected guests as sent in one action.
+- **Bulk Delete**: Safely removes selected guests with a **5-second undo toast**.
+- **WhatsApp Sequential Queue**:
+  - Automatically loads selected guests into a queue.
+  - Opens each guest's WhatsApp message one-by-one.
+  - Click **"Open & Next"** to advance through the list seamlessly without losing your place.
 
-  responded_at timestamptz,
+#### C. Desktop Table & Mobile Cards ([`InviteesDesktopTable.tsx`](file:///d:/new_invite/src/components/dashboard/invitees/InviteesDesktopTable.tsx) & [`InviteesMobileList.tsx`](file:///d:/new_invite/src/components/dashboard/invitees/InviteesMobileList.tsx))
+- **Inline Editing**: Click the pencil icon to edit any guest's name or phone number directly without opening a separate page.
+- **RSVP Status Override**: Dropdown to change RSVP status. If custom notes exist, the status is lock-protected with a badge. Changing to "Attending" prompts for confirmed headcount.
+- **Activity & Open Tracking**: Displays how many times the guest opened their invitation and when it was last viewed.
+- **Expandable Activity Timeline**: Clicking on the activity badge unfolds the [`InviteeTimeline.tsx`](file:///d:/new_invite/src/components/dashboard/InviteeTimeline.tsx) showing exact timestamps for creation, sharing, opens, and RSVP submissions.
+- **Direct Row Actions**:
+  - `WA`: Launches WhatsApp with pre-filled personal invitation message.
+  - `Copy Message`: Copies formatted WhatsApp invitation text to clipboard.
+  - `Copy Link`: Copies the short link `/invite/:slug`.
+  - `External Link`: Opens the guest's personalized invitation in a new tab.
+  - `Delete`: Prompts for confirmation with 5-second undo grace period.
 
-  created_at timestamptz not null default now()
+#### D. Pagination Controls ([`InviteesPagination.tsx`](file:///d:/new_invite/src/components/dashboard/invitees/InviteesPagination.tsx))
+- Choose between **25**, **50**, **100**, or **All** items per page.
+- Previous / Next buttons with page counter and summary of currently visible items.
 
-);
+#### E. Confirmation & Reminder Modals ([`InviteesModals.tsx`](file:///d:/new_invite/src/components/dashboard/invitees/InviteesModals.tsx))
+- **RSVP Change Modal**: Confirms manual overrides and lets you specify the party size.
+- **Single & Bulk Delete Modals**: Displays preview cards of affected invitees and guarantees a 5-second undo window.
+- **Reminder Queue Modal**:
+  - Displays guest details, reminder count, and preview of the reminder message.
+  - **48-Hour Throttle Guard**: Alerts you if the guest was reminded recently, with an override checkbox if you wish to send anyway.
+  - Actions: **Copy Text**, **Skip**, or **Open WhatsApp**.
 
-create index on invitees(slug);
+---
 
-create index on invitees(rsvp);
+### 4. Printable Day-Of Reception & Usher Roster
 
-Environment variables:
+Accessible via the **"Day-Of Sheet"** button on the Overview Tab and the Invitees Toolbar:
+- **Arrival Checkboxes**: Physical `[ ]` check-in boxes designed for ushers with clipboards to tick off guests as they arrive at the venue.
+- **Dietary & Special Notes**: Highlighted in soft amber boxes so ushers and table coordinators immediately see catering requirements before seating guests.
+- **Touchpoint History**: Summarizes when the invitation was sent, how many times it was opened, when they RSVP'd, and reminder counts.
+- **Header & Venue Banner**: Displays bride & groom names, event date, venue address, and coordinator KPI metrics (Attending Parties, Confirmed Seats, Dietary Notes Count, Total on Roster).
+- **Print Optimization**: Automatically formats for standard **A4 portrait** printing (`@media print` rules eliminate UI buttons, ensure crisp borders, and prevent table row splitting across pages).
 
-VITE_SUPABASE_URL = https://jrzdhsteifzkgvmwkdwt.supabase.co/
+---
 
-VITE_SUPABASE_ANON_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpyemRoc3RlaWZ6a2d2bXdrZHd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1NDc3MDgsImV4cCI6MjEwMzEyMzcwOH0.Vvto2WEGO86feOQUsZDqRwTK9_qbRINwIKJGLGSRJmM
+### 5. Add & CSV Bulk Import Tab
 
-Use react-router-dom v6. Route / redirects to /dashboard. Route /invite/:slug is the invitation page. Route * shows a themed 404 page.
+- **Add Single Guest**:
+  - Form fields: Full Name, Phone Number (e.g. `+9477...`), Expected Party Size.
+  - URL slug is automatically generated in real-time from the name (e.g., *"Uncle Nizar & Family"* ➔ `uncle-nizar-family`).
+- **CSV Bulk Import**:
+  - Upload any `.csv` file containing names and phone numbers.
+  - Interactive column mapping interface (maps your spreadsheet headers to `Name` and `Phone`).
+  - Real-time preview with validation and duplicate detection against existing guests.
+  - 1-click batch import directly into Supabase.
 
-Mobile first. Every layout works from 360px width upward. Use clamp for all display font sizes. No form tags anywhere. All interactions use onClick handlers.
+---
 
-This project was built with [Lovable](https://lovable.dev).
+## Configuration & Environment Variables
 
-**Live app**: https://whisper-rsvp.lovable.app
+All ceremony details, cultural texts, and templates are centrally organized in [`src/config/weddingConfig.ts`](file:///d:/new_invite/src/config/weddingConfig.ts).
 
-## Build with Lovable
+### Environment Variables (`.env`)
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/e1158e6b-4797-4d26-93ce-37e2b5b1f709).
+| Variable | Description | Example |
+|---|---|---|
+| `HOST_WHATSAPP_NUMBER` | Host phone number for 1-tap WhatsApp RSVP confirmations | `"+966551467155"` |
+| `VITE_SUPABASE_URL` | Supabase Project API URL | `"https://xxxx.supabase.co"` |
+| `VITE_SUPABASE_ANON_KEY` | Supabase Public Anonymous API Key | `"eyJhbGciOi..."` |
+| `VITE_SUPABASE_PROJECT_ID` | Supabase Project Identifier | `"siqtgmsxrwhnlfpvybhw"` |
+| `VITE_SUPABASE_PUBLISHABLE_KEY`| Supabase Publishable Key | `"sb_publishable_..."` |
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+### Customizing Ceremony Content ([`src/config/weddingConfig.ts`](file:///d:/new_invite/src/config/weddingConfig.ts))
 
-## Development
+To modify ceremony dates, couple names, venue, or WhatsApp messages, simply update the configuration object:
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+```typescript
+export const weddingConfig: WeddingConfig = {
+  couple: {
+    bride: 'Safiyya',
+    groom: 'Sharrafuth',
+    brideFull: 'Safiyya Ilyas',
+    groomFull: 'Sharrafuth Najiullah',
+  },
+  event: {
+    type: 'Wedding Ceremony',
+    label: 'Wedding Ceremony',
+    dayAndDate: 'Saturday, 12th December 2026',
+    hijriDate: '٣ رَجَب ١٤٨',
+    time: '12:30 PM onwards',
+    targetDate: '2026-12-12T12:30:00+05:30',
+    venue: {
+      name: 'Glen Reception Hall',
+      address: '325 Attidiya Rd, Dehiwala-Mount Lavinia',
+      mapsUrl: 'https://maps.app.goo.gl/edSeLip4NdWWpk4X9',
+    },
+  },
+  admin: {
+    email: 'safiyya@mywedding.com',
+    name: 'Safiyya',
+    defaultSessionDays: 5,
+    rememberMeSessionDays: 30,
+    whatsappNotificationNumber: import.meta.env.HOST_WHATSAPP_NUMBER || '+94772257533',
+  },
+  whatsapp: {
+    messageTemplate: "Assalamu Alaikum GUEST_NAME\n\nThe family of Mr. and Mrs. Ilyas cordially invite you...",
+    reminderTemplate: "Assalamu Alaikum GUEST_NAME\n\nA gentle reminder about Safiyya & Sharrafuth's Wedding Ceremony...",
+  },
+};
+```
 
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
+---
+
+## Local Development & Deployment Commands
+
+### Prerequisites
+- **Node.js**: v18.0.0 or higher
+- **npm**: v9.0.0 or higher
+
+### Installation
+```bash
+# Clone the repository
+git clone https://github.com/Sarannisar/invitation-bloom.git
+cd invitation-bloom
+
+# Install dependencies
+npm install
+```
+
+### Running Locally
+```bash
+# Start Vite development server
 npm run dev
 ```
+The application will be available at `http://localhost:5173/`.
+- Guest Invitation Preview: `http://localhost:5173/invite/<slug>`
+- Host Administrative Dashboard: `http://localhost:5173/dashboard`
+
+### Type Checking & Production Build
+```bash
+# Verify TypeScript compile without emitting files
+npx tsc --noEmit
+
+# Build production bundle to dist/
+npm run build
+
+# Preview production build locally
+npm run preview
+```
+
+---
+
+## License & Credits
+
+Designed and customized with elegance for **Safiyya & Sharrafuth's Wedding**. All rights reserved © 2026.
