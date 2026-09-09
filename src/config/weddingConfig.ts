@@ -123,9 +123,9 @@ export const weddingConfig: WeddingConfig = {
     reminderTemplate:
       "Assalamu Alaikum GUEST_NAME\n\nA gentle reminder about Safiyya & Sharrafuth's Wedding Ceremony on Saturday 12th December 2026 at Glen Reception Hall, 12:30pm onwards.\n\nWe would love to know if you can join us — please confirm here: GUEST_LINK",
     hostConfirmationAttendingTemplate:
-      "Assalamu Alaikum! I have confirmed my RSVP for Safiyya & Sharrafuth's Wedding Ceremony on Saturday 12th December 2026.\n\n👤 Guest: GUEST_NAME\n✅ Status: Attending (GUEST_COUNT)\n📝 Notes: NOTES\n\nLooking forward to celebrating with you insha Allah!",
+      "Assalamu Alaikum! I have confirmed my RSVP for the Wedding Ceremony.\n\n👤 Guest: GUEST_NAME\n✅ Status: Attending (GUEST_COUNT)\n📝 Notes: NOTES\n\nLooking forward to celebrating with you insha Allah!",
     hostConfirmationDeclinedTemplate:
-      "Assalamu Alaikum! Regretfully I am unable to attend Safiyya & Sharrafuth's Wedding Ceremony on Saturday 12th December 2026.\n\n👤 Guest: GUEST_NAME\n❌ Status: Regretfully Declined\n📝 Notes: NOTES\n\nWishing you both immense blessings and happiness insha Allah!",
+      "Assalamu Alaikum! Regretfully I am unable to attend the Wedding Ceremony.\n\n👤 Guest: GUEST_NAME\n❌ Status: Regretfully Declined\n📝 Notes: NOTES\n\nWishing you both immense blessings and happiness insha Allah!",
   },
   rsvp: {
     standardCutoffDaysBefore: 7,

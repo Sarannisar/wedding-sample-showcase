@@ -71,5 +71,5 @@ export function getHostRsvpWhatsAppUrl({
     .replace(/GUEST_COUNT/g, countText)
     .replace(/NOTES/g, notesText);
 
-  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+  return `https://api.whatsapp.com/send/?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
 }

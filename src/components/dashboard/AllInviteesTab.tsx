@@ -328,8 +328,8 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
     const message = buildWhatsAppMessage(invitee);
     const phoneParam = invitee.phone ? invitee.phone.replace(/[^0-9]/g, '') : '';
     const waUrl = phoneParam
-      ? `https://wa.me/${phoneParam}?text=${encodeURIComponent(message)}`
-      : `https://wa.me/?text=${encodeURIComponent(message)}`;
+      ? `https://api.whatsapp.com/send/?phone=${phoneParam}&text=${encodeURIComponent(message)}`
+      : `https://api.whatsapp.com/send/?text=${encodeURIComponent(message)}`;
 
     window.open(waUrl, '_blank', 'noopener,noreferrer');
     void onMarkShared(invitee.id);
@@ -387,8 +387,8 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
     const message = buildReminderMessage(current);
     const phoneParam = current.phone ? current.phone.replace(/[^0-9]/g, '') : '';
     const waUrl = phoneParam
-      ? `https://wa.me/${phoneParam}?text=${encodeURIComponent(message)}`
-      : `https://wa.me/?text=${encodeURIComponent(message)}`;
+      ? `https://api.whatsapp.com/send/?phone=${phoneParam}&text=${encodeURIComponent(message)}`
+      : `https://api.whatsapp.com/send/?text=${encodeURIComponent(message)}`;
 
     window.open(waUrl, '_blank', 'noopener,noreferrer');
     if (onRemindInvitee) {
