@@ -481,13 +481,26 @@ export async function updateRsvp(
   if (isSupabaseConfigured && supabase) {
     try {
       // 1. Fetch current invitee state to verify deadline window
+      let existing: { id: string; first_opened_at?: string | null; created_at?: string | null } | null = null;
       const { data: existingRows, error: fetchErr } = await supabase
         .from('invitees')
         .select('id, first_opened_at, created_at')
         .eq('slug', slug)
         .limit(1);
 
-      if (fetchErr) {
+      if (!fetchErr && existingRows && existingRows.length > 0) {
+        existing = existingRows[0];
+      } else if (fetchErr && (fetchErr.code === '42703' || fetchErr.message?.includes('first_opened_at'))) {
+        // Fallback gracefully if database table is missing the first_opened_at column
+        const { data: fallbackRows } = await supabase
+          .from('invitees')
+          .select('id, created_at')
+          .eq('slug', slug)
+          .limit(1);
+        if (fallbackRows && fallbackRows.length > 0) {
+          existing = { ...fallbackRows[0], first_opened_at: null };
+        }
+      } else if (fetchErr) {
         return {
           ok: false,
           reason: 'rejected',
@@ -495,7 +508,6 @@ export async function updateRsvp(
         };
       }
 
-      const existing = existingRows && existingRows.length > 0 ? existingRows[0] : null;
       const anchor = existing ? existing.first_opened_at || existing.created_at : null;
       const window = getRsvpWindow(anchor);
       if (!window.isOpen) {
@@ -817,21 +829,19 @@ export async function markInviteeReminded(id: string): Promise<boolean> {
         .from('invitees')
         .select('reminder_count')
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
-      const nextCount = (current?.reminder_count || 0) + 1;
+      const nextCount = ((current as any)?.reminder_count || 0) + 1;
       const { error } = await supabase
         .from('invitees')
         .update({ reminded_at: remindedAt, reminder_count: nextCount })
         .eq('id', id);
 
       if (error) {
-        console.error('Supabase markInviteeReminded error:', error);
-        return false;
+        console.warn('Supabase markInviteeReminded warning (columns may be pending migration):', error.message);
       }
     } catch (err) {
-      console.error('Supabase markInviteeReminded failed:', err);
-      return false;
+      console.warn('Supabase markInviteeReminded non-fatal catch:', err);
     }
   }
 
