@@ -247,7 +247,7 @@ All ceremony details, cultural texts, and templates are centrally organized in [
 | `HOST_WHATSAPP_NUMBER` | Host phone number for 1-tap WhatsApp RSVP confirmations | `"+966551467155"` |
 | `VITE_SUPABASE_URL` | Supabase Project API URL | `"https://xxxx.supabase.co"` |
 | `VITE_SUPABASE_ANON_KEY` | Supabase Public Anonymous API Key | `"eyJhbGciOi..."` |
-| `VITE_SUPABASE_PROJECT_ID` | Supabase Project Identifier | `"siqtgmsxrwhnlfpvybhw"` |
+| `VITE_SUPABASE_PROJECT_ID` | Supabase Project Identifier | `"jrzdhsteifzkgvmwkdwt"` |
 | `VITE_SUPABASE_PUBLISHABLE_KEY`| Supabase Publishable Key | `"sb_publishable_..."` |
 
 ### Customizing Ceremony Content ([`src/config/weddingConfig.ts`](file:///d:/new_invite/src/config/weddingConfig.ts))
