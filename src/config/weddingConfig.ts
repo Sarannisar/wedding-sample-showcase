@@ -44,6 +44,8 @@ export interface WeddingConfig {
   whatsapp: {
     messageTemplate: string; // contains GUEST_NAME and GUEST_LINK placeholders
     reminderTemplate?: string;
+    hostConfirmationAttendingTemplate?: string; // contains GUEST_NAME, GUEST_COUNT, NOTES
+    hostConfirmationDeclinedTemplate?: string; // contains GUEST_NAME, NOTES
   };
   rsvp?: {
     standardCutoffDaysBefore: number;
@@ -120,6 +122,10 @@ export const weddingConfig: WeddingConfig = {
       "Assalamu Alaikum GUEST_NAME\n\nThe family of Mr. and Mrs. Illyas cordially invite you to their daughter Safiyya's Wedding Ceremony on Saturday 12th December 2026 at Glen Reception Hall from 12:30pm onwards.\n\nView your personal invitation here: GUEST_LINK",
     reminderTemplate:
       "Assalamu Alaikum GUEST_NAME\n\nA gentle reminder about Safiyya & Sharrafuth's Wedding Ceremony on Saturday 12th December 2026 at Glen Reception Hall, 12:30pm onwards.\n\nWe would love to know if you can join us — please confirm here: GUEST_LINK",
+    hostConfirmationAttendingTemplate:
+      "Assalamu Alaikum! I have confirmed my RSVP for Safiyya & Sharrafuth's Wedding Ceremony on Saturday 12th December 2026.\n\n👤 Guest: GUEST_NAME\n✅ Status: Attending (GUEST_COUNT)\n📝 Notes: NOTES\n\nLooking forward to celebrating with you insha Allah!",
+    hostConfirmationDeclinedTemplate:
+      "Assalamu Alaikum! Regretfully I am unable to attend Safiyya & Sharrafuth's Wedding Ceremony on Saturday 12th December 2026.\n\n👤 Guest: GUEST_NAME\n❌ Status: Regretfully Declined\n📝 Notes: NOTES\n\nWishing you both immense blessings and happiness insha Allah!",
   },
   rsvp: {
     standardCutoffDaysBefore: 7,

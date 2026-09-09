@@ -7,6 +7,8 @@
  * invitation page, so we use it as the shared link.
  */
 
+import { weddingConfig } from '@/config/weddingConfig';
+
 const rawSupabaseUrl = (import.meta.env.VITE_SUPABASE_URL || '')
   .replace(/\/rest\/v1\/?$/, '')
   .replace(/\/+$/, '');
@@ -51,12 +53,23 @@ export function getHostRsvpWhatsAppUrl({
   const cleanPhone = hostPhone.replace(/\D/g, '');
   const isAttending = rsvp === 'attending';
 
-  let message = '';
-  if (isAttending) {
-    message = `Assalamu Alaikum! I have confirmed my RSVP for Safiyya & Sharrafuth's Wedding Ceremony on Saturday 12th December 2026.\n\n👤 Guest: ${guestName}\n✅ Status: Attending (${guestCount} ${guestCount === 1 ? 'guest' : 'guests'})\n📝 Notes: ${notes?.trim() || 'None'}\n\nLooking forward to celebrating with you insha Allah!`;
-  } else {
-    message = `Assalamu Alaikum! Regretfully I am unable to attend Safiyya & Sharrafuth's Wedding Ceremony on Saturday 12th December 2026.\n\n👤 Guest: ${guestName}\n❌ Status: Regretfully Declined\n📝 Notes: ${notes?.trim() || 'None'}\n\nWishing you both immense blessings and happiness insha Allah!`;
-  }
+  const defaultAttending =
+    "Assalamu Alaikum! I have confirmed my RSVP for Safiyya & Sharrafuth's Wedding Ceremony on Saturday 12th December 2026.\n\n👤 Guest: GUEST_NAME\n✅ Status: Attending (GUEST_COUNT)\n📝 Notes: NOTES\n\nLooking forward to celebrating with you insha Allah!";
+
+  const defaultDeclined =
+    "Assalamu Alaikum! Regretfully I am unable to attend Safiyya & Sharrafuth's Wedding Ceremony on Saturday 12th December 2026.\n\n👤 Guest: GUEST_NAME\n❌ Status: Regretfully Declined\n📝 Notes: NOTES\n\nWishing you both immense blessings and happiness insha Allah!";
+
+  const rawTemplate = isAttending
+    ? weddingConfig.whatsapp?.hostConfirmationAttendingTemplate || defaultAttending
+    : weddingConfig.whatsapp?.hostConfirmationDeclinedTemplate || defaultDeclined;
+
+  const countText = `${guestCount} ${guestCount === 1 ? 'guest' : 'guests'}`;
+  const notesText = notes?.trim() || 'None';
+
+  const message = rawTemplate
+    .replace(/GUEST_NAME/g, guestName)
+    .replace(/GUEST_COUNT/g, countText)
+    .replace(/NOTES/g, notesText);
 
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
 }
