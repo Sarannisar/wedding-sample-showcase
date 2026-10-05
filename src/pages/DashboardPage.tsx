@@ -20,6 +20,9 @@ import { weddingConfig } from '@/config/weddingConfig';
 import { OverviewTab } from '@/components/dashboard/OverviewTab';
 import { AllInviteesTab, ChipFilter } from '@/components/dashboard/AllInviteesTab';
 import { AddImportTab } from '@/components/dashboard/AddImportTab';
+import { MemoriesTab } from '@/components/dashboard/MemoriesTab';
+import { WeddingEvent } from '@/lib/memoriesTypes';
+import { fetchWeddingEvent } from '@/lib/memoriesService';
 import { notify } from '@/lib/notify';
 import { exportDatabaseSnapshot } from '@/lib/backupHelper';
 import { formatRelativeTime } from '@/lib/utils';
@@ -33,11 +36,13 @@ import {
   Download,
   LogOut,
   ShieldCheck,
+  Camera,
 } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
   const [invitees, setInvitees] = useState<Invitee[]>([]);
-  const [activeTab, setActiveTab] = useState<'overview' | 'all' | 'add'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'all' | 'add' | 'memories'>('overview');
+  const [weddingEvent, setWeddingEvent] = useState<WeddingEvent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'live' | 'polling' | 'offline'>('polling');
@@ -45,6 +50,7 @@ export const DashboardPage: React.FC = () => {
   const [targetInviteeId, setTargetInviteeId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<ChipFilter>('all');
   const [openReminderQueue, setOpenReminderQueue] = useState(false);
+  const [openBulkSenderQueue, setOpenBulkSenderQueue] = useState(false);
 
   // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -151,6 +157,7 @@ export const DashboardPage: React.FC = () => {
   useEffect(() => {
     if (isAuthenticated) {
       void loadData();
+      void fetchWeddingEvent('safiyya-sharrafuth').then(setWeddingEvent);
     }
   }, [isAuthenticated, loadData]);
 
@@ -526,6 +533,18 @@ export const DashboardPage: React.FC = () => {
             <UserPlus className="w-4 h-4" />
             <span>Add & Import</span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('memories')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-label uppercase tracking-wider font-semibold transition-all cursor-pointer ${
+              activeTab === 'memories'
+                ? 'bg-[#e08aa3] text-white shadow'
+                : 'text-gray-600 hover:bg-white/80'
+            }`}
+          >
+            <Camera className="w-4 h-4" />
+            <span>Memories</span>
+          </button>
         </div>
 
         {/* Tab Content with Skeleton Loading (Step 16 #27) */}
@@ -608,6 +627,10 @@ export const DashboardPage: React.FC = () => {
                   setActiveTab('all');
                   setOpenReminderQueue(true);
                 }}
+                onOpenBulkSender={() => {
+                  setActiveTab('all');
+                  setOpenBulkSenderQueue(true);
+                }}
               />
             )}
             {activeTab === 'all' && (
@@ -627,6 +650,8 @@ export const DashboardPage: React.FC = () => {
                 onBulkRemind={handleBulkRemind}
                 openReminderQueue={openReminderQueue}
                 onResetReminderQueue={() => setOpenReminderQueue(false)}
+                openBulkSenderQueue={openBulkSenderQueue}
+                onResetBulkSenderQueue={() => setOpenBulkSenderQueue(false)}
                 onUpdateInvitee={handleUpdateInvitee}
               />
             )}
@@ -636,6 +661,12 @@ export const DashboardPage: React.FC = () => {
                 onAddInvitee={handleAddInvitee}
                 onBulkAddInvitees={handleBulkAdd}
                 onNavigateToAll={handleNavigateToAll}
+              />
+            )}
+            {activeTab === 'memories' && weddingEvent && (
+              <MemoriesTab
+                event={weddingEvent}
+                onEventUpdated={setWeddingEvent}
               />
             )}
           </>

@@ -33,3 +33,6 @@ dist-ssr
 # Large local video references
 reference 01.mp4
 reference 02.mp4
+
+# Supabase temp
+supabase/.temp

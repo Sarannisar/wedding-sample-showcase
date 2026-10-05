@@ -12,6 +12,12 @@ const GuestInvitePage = lazy(() =>
 const NotFoundPage = lazy(() =>
   import('@/pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage }))
 );
+const GuestMemoriesPage = lazy(() =>
+  import('@/pages/GuestMemoriesPage').then((m) => ({ default: m.GuestMemoriesPage }))
+);
+const LiveWeddingDisplayPage = lazy(() =>
+  import('@/pages/LiveWeddingDisplayPage').then((m) => ({ default: m.LiveWeddingDisplayPage }))
+);
 
 const PageFallbackLoader: React.FC = () => (
   <div className="min-h-screen w-full bg-[#fffafc] flex items-center justify-center">
@@ -79,6 +85,39 @@ export const App: React.FC = () => {
                   fallbackMessage="There was a problem loading the invitation."
                 >
                   <GuestInvitePage />
+                </ErrorBoundary>
+              }
+            />
+            <Route
+              path="/memories/:eventSlug/live"
+              element={
+                <ErrorBoundary
+                  fallbackTitle="Live Display Error"
+                  fallbackMessage="There was a problem loading the live wedding display."
+                >
+                  <LiveWeddingDisplayPage />
+                </ErrorBoundary>
+              }
+            />
+            <Route
+              path="/memories/:eventSlug"
+              element={
+                <ErrorBoundary
+                  fallbackTitle="Memories Error"
+                  fallbackMessage="There was a problem loading the wedding memories page."
+                >
+                  <GuestMemoriesPage />
+                </ErrorBoundary>
+              }
+            />
+            <Route
+              path="/memories"
+              element={
+                <ErrorBoundary
+                  fallbackTitle="Memories Error"
+                  fallbackMessage="There was a problem loading wedding memories."
+                >
+                  <GuestMemoriesPage />
                 </ErrorBoundary>
               }
             />

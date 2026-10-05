@@ -38,6 +38,7 @@ export interface OverviewTabProps {
   onFilterClick?: (status: OverviewFilter) => void;
   onGuestClick?: (guestId: string) => void;
   onRemindAll?: () => void;
+  onOpenBulkSender?: () => void;
 }
 
 export const OverviewTab: React.FC<OverviewTabProps> = ({
@@ -46,6 +47,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   onFilterClick,
   onGuestClick,
   onRemindAll,
+  onOpenBulkSender,
 }) => {
   const [hoveredSegment, setHoveredSegment] = useState<'attending' | 'declined' | 'pending' | null>(
     null
@@ -233,7 +235,18 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          {onOpenBulkSender && (
+            <button
+              onClick={onOpenBulkSender}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#25D366] text-white hover:bg-[#128C7E] transition shadow-xs text-xs font-label uppercase tracking-wider font-bold cursor-pointer"
+              title="Open WhatsApp Bulk Invite Sender"
+            >
+              <Send className="w-3.5 h-3.5 fill-current" />
+              <span>Send All Invites ({notSentCount > 0 ? `${notSentCount} unsent` : 'All'})</span>
+            </button>
+          )}
+
           <button
             onClick={() => handlePrint('all')}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#fff2f6] text-[#b05570] hover:bg-[#f7c1d0]/40 transition border border-[#e08aa3]/20 text-xs font-label uppercase tracking-wider font-medium cursor-pointer"
@@ -327,10 +340,23 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             </span>
             <Send className="w-4 h-4 text-[#128C7E]" />
           </div>
-          <div className="my-1.5">
+          <div className="my-1.5 flex items-baseline justify-between">
             <span className="font-display font-bold text-2xl text-[#128C7E]">
               {notSentCount}
             </span>
+            {notSentCount > 0 && onOpenBulkSender && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenBulkSender();
+                }}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#25D366]/15 hover:bg-[#25D366]/25 text-[#128C7E] text-[10px] font-label font-bold uppercase tracking-wider transition cursor-pointer"
+                title="Send WhatsApp invite to all unsent guests"
+              >
+                <Send className="w-3 h-3 fill-current" />
+                <span>Send all</span>
+              </button>
+            )}
           </div>
           <span className="text-xs font-body text-[#7a4d5d]">
             {notSentCount} awaiting link

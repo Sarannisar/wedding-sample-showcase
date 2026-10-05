@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, X, BellRing, Download, ClipboardCheck } from 'lucide-react';
+import { Search, X, BellRing, Download, ClipboardCheck, Send } from 'lucide-react';
 
 export type ChipFilter =
   | 'all'
@@ -30,6 +30,7 @@ export interface InviteesToolbarProps {
   counts: Record<ChipFilter, number>;
   filteredCount: number;
   onStartReminderQueue: () => void;
+  onOpenBulkSender?: () => void;
   onExportCsv: () => void;
   onPrintDayOfSheet: () => void;
   sortColumn: SortColumn;
@@ -78,6 +79,17 @@ export const InviteesToolbar: React.FC<InviteesToolbarProps> = ({
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+          {onOpenBulkSender && (
+            <button
+              onClick={onOpenBulkSender}
+              className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#128C7E] text-white text-xs font-label uppercase tracking-wider font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
+              title="Open Bulk WhatsApp Invite Sender for all created invites"
+            >
+              <Send className="w-4 h-4 fill-current" />
+              <span>Send Invites ({counts.notsent > 0 ? `${counts.notsent} unsent` : 'All'})</span>
+            </button>
+          )}
+
           <button
             onClick={onStartReminderQueue}
             className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-label uppercase tracking-wider font-semibold transition-colors cursor-pointer"

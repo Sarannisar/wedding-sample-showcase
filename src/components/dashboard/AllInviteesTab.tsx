@@ -21,6 +21,7 @@ import {
   InviteesModals,
   RsvpConfirmTarget,
 } from './invitees/InviteesModals';
+import { BulkWhatsAppSenderModal } from './BulkWhatsAppSenderModal';
 import { Search, RotateCcw } from 'lucide-react';
 
 export type { ChipFilter, SortColumn, SortDirection };
@@ -41,6 +42,8 @@ export interface AllInviteesTabProps {
   onBulkRemind?: (ids: string[]) => Promise<boolean>;
   openReminderQueue?: boolean;
   onResetReminderQueue?: () => void;
+  openBulkSenderQueue?: boolean;
+  onResetBulkSenderQueue?: () => void;
   onUpdateInvitee: (
     id: string,
     updates: Partial<Pick<Invitee, 'name' | 'phone' | 'notes' | 'rsvp' | 'guest_count' | 'responded_at'>>
@@ -63,6 +66,8 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
   onBulkRemind: _onBulkRemind,
   openReminderQueue,
   onResetReminderQueue,
+  openBulkSenderQueue,
+  onResetBulkSenderQueue,
   onUpdateInvitee,
 }) => {
   // Search & Filter State
@@ -88,6 +93,10 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
   const [copiedTextId, setCopiedTextId] = useState<string | null>(null);
   const [queue, setQueue] = useState<Invitee[] | null>(null);
   const [queueIndex, setQueueIndex] = useState(0);
+
+  // Bulk WhatsApp Sender Modal State
+  const [showBulkSenderModal, setShowBulkSenderModal] = useState(false);
+  const [bulkSenderInitialIds, setBulkSenderInitialIds] = useState<string[] | undefined>(undefined);
 
   // Modals & Operation States
   const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<Invitee | null>(null);
@@ -381,6 +390,14 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
     }
   }, [openReminderQueue]);
 
+  useEffect(() => {
+    if (openBulkSenderQueue) {
+      setBulkSenderInitialIds(undefined);
+      setShowBulkSenderModal(true);
+      onResetBulkSenderQueue?.();
+    }
+  }, [openBulkSenderQueue]);
+
   const sendReminderCurrentAndAdvance = async () => {
     if (!reminderQueue) return;
     const current = reminderQueue[reminderIndex];
@@ -654,6 +671,10 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
         counts={counts}
         filteredCount={filteredInvitees.length}
         onStartReminderQueue={() => startReminderQueue(false)}
+        onOpenBulkSender={() => {
+          setBulkSenderInitialIds(undefined);
+          setShowBulkSenderModal(true);
+        }}
         onExportCsv={() => {
           exportInviteesToCsv(filteredInvitees);
           notify.success(`Exported ${filteredInvitees.length} guests to CSV`);
@@ -673,7 +694,10 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
         onRequestBulkDelete={() => setShowBulkDeleteModal(true)}
         onBulkMarkSent={handleBulkMarkSent}
         onStartReminders={() => startReminderQueue(true)}
-        onStartQueue={startQueue}
+        onStartQueue={() => {
+          setBulkSenderInitialIds(selectedIds);
+          setShowBulkSenderModal(true);
+        }}
         queue={queue}
         queueIndex={queueIndex}
         onCancelQueue={() => {
@@ -824,6 +848,20 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
         onSendReminderAndAdvance={sendReminderCurrentAndAdvance}
         buildReminderMessage={buildReminderMessage}
       />
+
+      {/* Bulk WhatsApp Invite Sender Modal */}
+      {showBulkSenderModal && (
+        <BulkWhatsAppSenderModal
+          invitees={invitees}
+          initialSelectedIds={bulkSenderInitialIds}
+          onClose={() => {
+            setShowBulkSenderModal(false);
+            setBulkSenderInitialIds(undefined);
+          }}
+          onMarkShared={onMarkShared}
+          onBulkMarkShared={onBulkMarkShared}
+        />
+      )}
     </div>
   );
 };
