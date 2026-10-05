@@ -8,7 +8,7 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const { uploadId, eventId, width, height, duration, checksum } = req.body || {};
+    const { uploadId, eventId, width, height, duration, checksum, status: clientStatus } = req.body || {};
 
     if (!uploadId) {
       return res.status(400).json({ error: 'Missing uploadId' });
@@ -21,9 +21,9 @@ export default async function handler(req: any, res: any) {
       return res.status(200).json({ success: true, message: 'Local simulation completed' });
     }
 
-    // Check if event has moderation enabled
-    let nextStatus = 'ready';
-    if (eventId) {
+    // Determine status (use passed status or query event moderation)
+    let nextStatus = clientStatus === 'pending' || clientStatus === 'ready' ? clientStatus : 'ready';
+    if (!clientStatus && eventId) {
       try {
         const evRes = await fetch(
           `${supabaseUrl}/rest/v1/wedding_events?id=eq.${encodeURIComponent(eventId)}&select=moderation_enabled&limit=1`,

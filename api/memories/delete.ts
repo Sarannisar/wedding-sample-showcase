@@ -10,10 +10,20 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const { uploadId, eventId, storageKey, originalFilename } = req.body || {};
+    const { uploadId, eventId, storageKey, originalFilename, items } = req.body || {};
 
-    if (!uploadId || !storageKey) {
-      return res.status(400).json({ error: 'Missing uploadId or storageKey' });
+    const itemsToDelete: Array<{
+      uploadId: string;
+      storageKey: string;
+      originalFilename?: string;
+    }> = Array.isArray(items) && items.length > 0
+      ? items
+      : uploadId && storageKey
+      ? [{ uploadId, storageKey, originalFilename }]
+      : [];
+
+    if (itemsToDelete.length === 0) {
+      return res.status(400).json({ error: 'Missing items to delete (uploadId/storageKey or items array)' });
     }
 
     const r2AccountId = process.env.R2_ACCOUNT_ID;
@@ -21,53 +31,62 @@ export default async function handler(req: any, res: any) {
     const r2SecretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
     const r2BucketName = process.env.R2_BUCKET_NAME;
 
+    const s3Client =
+      r2AccountId && r2AccessKeyId && r2SecretAccessKey && r2BucketName
+        ? new S3Client({
+            region: 'auto',
+            endpoint: `https://${r2AccountId}.r2.cloudflarestorage.com`,
+            credentials: {
+              accessKeyId: r2AccessKeyId,
+              secretAccessKey: r2SecretAccessKey,
+            },
+          })
+        : null;
+
     const now = new Date();
     const dateStr = now.toISOString().slice(0, 10); // YYYY-MM-DD
     const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '-'); // HH-MM-SS
-    const cleanFilename = (originalFilename || storageKey.split('/').pop() || 'memory').replace(/[^a-zA-Z0-9._-]/g, '_');
 
-    // Archive folder structure in R2:
-    // archive/{eventId}/{date}/{time}_{cleanFilename}
-    const archiveKey = `archive/${eventId || 'general'}/${dateStr}/${timeStr}_${cleanFilename}`;
+    // 1. Move each object in Cloudflare R2 to archive folder with date & time stamp
+    for (let i = 0; i < itemsToDelete.length; i++) {
+      const item = itemsToDelete[i];
+      if (s3Client && r2BucketName && item.storageKey) {
+        const cleanFilename = (item.originalFilename || item.storageKey.split('/').pop() || 'memory').replace(/[^a-zA-Z0-9._-]/g, '_');
+        const archiveKey = `archive/${eventId || 'general'}/${dateStr}/${timeStr}_${i + 1}_${cleanFilename}`;
 
-    // 1. Move object in Cloudflare R2 (Copy to archive folder, then delete original)
-    if (r2AccountId && r2AccessKeyId && r2SecretAccessKey && r2BucketName) {
-      const s3Client = new S3Client({
-        region: 'auto',
-        endpoint: `https://${r2AccountId}.r2.cloudflarestorage.com`,
-        credentials: {
-          accessKeyId: r2AccessKeyId,
-          secretAccessKey: r2SecretAccessKey,
-        },
-      });
+        try {
+          await s3Client.send(
+            new CopyObjectCommand({
+              Bucket: r2BucketName,
+              CopySource: `${r2BucketName}/${encodeURI(item.storageKey)}`,
+              Key: archiveKey,
+            })
+          );
 
-      try {
-        await s3Client.send(
-          new CopyObjectCommand({
-            Bucket: r2BucketName,
-            CopySource: `${r2BucketName}/${encodeURI(storageKey)}`,
-            Key: archiveKey,
-          })
-        );
-
-        await s3Client.send(
-          new DeleteObjectCommand({
-            Bucket: r2BucketName,
-            Key: storageKey,
-          })
-        );
-      } catch (r2Err) {
-        console.warn('R2 archive move warning:', r2Err);
+          await s3Client.send(
+            new DeleteObjectCommand({
+              Bucket: r2BucketName,
+              Key: item.storageKey,
+            })
+          );
+        } catch (r2Err) {
+          console.warn(`R2 archive move warning for ${item.storageKey}:`, r2Err);
+        }
       }
     }
 
-    // 2. Permanently delete record from Supabase memory_uploads
+    // 2. Permanently delete records from Supabase memory_uploads
     const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
     if (supabaseUrl && supabaseKey) {
+      const uploadIds = itemsToDelete.map((it) => it.uploadId);
       try {
-        await fetch(`${supabaseUrl}/rest/v1/memory_uploads?id=eq.${encodeURIComponent(uploadId)}`, {
+        const query = uploadIds.length === 1
+          ? `id=eq.${encodeURIComponent(uploadIds[0])}`
+          : `id=in.(${uploadIds.map((id) => `"${encodeURIComponent(id)}"`).join(',')})`;
+
+        await fetch(`${supabaseUrl}/rest/v1/memory_uploads?${query}`, {
           method: 'DELETE',
           headers: {
             apikey: supabaseKey,
@@ -81,8 +100,8 @@ export default async function handler(req: any, res: any) {
 
     return res.status(200).json({
       success: true,
-      archiveKey,
-      message: 'Memory permanently deleted from dashboard and archived in R2.',
+      deletedCount: itemsToDelete.length,
+      message: `Permanently deleted ${itemsToDelete.length} memory/memories and archived in R2.`,
     });
   } catch (err: any) {
     console.error('Error during permanent deletion & R2 archive:', err);

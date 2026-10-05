@@ -148,18 +148,27 @@ export async function uploadSingleMemory(
         }),
       });
 
-      if (presignRes.ok) {
-        presignData = await presignRes.json();
+      if (!presignRes.ok) {
+        const errJson = await presignRes.json().catch(() => ({}));
+        throw new Error(errJson.error || `Upload authorization failed (HTTP ${presignRes.status}).`);
       }
-    } catch {
-      // In local dev without Vercel Edge runtime, fallback to direct DB/Mock recording
+
+      presignData = await presignRes.json();
+    } catch (err: any) {
+      if (err.message && !err.message.includes('fetch')) {
+        throw err;
+      }
+      throw new Error(err.message || 'Unable to connect to upload server.');
     }
 
     const uniqueId = presignData?.uploadId || crypto.randomUUID();
     const extension = item.originalFilename.split('.').pop() || (item.mediaType === 'video' ? 'mp4' : 'jpg');
     const storageKey = presignData?.storageKey || `events/${event.id}/originals/${uniqueId}.${extension}`;
 
-    // 2. Perform direct upload
+    // 2. Perform direct R2 upload while extracting image dimensions concurrently in background
+    const dimensionsPromise: Promise<{ width?: number; height?: number; duration?: number }> =
+      item.mediaType === 'photo' ? extractImageDimensions(item.file) : extractVideoMetadata(item.file);
+
     if (presignData?.uploadUrl && presignData.provider === 'r2') {
       // Direct R2 presigned PUT upload
       await new Promise<void>((resolve, reject) => {
@@ -178,65 +187,25 @@ export async function uploadSingleMemory(
           if (xhr!.status >= 200 && xhr!.status < 300) {
             resolve();
           } else {
-            reject(new Error(`Storage returned HTTP ${xhr!.status}`));
+            reject(new Error(`Cloudflare R2 returned HTTP ${xhr!.status}. Check R2 bucket CORS settings.`));
           }
         };
 
-        xhr.onerror = () => reject(new Error('Network error during upload to cloud storage.'));
+        xhr.onerror = () => reject(new Error('Network or CORS error during upload to Cloudflare R2.'));
         xhr.onabort = () => reject(new Error('Upload was cancelled.'));
         xhr.send(item.file);
       });
     } else {
-      // Simulated upload progress with smooth increment for fallback/local development
-      await new Promise<void>((resolve) => {
-        let currentProgress = 0;
-        const interval = setInterval(() => {
-          currentProgress += Math.min(25, 100 - currentProgress);
-          onProgress(currentProgress);
-          if (currentProgress >= 100) {
-            clearInterval(interval);
-            resolve();
-          }
-        }, 150);
-      });
+      throw new Error('Cloud storage provider is not configured. Please check R2 environment variables.');
     }
 
-    // 3. Extract dimensions / duration
-    let dimensions: { width?: number; height?: number; duration?: number } = {};
-    if (item.mediaType === 'photo') {
-      dimensions = await extractImageDimensions(item.file);
-    } else {
-      dimensions = await extractVideoMetadata(item.file);
-    }
+    // 3. Obtain pre-extracted dimensions (already resolved in background during the upload transfer)
+    const dimensions = await dimensionsPromise.catch(() => ({}));
 
-    // 4. Complete upload
-    let completedRecord: MemoryUpload;
+    // 4. Complete upload in DB
     const initialStatus = event.moderation_enabled ? 'pending' : 'ready';
-
-    try {
-      const completeRes = await fetch('/api/memories/complete-upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          uploadId: uniqueId,
-          eventId: event.id,
-          ...dimensions,
-        }),
-      });
-
-      if (completeRes.ok) {
-        const json = await completeRes.json();
-        if (json.upload) {
-          completedRecord = json.upload;
-          return { success: true, uploadRecord: completedRecord };
-        }
-      }
-    } catch {
-      // Fall through to client DB write
-    }
-
-    // Direct Supabase insert / local fallback update
-    completedRecord = await createMemoryUploadRecord({
+    const clientCompletedRecord: MemoryUpload = {
+      id: uniqueId,
       event_id: event.id,
       guest_name: guestName ? guestName.trim() : null,
       original_filename: item.originalFilename,
@@ -251,9 +220,26 @@ export async function uploadSingleMemory(
       height: dimensions.height,
       duration: dimensions.duration,
       uploaded_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    // Notify backend / Supabase to finalize status and dimensions in parallel / background
+    // (Don't let network roundtrips freeze the user interface)
+    fetch('/api/memories/complete-upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        uploadId: uniqueId,
+        eventId: event.id,
+        status: initialStatus,
+        ...dimensions,
+      }),
+    }).catch((completeErr) => {
+      console.warn('Background complete-upload notification error:', completeErr);
     });
 
-    return { success: true, uploadRecord: completedRecord };
+    return { success: true, uploadRecord: clientCompletedRecord };
   } catch (err: any) {
     return {
       success: false,

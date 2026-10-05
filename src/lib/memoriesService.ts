@@ -391,6 +391,44 @@ export async function permanentlyDeleteMemory(
 }
 
 /**
+ * Permanently delete multiple memories in bulk and archive them in Cloudflare R2
+ */
+export async function permanentlyDeleteMemoriesBulk(
+  eventId: string,
+  items: Array<{ uploadId: string; storageKey: string; originalFilename?: string }>
+): Promise<{ success: boolean; deletedCount?: number; error?: string }> {
+  try {
+    const res = await fetch('/api/memories/delete', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        eventId,
+        items,
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return { success: false, error: data?.error || 'Failed to permanently delete memories' };
+    }
+
+    const deletedIds = new Set(items.map((it) => it.uploadId));
+    const current = getLocalUploads(eventId);
+    saveLocalUploads(
+      eventId,
+      current.filter((item) => !deletedIds.has(item.id))
+    );
+
+    return { success: true, deletedCount: data?.deletedCount || items.length };
+  } catch (err: any) {
+    console.error('permanentlyDeleteMemoriesBulk error:', err);
+    return { success: false, error: err.message || 'Network error deleting memories' };
+  }
+}
+
+/**
  * Compute statistics for host dashboard
  */
 export function computeMemoriesStats(uploads: MemoryUpload[]): MemoriesStats {

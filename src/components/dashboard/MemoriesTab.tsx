@@ -30,6 +30,8 @@ import {
   updateMemoryUpload,
   bulkUpdateMemories,
   permanentlyDeleteMemory,
+  permanentlyDeleteMemoriesBulk,
+  createMemoryUploadRecord,
   updateWeddingEvent,
   formatBytes,
   resolveMediaUrl,
@@ -118,111 +120,141 @@ export const MemoriesTab: React.FC<MemoriesTabProps> = ({ event, onEventUpdated 
     }
   };
 
-  // Pending Deletion with 5-Second Timed Undo
-  const [pendingDelete, setPendingDelete] = useState<{
-    item: MemoryUpload;
-    timerId: any;
-    intervalId: any;
-    secondsLeft: number;
-    isPermanent: boolean;
-  } | null>(null);
+  // Modal confirmation for single permanent deletion
+  const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<MemoryUpload | null>(null);
+  const [isDeletingSingle, setIsDeletingSingle] = useState(false);
 
-  // Modal confirmation for permanent deletion
-  const [confirmPermanentItem, setConfirmPermanentItem] = useState<MemoryUpload | null>(null);
-  const [isDeletingPermanently, setIsDeletingPermanently] = useState(false);
+  // Modal confirmation for bulk permanent deletion from trash
+  const [showBulkPermanentDeleteModal, setShowBulkPermanentDeleteModal] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
-  // Cleanup timers on unmount
-  useEffect(() => {
-    return () => {
-      if (pendingDelete) {
-        clearTimeout(pendingDelete.timerId);
-        clearInterval(pendingDelete.intervalId);
-      }
-    };
-  }, [pendingDelete]);
+  // Confirm and execute single permanent deletion with toast undo
+  const handleConfirmSinglePermanentDelete = async () => {
+    if (!deleteConfirmTarget) return;
+    const target = deleteConfirmTarget;
+    setIsDeletingSingle(true);
 
-  // Execute actual permanent deletion via API (archives in R2 date/time subfolder & deletes from Supabase)
-  const executePermanentDelete = async (item: MemoryUpload) => {
-    setIsDeletingPermanently(true);
     try {
+      // Optimistically remove from view
+      setUploads((prev) => prev.filter((u) => u.id !== target.id));
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(target.id);
+        return next;
+      });
+      setDeleteConfirmTarget(null);
+
+      // Perform actual deletion & R2 date-stamped archive
       const res = await permanentlyDeleteMemory(
-        item.id,
+        target.id,
         event.id,
-        item.storage_key,
-        item.original_filename
+        target.storage_key,
+        target.original_filename
       );
 
       if (res.success) {
-        setUploads((prev) => prev.filter((u) => u.id !== item.id));
-        setSelectedIds((prev) => {
-          const next = new Set(prev);
-          next.delete(item.id);
-          return next;
+        notify.success(`Permanently deleted "${target.original_filename}"`, {
+          action: {
+            label: 'Undo',
+            onClick: async () => {
+              // Restore record to gallery/trash
+              const restored = await createMemoryUploadRecord({
+                event_id: event.id,
+                guest_name: target.guest_name || null,
+                original_filename: target.original_filename,
+                storage_key: target.storage_key,
+                media_type: target.media_type,
+                mime_type: target.mime_type,
+                file_size: target.file_size,
+                status: target.status,
+                is_visible: target.is_visible,
+                is_deleted: target.is_deleted,
+                width: target.width,
+                height: target.height,
+                duration: target.duration,
+                uploaded_at: target.uploaded_at,
+              });
+              setUploads((prev) => [restored, ...prev]);
+              notify.success(`Restored "${target.original_filename}"`);
+            },
+          },
+          duration: 5000,
         });
-        notify.success('Memory permanently deleted and safely archived in R2.');
       } else {
-        notify.error(res.error || 'Failed to permanently delete memory.');
+        // Rollback on failure
+        setUploads((prev) => [target, ...prev]);
+        notify.error(res.error || 'Failed to delete memory.');
       }
     } catch (err: any) {
+      setUploads((prev) => [target, ...prev]);
       notify.error(err.message || 'Error executing permanent delete.');
     } finally {
-      setIsDeletingPermanently(false);
-      setConfirmPermanentItem(null);
+      setIsDeletingSingle(false);
     }
   };
 
-  // Start 5-second timed undo queue for permanent deletion
-  const queuePermanentDeleteWithUndo = (item: MemoryUpload) => {
-    // If there is already a pending delete in flight, flush it immediately first
-    if (pendingDelete) {
-      clearTimeout(pendingDelete.timerId);
-      clearInterval(pendingDelete.intervalId);
-      if (pendingDelete.isPermanent) {
-        void executePermanentDelete(pendingDelete.item);
+  // Confirm and execute bulk permanent deletion from trash with toast undo
+  const handleConfirmBulkPermanentDelete = async () => {
+    const targets = uploads.filter((u) => selectedIds.has(u.id));
+    if (targets.length === 0) return;
+
+    setIsBulkDeleting(true);
+    try {
+      const targetIds = new Set(targets.map((t) => t.id));
+      // Optimistically remove from state
+      setUploads((prev) => prev.filter((u) => !targetIds.has(u.id)));
+      setSelectedIds(new Set());
+      setShowBulkPermanentDeleteModal(false);
+
+      const itemsPayload = targets.map((t) => ({
+        uploadId: t.id,
+        storageKey: t.storage_key,
+        originalFilename: t.original_filename,
+      }));
+
+      const res = await permanentlyDeleteMemoriesBulk(event.id, itemsPayload);
+
+      if (res.success) {
+        notify.success(`Permanently deleted ${targets.length} memories`, {
+          action: {
+            label: 'Undo',
+            onClick: async () => {
+              const restoredItems: MemoryUpload[] = [];
+              for (const target of targets) {
+                const rec = await createMemoryUploadRecord({
+                  event_id: event.id,
+                  guest_name: target.guest_name || null,
+                  original_filename: target.original_filename,
+                  storage_key: target.storage_key,
+                  media_type: target.media_type,
+                  mime_type: target.mime_type,
+                  file_size: target.file_size,
+                  status: target.status,
+                  is_visible: target.is_visible,
+                  is_deleted: target.is_deleted,
+                  width: target.width,
+                  height: target.height,
+                  duration: target.duration,
+                  uploaded_at: target.uploaded_at,
+                });
+                restoredItems.push(rec);
+              }
+              setUploads((prev) => [...restoredItems, ...prev]);
+              notify.success(`Restored ${targets.length} memories`);
+            },
+          },
+          duration: 5000,
+        });
+      } else {
+        setUploads((prev) => [...targets, ...prev]);
+        notify.error(res.error || 'Failed to permanently bulk delete memories.');
       }
+    } catch (err: any) {
+      setUploads((prev) => [...targets, ...prev]);
+      notify.error(err.message || 'Error executing bulk permanent delete.');
+    } finally {
+      setIsBulkDeleting(false);
     }
-
-    setConfirmPermanentItem(null);
-
-    // Optimistically remove from visible list while countdown runs
-    setUploads((prev) => prev.filter((u) => u.id !== item.id));
-
-    const intervalId = setInterval(() => {
-      setPendingDelete((curr) => {
-        if (!curr) return null;
-        if (curr.secondsLeft <= 1) {
-          clearInterval(intervalId);
-          return null;
-        }
-        return { ...curr, secondsLeft: curr.secondsLeft - 1 };
-      });
-    }, 1000);
-
-    const timerId = setTimeout(() => {
-      clearInterval(intervalId);
-      setPendingDelete(null);
-      void executePermanentDelete(item);
-    }, 5000);
-
-    setPendingDelete({
-      item,
-      timerId,
-      intervalId,
-      secondsLeft: 5,
-      isPermanent: true,
-    });
-  };
-
-  // Cancel pending delete and restore item
-  const handleUndoDelete = () => {
-    if (!pendingDelete) return;
-    clearTimeout(pendingDelete.timerId);
-    clearInterval(pendingDelete.intervalId);
-
-    const restoredItem = pendingDelete.item;
-    setUploads((prev) => [restoredItem, ...prev]);
-    setPendingDelete(null);
-    notify.success('Deletion cancelled. Memory restored.');
   };
 
   // Move to trash (Soft Delete)
@@ -541,13 +573,22 @@ export const MemoriesTab: React.FC<MemoriesTabProps> = ({ event, onEventUpdated 
               {selectedIds.size} selected
             </span>
             {activeFilter === 'deleted' ? (
-              <button
-                onClick={handleBulkRestore}
-                className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold transition cursor-pointer flex items-center gap-1"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Restore Selected</span>
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={handleBulkRestore}
+                  className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold transition cursor-pointer flex items-center gap-1"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Restore Selected</span>
+                </button>
+                <button
+                  onClick={() => setShowBulkPermanentDeleteModal(true)}
+                  className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-semibold transition cursor-pointer flex items-center gap-1 shadow-xs"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Permanently Delete</span>
+                </button>
+              </div>
             ) : (
               <>
                 <button
@@ -730,7 +771,7 @@ export const MemoriesTab: React.FC<MemoriesTabProps> = ({ event, onEventUpdated 
                           <RotateCcw className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => setConfirmPermanentItem(item)}
+                          onClick={() => setDeleteConfirmTarget(item)}
                           className="p-1.5 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
                           title="Permanently Delete (Archives to R2)"
                         >
@@ -804,66 +845,163 @@ export const MemoriesTab: React.FC<MemoriesTabProps> = ({ event, onEventUpdated 
           </div>
         </div>
       )}
-      {/* Floating 5-Second Timed Undo Toast Banner */}
-      {pendingDelete && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-[#4a3038] text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-white/20 animate-bounce-in max-w-[92vw] sm:max-w-md">
-          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-rose-500/20 text-rose-300 flex-shrink-0">
-            <Trash2 className="w-4 h-4" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold truncate">
-              Archiving &amp; permanently deleting...
-            </p>
-            <p className="text-[11px] text-white/70">
-              Permanent deletion in {pendingDelete.secondsLeft}s
-            </p>
-          </div>
-          <button
-            onClick={handleUndoDelete}
-            className="px-3.5 py-1.5 rounded-xl bg-white text-[#4a3038] hover:bg-[#fff2f6] text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer flex-shrink-0"
-          >
-            <RotateCcw className="w-3.5 h-3.5 text-[#b05570]" />
-            <span>Undo ({pendingDelete.secondsLeft}s)</span>
-          </button>
-        </div>
-      )}
+      {/* Single Permanent Delete Confirmation Modal (Matching Invite Deletion Modal Style) */}
+      {deleteConfirmTarget && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-rose-200 flex flex-col items-center text-center relative overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <button
+              onClick={() => setDeleteConfirmTarget(null)}
+              disabled={isDeletingSingle}
+              className="absolute top-4 right-4 p-2 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+              title="Close modal"
+            >
+              <X className="w-5 h-5" />
+            </button>
 
-      {/* Confirmation Modal for Permanent Deletion */}
-      {confirmPermanentItem && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-          <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-rose-100 space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 flex-shrink-0">
-                <AlertTriangle className="w-5 h-5" />
+            <div className="w-16 h-16 rounded-full bg-rose-100 border border-rose-200 flex items-center justify-center text-rose-600 mb-4 mt-2 shadow-inner">
+              <Trash2 className="w-8 h-8" />
+            </div>
+
+            <h3 className="font-display text-xl sm:text-2xl font-bold text-[#4a3038]">
+              Permanently Delete Memory?
+            </h3>
+
+            <p className="font-body text-xs sm:text-sm text-[#704655] mt-2 leading-relaxed">
+              Are you sure you want to permanently delete{' '}
+              <strong className="text-rose-700 font-bold">
+                "{deleteConfirmTarget.original_filename}"
+              </strong>
+              ? Original media is safely archived in Cloudflare R2.
+            </p>
+
+            {/* Memory Summary Card */}
+            <div className="w-full bg-[#fffafc] border border-rose-100 rounded-2xl p-3.5 my-4 text-left text-xs space-y-1.5 shadow-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500">From Guest:</span>
+                <span className="font-semibold text-gray-700">
+                  {deleteConfirmTarget.guest_name || 'Anonymous Guest'}
+                </span>
               </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-display text-lg font-bold text-[#4a3038]">
-                  Permanently Delete Memory?
-                </h3>
-                <p className="text-xs text-[#7a4d5d] mt-1 leading-relaxed">
-                  This item will be removed from your wedding dashboard gallery. The original media will be preserved and safely archived in Cloudflare R2 under:
-                </p>
-                <div className="mt-2 p-2.5 rounded-xl bg-[#fff2f6] border border-[#e08aa3]/30 font-mono text-[11px] text-[#8a3350] break-all">
-                  archive/{event.id}/YYYY-MM-DD/HH-MM-SS_{confirmPermanentItem.original_filename}
-                </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500">File Size:</span>
+                <span className="font-mono text-gray-700 font-semibold">
+                  {formatBytes(deleteConfirmTarget.file_size)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500">Archived To:</span>
+                <span className="font-mono text-gray-500 text-[10px] truncate max-w-[200px]">
+                  archive/{event.id}/YYYY-MM-DD/...
+                </span>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+            <p className="text-[11px] text-[#b592a0]">
+              You will have 5 seconds to undo after confirming.
+            </p>
+
+            <div className="flex gap-2 w-full mt-4">
               <button
-                onClick={() => setConfirmPermanentItem(null)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-100 transition cursor-pointer"
-                disabled={isDeletingPermanently}
+                onClick={() => setDeleteConfirmTarget(null)}
+                disabled={isDeletingSingle}
+                className="flex-1 py-3 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-label text-xs uppercase tracking-wider font-semibold transition-all cursor-pointer disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
-                onClick={() => queuePermanentDeleteWithUndo(confirmPermanentItem)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white transition flex items-center gap-1.5 cursor-pointer shadow-md shadow-rose-200"
-                disabled={isDeletingPermanently}
+                onClick={handleConfirmSinglePermanentDelete}
+                disabled={isDeletingSingle}
+                className="flex-1 py-3 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-98 text-white font-label text-xs uppercase tracking-wider font-semibold shadow-md transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>Delete with 5s Undo</span>
+                {isDeletingSingle ? (
+                  <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
+                <span>{isDeletingSingle ? 'Deleting...' : 'Yes, Delete'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Permanent Delete Confirmation Modal (Matching Invite Bulk Delete Style) */}
+      {showBulkPermanentDeleteModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-rose-200 flex flex-col items-center text-center relative overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <button
+              onClick={() => setShowBulkPermanentDeleteModal(false)}
+              disabled={isBulkDeleting}
+              className="absolute top-4 right-4 p-2 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+              title="Close modal"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="w-16 h-16 rounded-full bg-rose-100 border border-rose-200 flex items-center justify-center text-rose-600 mb-4 mt-2 shadow-inner">
+              <Trash2 className="w-8 h-8" />
+            </div>
+
+            <h3 className="font-display text-xl sm:text-2xl font-bold text-[#4a3038]">
+              Delete {selectedIds.size} Selected Memories?
+            </h3>
+
+            <p className="font-body text-xs sm:text-sm text-[#704655] mt-2 leading-relaxed">
+              Are you sure you want to permanently delete these{' '}
+              <strong className="text-rose-700 font-semibold">
+                {selectedIds.size} memories
+              </strong>{' '}
+              from trash? Original files will be archived in Cloudflare R2 with date &amp; time stamps. You will have 5 seconds to undo.
+            </p>
+
+            {/* Selected Memories Preview List */}
+            <div className="w-full max-h-36 overflow-y-auto bg-[#fffafc] border border-rose-100 rounded-2xl p-3 my-4 text-left text-xs space-y-1.5 shadow-xs">
+              <span className="font-semibold text-gray-500 uppercase tracking-wider text-[10px] block">
+                Selected for Permanent Deletion:
+              </span>
+              {uploads
+                .filter((u) => selectedIds.has(u.id))
+                .slice(0, 8)
+                .map((u) => (
+                  <div key={u.id} className="text-gray-700 flex justify-between items-center">
+                    <span className="font-medium truncate max-w-[220px]">
+                      • {u.original_filename}
+                    </span>
+                    <span className="text-[10px] text-gray-400 font-mono">
+                      {formatBytes(u.file_size)}
+                    </span>
+                  </div>
+                ))}
+              {selectedIds.size > 8 && (
+                <p className="text-[10px] text-gray-400 italic pt-1">
+                  + {selectedIds.size - 8} more items
+                </p>
+              )}
+            </div>
+
+            <p className="text-[11px] text-[#b592a0]">
+              You will have 5 seconds to undo this action.
+            </p>
+
+            <div className="flex gap-2 w-full mt-4">
+              <button
+                onClick={() => setShowBulkPermanentDeleteModal(false)}
+                disabled={isBulkDeleting}
+                className="flex-1 py-3 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-label text-xs uppercase tracking-wider font-semibold transition-all cursor-pointer disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmBulkPermanentDelete}
+                disabled={isBulkDeleting}
+                className="flex-1 py-3 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-98 text-white font-label text-xs uppercase tracking-wider font-semibold shadow-md transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isBulkDeleting ? (
+                  <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
+                <span>{isBulkDeleting ? 'Deleting...' : 'Yes, Delete'}</span>
               </button>
             </div>
           </div>

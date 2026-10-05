@@ -99,8 +99,14 @@ export default async function handler(req: any, res: any) {
       uploadUrl = await getSignedUrl(s3Client, putCommand, { expiresIn: 900 });
       provider = 'r2';
     } else {
-      // In development or when R2 credentials are not yet added to .env,
-      // fallback to Supabase Storage or client direct upload simulation
+      // If deployed or in production without R2 config, fail explicitly with descriptive error
+      const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+      if (isProduction) {
+        return res.status(500).json({
+          error: 'Cloudflare R2 storage credentials are not configured in Vercel Environment Variables. Please set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, and R2_BUCKET_NAME.',
+          code: 'R2_CONFIG_MISSING',
+        });
+      }
       provider = 'mock';
       uploadUrl = `/api/memories/upload-mock?key=${encodeURIComponent(storageKey)}`;
     }
