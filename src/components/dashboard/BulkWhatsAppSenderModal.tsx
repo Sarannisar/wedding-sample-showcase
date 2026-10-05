@@ -52,7 +52,10 @@ export const BulkWhatsAppSenderModal: React.FC<BulkWhatsAppSenderModalProps> = (
   const [searchQuery, setSearchQuery] = useState('');
   
   // Custom message template option
-  const [customTemplate, setCustomTemplate] = useState<string>(weddingConfig.whatsapp.messageTemplate);
+  const defaultTemplate =
+    weddingConfig?.whatsapp?.messageTemplate ||
+    "Assalamu Alaikum GUEST_NAME\n\nYou are cordially invited to Safiyya & Sharrafuth's Wedding Ceremony!\n\nView your invitation here: GUEST_LINK";
+  const [customTemplate, setCustomTemplate] = useState<string>(defaultTemplate);
   const [showTemplateEditor, setShowTemplateEditor] = useState(false);
 
   // Selected invitees for bulk operations
@@ -61,8 +64,8 @@ export const BulkWhatsAppSenderModal: React.FC<BulkWhatsAppSenderModalProps> = (
       return new Set(initialSelectedIds);
     }
     // Default: select all unsent / unshared invitees
-    const unshared = invitees.filter((i) => !i.shared_at).map((i) => i.id);
-    return new Set(unshared.length > 0 ? unshared : invitees.map((i) => i.id));
+    const unshared = (invitees || []).filter((i) => !i.shared_at).map((i) => i.id);
+    return new Set(unshared.length > 0 ? unshared : (invitees || []).map((i) => i.id));
   });
 
   // Track session progress in real-time
@@ -74,12 +77,13 @@ export const BulkWhatsAppSenderModal: React.FC<BulkWhatsAppSenderModalProps> = (
 
   // Filtered queue of targets
   const targetInvitees = useMemo(() => {
+    const list = invitees || [];
     const q = searchQuery.trim().toLowerCase();
-    return invitees.filter((item) => {
+    return list.filter((item) => {
       // Search match
       if (q) {
-        const matchesName = item.name.toLowerCase().includes(q);
-        const matchesPhone = item.phone ? item.phone.toLowerCase().includes(q) : false;
+        const matchesName = item?.name ? item.name.toLowerCase().includes(q) : false;
+        const matchesPhone = item?.phone ? item.phone.toLowerCase().includes(q) : false;
         if (!matchesName && !matchesPhone) return false;
       }
 
@@ -95,18 +99,20 @@ export const BulkWhatsAppSenderModal: React.FC<BulkWhatsAppSenderModalProps> = (
     return targetInvitees.filter((i) => selectedIds.has(i.id));
   }, [targetInvitees, selectedIds]);
 
-  const currentItem: Invitee | undefined = activeQueue[currentIndex];
+  const currentItem: Invitee | undefined = activeQueue[currentIndex] || activeQueue[0];
 
   // Helper to compile personalised WhatsApp message
   const compileMessage = (item: Invitee): string => {
-    const url = getShareableInviteUrl(item.slug);
-    return customTemplate
-      .replace(/GUEST_NAME/g, item.name)
+    if (!item) return '';
+    const url = getShareableInviteUrl(item.slug || '');
+    return (customTemplate || defaultTemplate)
+      .replace(/GUEST_NAME/g, item.name || 'Guest')
       .replace(/GUEST_LINK/g, url);
   };
 
   // Open WhatsApp for a given invitee
   const sendWhatsApp = (item: Invitee) => {
+    if (!item) return;
     const message = compileMessage(item);
     const phoneParam = item.phone ? item.phone.replace(/[^0-9]/g, '') : '';
     const waUrl = phoneParam
@@ -336,7 +342,7 @@ export const BulkWhatsAppSenderModal: React.FC<BulkWhatsAppSenderModalProps> = (
             <div className="flex items-center justify-between text-[11px] text-gray-500">
               <span>Use placeholders: <strong>GUEST_NAME</strong> and <strong>GUEST_LINK</strong></span>
               <button
-                onClick={() => setCustomTemplate(weddingConfig.whatsapp.messageTemplate)}
+                onClick={() => setCustomTemplate(defaultTemplate)}
                 className="text-xs text-[#b05570] hover:underline cursor-pointer"
               >
                 Reset to default

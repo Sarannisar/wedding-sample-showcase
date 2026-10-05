@@ -68,10 +68,19 @@ export class ErrorBoundary extends Component<Props, State> {
               {this.props.fallbackTitle || 'Something went wrong'}
             </h2>
 
-            <p className="font-body text-sm text-theme-muted mb-6">
+            <p className="font-body text-sm text-theme-muted mb-4">
               {this.props.fallbackMessage ||
                 'An unexpected error occurred while loading this page. Please try refreshing or returning home.'}
             </p>
+
+            {this.state.error && (
+              <div className="mb-6 p-3 rounded-xl bg-rose-50 border border-rose-200 text-left text-xs font-mono text-rose-800 overflow-x-auto max-h-36">
+                <p className="font-bold">{this.state.error.name}: {this.state.error.message}</p>
+                {this.state.error.stack && (
+                  <pre className="text-[10px] text-rose-600/80 mt-1 whitespace-pre-wrap">{this.state.error.stack}</pre>
+                )}
+              </div>
+            )}
 
             <div className="flex items-center justify-center gap-3">
               <button

@@ -46,6 +46,7 @@ export const InviteesToolbar: React.FC<InviteesToolbarProps> = ({
   counts,
   filteredCount,
   onStartReminderQueue,
+  onOpenBulkSender,
   onExportCsv,
   onPrintDayOfSheet,
   sortColumn,
