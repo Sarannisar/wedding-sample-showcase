@@ -17,7 +17,7 @@ export const GuestInvitePage: React.FC = () => {
   const [invitee, setInvitee] = useState<Invitee | null>(null);
   const [loadingStep, setLoadingStep] = useState<'loader' | 'opening' | 'invitation'>('loader');
   const [musicStarted, setMusicStarted] = useState(false);
-  const [isInvalidSlug, setIsInvalidSlug] = useState(false);
+  const [isInvalidSlug, setIsInvalidSlug] = useState(!slug);
   const [isOffline, setIsOffline] = useState(
     typeof navigator !== 'undefined' ? !navigator.onLine : false
   );
@@ -82,9 +82,9 @@ export const GuestInvitePage: React.FC = () => {
           setIsInvalidSlug(true);
         }
       } else {
-        // /invite with no slug -> generic invitation
+        // /invite with no slug -> strictly require personalized invitation
         setInvitee(null);
-        setIsInvalidSlug(false);
+        setIsInvalidSlug(true);
       }
     }
     void loadGuest();

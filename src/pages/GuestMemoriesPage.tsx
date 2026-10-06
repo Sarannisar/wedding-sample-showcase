@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import {
   Camera,
   Video,
@@ -10,7 +10,6 @@ import {
   Sparkles,
   Heart,
   Images,
-  ArrowLeft,
   Trash2,
   FileWarning,
 } from 'lucide-react';
@@ -25,7 +24,6 @@ import { weddingConfig } from '@/config/weddingConfig';
 export const GuestMemoriesPage: React.FC = () => {
   const { eventSlug } = useParams<{ eventSlug: string }>();
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
 
   const [event, setEvent] = useState<WeddingEvent | null>(null);
   const [isLoadingEvent, setIsLoadingEvent] = useState(true);
@@ -221,15 +219,9 @@ export const GuestMemoriesPage: React.FC = () => {
       <div className="min-h-screen bg-[#fffafc] flex flex-col items-center justify-center p-6 text-center">
         <AlertCircle className="w-12 h-12 text-[#e08aa3] mb-3" />
         <h1 className="font-display text-2xl text-[#4a3038] font-bold">Event Not Found</h1>
-        <p className="text-sm text-[#7a4d5d] mt-2 mb-6">
-          The wedding memories link appears to be invalid or expired.
+        <p className="text-sm text-[#7a4d5d] mt-2 max-w-sm mx-auto leading-relaxed">
+          The wedding memories link appears to be invalid or expired. Please scan the QR code at your reception table or contact the host family.
         </p>
-        <button
-          onClick={() => navigate('/invite')}
-          className="px-6 py-2.5 rounded-full bg-[#e08aa3] text-white text-xs font-label uppercase tracking-widest"
-        >
-          Go to Wedding Invitation
-        </button>
       </div>
     );
   }
@@ -252,19 +244,16 @@ export const GuestMemoriesPage: React.FC = () => {
       </div>
 
       {/* Top Bar */}
-      <header className="sticky top-0 z-30 bg-[#fffafc]/80 backdrop-blur-md border-b border-[#e08aa3]/20 px-4 py-3">
+      <header className="sticky top-0 z-30 bg-[#fffafc]/85 backdrop-blur-md border-b border-[#e08aa3]/20 px-4 py-3">
         <div className="max-w-xl mx-auto flex items-center justify-between">
-          <button
-            onClick={() => navigate('/invite')}
-            className="flex items-center gap-1.5 text-xs font-label uppercase tracking-wider text-[#b05570] hover:text-[#4a3038] transition cursor-pointer"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Invitation</span>
-          </button>
+          <div className="flex items-center gap-1.5 text-xs font-label uppercase tracking-widest text-[#b05570]">
+            <Camera className="w-4 h-4 text-[#e08aa3]" />
+            <span className="hidden sm:inline font-semibold">Wedding Memories</span>
+          </div>
 
           <div className="text-center">
-            <span className="font-script text-lg text-[#e08aa3] block leading-none">
-              Safiyya &amp; Sharrafuth
+            <span className="font-script text-lg sm:text-xl text-[#b05570] block leading-none">
+              {weddingConfig.couple.bride} &amp; {weddingConfig.couple.groom}
             </span>
             <span className="text-[10px] font-label uppercase tracking-widest text-[#b592a0]">
               Memories Drop
@@ -277,10 +266,10 @@ export const GuestMemoriesPage: React.FC = () => {
                 const el = document.getElementById('wedding-gallery-section');
                 el?.scrollIntoView({ behavior: 'smooth' });
               }}
-              className="flex items-center gap-1 text-xs font-label uppercase tracking-wider text-[#b05570] hover:text-[#4a3038] transition cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#e08aa3]/30 bg-[#fff2f6]/80 hover:bg-[#fff2f6] text-xs font-label uppercase tracking-wider text-[#b05570] hover:text-[#4a3038] transition cursor-pointer"
             >
-              <Images className="w-4 h-4" />
-              <span className="hidden sm:inline">Gallery</span>
+              <Images className="w-3.5 h-3.5 text-[#e08aa3]" />
+              <span>Gallery</span>
             </button>
           ) : (
             <div className="w-16" />
