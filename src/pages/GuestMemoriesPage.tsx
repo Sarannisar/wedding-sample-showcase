@@ -50,7 +50,7 @@ export const GuestMemoriesPage: React.FC = () => {
   useEffect(() => {
     async function load() {
       setIsLoadingEvent(true);
-      const data = await fetchWeddingEvent(eventSlug || 'safiyya-sharrafuth');
+      const data = await fetchWeddingEvent(eventSlug || weddingConfig.defaultEventSlug);
       setEvent(data);
       if (!data.passcode_enabled) {
         setIsPasscodeVerified(true);
@@ -407,14 +407,14 @@ export const GuestMemoriesPage: React.FC = () => {
                 className="p-8 sm:p-12 rounded-3xl border-2 border-dashed border-[#e08aa3]/50 bg-white/70 hover:bg-white hover:border-[#e08aa3] transition-all flex flex-col items-center justify-center text-center cursor-pointer group shadow-sm active:scale-[0.99]"
               >
                 <div className="w-20 h-20 rounded-full bg-[#fff2f6] border border-[#e08aa3]/30 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-[#f7c1d0]/40 transition-all text-[#e08aa3]">
-                  <UploadCloud className="w-10 h-10" />
+                  <Camera className="w-9 h-9 text-[#b05570]" />
                 </div>
 
                 <h3 className="font-display text-xl text-[#4a3038] font-bold mb-1">
-                  Add Photos &amp; Videos
+                  Share Your Cherished Memories
                 </h3>
                 <p className="font-body text-xs text-[#7a4d5d] max-w-xs mb-4">
-                  Tap to choose candid photos or videos from your phone's camera roll.
+                  Tap to add your candid smiles, heartfelt toasts, and celebratory wedding moments.
                 </p>
 
                 <div className="flex items-center gap-3 text-[11px] font-label uppercase tracking-widest text-[#b592a0]">

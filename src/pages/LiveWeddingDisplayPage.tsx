@@ -6,6 +6,7 @@ import { WeddingEvent, MemoryUpload } from '@/lib/memoriesTypes';
 import { fetchWeddingEvent, fetchApprovedMemories, resolveMediaUrl } from '@/lib/memoriesService';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { formatRelativeTime } from '@/lib/utils';
+import { weddingConfig } from '@/config/weddingConfig';
 
 export const LiveWeddingDisplayPage: React.FC = () => {
   const { eventSlug } = useParams<{ eventSlug: string }>();
@@ -21,7 +22,7 @@ export const LiveWeddingDisplayPage: React.FC = () => {
   // 1. Initial Load
   useEffect(() => {
     async function init() {
-      const ev = await fetchWeddingEvent(eventSlug || 'safiyya-sharrafuth');
+      const ev = await fetchWeddingEvent(eventSlug || weddingConfig.defaultEventSlug);
       setEvent(ev);
       const data = await fetchApprovedMemories(ev.id);
       setMemories(data);

@@ -123,7 +123,7 @@ export const CountdownSection: React.FC = () => {
       <Card3D className="text-center py-8 px-4 sm:px-8">
         {stage === 'countdown' && (
           <>
-            <span className="font-label text-[10px] uppercase tracking-[0.35em] text-[#e79db0] font-semibold block mb-5">
+            <span className="font-label text-[10px] uppercase tracking-[0.35em] text-[#b05570] font-bold block mb-5">
               Counting Down to the Blessed Moment
             </span>
 

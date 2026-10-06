@@ -1,6 +1,5 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Card3D } from '@/components/common/Card3D';
 import { weddingConfig } from '@/config/weddingConfig';
 import { useReveal } from '@/lib/useReveal';
 
@@ -13,7 +12,7 @@ export const ClosingSection: React.FC = () => {
       {...revealProps}
       className="w-full max-w-xl mx-auto my-6 mb-16 px-3"
     >
-      <Card3D className="text-center py-10 px-6 sm:px-10">
+      <div className="text-center py-8 sm:py-10 px-4 sm:px-8 relative rounded-3xl bg-white/35 backdrop-blur-[2px] border border-[#f2b8c6]/20 shadow-[0_4px_24px_rgba(242,184,198,0.12)]">
         {/* Subtle Decorative Floral Icon */}
         <div className="w-10 h-10 rounded-full bg-[#fff6f9] border border-[#f2b8c6]/40 mx-auto mb-4 flex items-center justify-center text-[#f2b8c6]">
           <span className="text-sm">❦</span>
@@ -42,13 +41,13 @@ export const ClosingSection: React.FC = () => {
         {/* Bottom Couple Monogram Stamp with Kaushan font */}
         <div className="mt-8 pt-6 border-t border-[#f2b8c6]/20 flex flex-col items-center justify-center">
           <span className="font-kaushan text-xl text-[#dd8ea5] tracking-wider">
-            Safiyya & Sharrafuth
+            {weddingConfig.couple.bride} & {weddingConfig.couple.groom}
           </span>
           <span className="font-label text-[10px] uppercase tracking-[0.25em] text-[#7a4d5d] mt-1 font-medium">
-            12th December 2026
+            {weddingConfig.event.dateFormatted}
           </span>
         </div>
-      </Card3D>
+      </div>
     </motion.section>
   );
 };

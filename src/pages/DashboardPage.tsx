@@ -157,7 +157,7 @@ export const DashboardPage: React.FC = () => {
   useEffect(() => {
     if (isAuthenticated) {
       void loadData();
-      void fetchWeddingEvent('safiyya-sharrafuth').then(setWeddingEvent);
+      void fetchWeddingEvent(weddingConfig.defaultEventSlug).then(setWeddingEvent);
     }
   }, [isAuthenticated, loadData]);
 

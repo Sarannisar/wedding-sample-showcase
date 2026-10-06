@@ -65,14 +65,19 @@ export const InvitationSuite: React.FC<InvitationSuiteProps> = ({
 
   return (
     <div className="relative z-20 w-full min-h-screen py-10 px-2 sm:px-4 flex flex-col items-center">
-      {/* Sacred Spiritual Prelude Card: Surah Ar-Rum (30:21) */}
+      {/* Sacred Spiritual Prelude: Surah Ar-Rum (30:21) - Unboxed ethereal floating presentation */}
       <ErrorBoundary compact fallbackTitle="Spiritual Blessing">
         <BlessingSection />
       </ErrorBoundary>
 
-      <FloralDivider className="my-6" />
+      {/* Gentle Gold Ornamental Transition into Grand Hero Folio */}
+      <div className="flex items-center justify-center gap-2.5 my-3 select-none pointer-events-none text-[#e08aa3]/60" aria-hidden="true">
+        <span className="text-[10px]">✦</span>
+        <span className="text-xs text-[#b05570]/70">❁</span>
+        <span className="text-[10px]">✦</span>
+      </div>
 
-      {/* Main Stationery Hero */}
+      {/* Main Stationery Hero Folio */}
       <ErrorBoundary compact fallbackTitle="Wedding Invitation">
         <HeroSection guestName={invitee?.name} />
       </ErrorBoundary>
@@ -128,14 +133,19 @@ export const InvitationSuite: React.FC<InvitationSuiteProps> = ({
 
       <FloralDivider className="my-6" />
 
-      {/* Directions & Family Contact */}
+      {/* Directions & Family Contact (Refined Frosted Directory Card) */}
       <ErrorBoundary compact fallbackTitle="Contact & Directions">
         <ContactSection />
       </ErrorBoundary>
 
-      <FloralDivider className="my-6" />
+      {/* Gentle Gold Ornamental Transition into Closing Dua */}
+      <div className="flex items-center justify-center gap-2.5 my-4 select-none pointer-events-none text-[#e08aa3]/60" aria-hidden="true">
+        <span className="text-[10px]">✦</span>
+        <span className="text-xs text-[#b05570]/70">❁</span>
+        <span className="text-[10px]">✦</span>
+      </div>
 
-      {/* Closing Arabic Dua, Translation & Ameen */}
+      {/* Closing Arabic Dua, Translation & Ameen - Unboxed Floating Epilogue */}
       <ErrorBoundary compact fallbackTitle="Closing Blessing">
         <ClosingSection />
       </ErrorBoundary>

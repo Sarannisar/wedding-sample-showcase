@@ -55,6 +55,39 @@ export default async function handler(req: any, res: any) {
       return res.status(400).json({ error: 'Missing required parameters (eventId, filename, mimeType, fileSize)' });
     }
 
+    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+    // Verify event exists and uploads are currently permitted
+    if (supabaseUrl && supabaseKey) {
+      try {
+        const evRes = await fetch(
+          `${supabaseUrl}/rest/v1/wedding_events?id=eq.${encodeURIComponent(eventId)}&select=id,upload_enabled,upload_closing_at&limit=1`,
+          {
+            headers: {
+              apikey: supabaseKey,
+              Authorization: `Bearer ${supabaseKey}`,
+            },
+          }
+        );
+        if (evRes.ok) {
+          const events = (await evRes.json()) as any[];
+          if (!events || events.length === 0) {
+            return res.status(404).json({ error: 'Event not found.' });
+          }
+          const event = events[0];
+          if (event.upload_enabled === false) {
+            return res.status(403).json({ error: 'Media uploads are disabled for this event.' });
+          }
+          if (event.upload_closing_at && new Date(event.upload_closing_at).getTime() < Date.now()) {
+            return res.status(403).json({ error: 'Media upload deadline has passed for this event.' });
+          }
+        }
+      } catch (evErr) {
+        console.warn('Could not verify event existence in presign-upload:', evErr);
+      }
+    }
+
     const isPhoto = ALLOWED_PHOTO_MIMES.has(mimeType.toLowerCase());
     const isVideo = ALLOWED_VIDEO_MIMES.has(mimeType.toLowerCase());
 

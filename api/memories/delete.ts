@@ -10,6 +10,31 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
+    // Authenticate host/admin request: require valid session token or secret
+    const authHeader = req.headers?.authorization || req.headers?.Authorization;
+    const adminToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+    // In production or configured environments, verify token
+    if (supabaseUrl && supabaseKey && adminToken) {
+      try {
+        const authCheck = await fetch(`${supabaseUrl}/auth/v1/user`, {
+          headers: {
+            apikey: supabaseKey,
+            Authorization: `Bearer ${adminToken}`,
+          },
+        });
+        if (!authCheck.ok) {
+          return res.status(401).json({ error: 'Unauthorized. Invalid admin session.' });
+        }
+      } catch (authErr) {
+        return res.status(401).json({ error: 'Authentication verification failed.' });
+      }
+    } else if (process.env.NODE_ENV === 'production' && !adminToken) {
+      return res.status(401).json({ error: 'Unauthorized: Missing authorization header.' });
+    }
+
     const { uploadId, eventId, storageKey, originalFilename, items } = req.body || {};
 
     const itemsToDelete: Array<{

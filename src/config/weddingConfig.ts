@@ -68,9 +68,11 @@ export interface WeddingConfig {
     text: string;
     muted: string;
   };
+  defaultEventSlug: string;
 }
 
 export const weddingConfig: WeddingConfig = {
+  defaultEventSlug: 'safiyya-sharrafuth',
   event: {
     type: 'Wedding Ceremony',
     label: 'Wedding Ceremony',

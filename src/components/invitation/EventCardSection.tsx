@@ -30,7 +30,7 @@ export const EventCardSection: React.FC<EventCardSectionProps> = ({ inviteeId })
     >
       <Card3D className="text-center py-8 px-5 sm:px-9">
         {/* Venue Subtitle */}
-        <span className="font-label text-[10px] uppercase tracking-[0.35em] text-[#e79db0] font-semibold block mb-2">
+        <span className="font-label text-[10px] uppercase tracking-[0.35em] text-[#b05570] font-bold block mb-2">
           VENUE
         </span>
 

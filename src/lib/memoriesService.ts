@@ -381,11 +381,22 @@ export async function permanentlyDeleteMemory(
 
   // 3. Call serverless archive endpoint in R2
   try {
+    let authHeader = '';
+    if (supabase) {
+      const session = (await supabase.auth.getSession()).data?.session;
+      if (session?.access_token) {
+        authHeader = `Bearer ${session.access_token}`;
+      }
+    }
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (authHeader) headers['Authorization'] = authHeader;
+
     const res = await fetch('/api/memories/delete', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({
         uploadId,
         eventId,
@@ -436,11 +447,22 @@ export async function permanentlyDeleteMemoriesBulk(
 
   // 3. Call serverless archive endpoint in R2
   try {
+    let authHeader = '';
+    if (supabase) {
+      const session = (await supabase.auth.getSession()).data?.session;
+      if (session?.access_token) {
+        authHeader = `Bearer ${session.access_token}`;
+      }
+    }
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (authHeader) headers['Authorization'] = authHeader;
+
     const res = await fetch('/api/memories/delete', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({
         eventId,
         items,

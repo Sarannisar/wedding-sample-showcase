@@ -555,42 +555,11 @@ export async function updateRsvp(
         return { ok: true, source: 'remote' };
       }
 
-      // 3. Fallback insert if row didn't exist in Supabase
-      const { data: inserted, error: insertError } = await supabase
-        .from('invitees')
-        .insert([
-          {
-            name: fallbackName || slug,
-            slug,
-            rsvp,
-            guest_count: rsvp === 'attending' ? guestCount : 0,
-            notes: notes || null,
-            responded_at: respondedAt,
-          },
-        ])
-        .select();
-
-      if (insertError) {
-        return {
-          ok: false,
-          reason: 'rejected',
-          message: insertError.message || 'Could not save new RSVP.',
-        };
-      }
-
-      if (inserted && inserted.length > 0) {
-        const createdRow = inserted[0] as Invitee;
-        const local = getLocalInvitees();
-        local.unshift(createdRow);
-        saveLocalInvitees(local);
-        logInviteeEvent(createdRow.id, 'responded');
-        return { ok: true, source: 'remote' };
-      }
-
+      // If the row was not found in Supabase, reject rather than creating an unauthorized record
       return {
         ok: false,
         reason: 'rejected',
-        message: 'No response row returned from server.',
+        message: 'Invitation record not found. Please verify your invitation link.',
       };
     } catch (err: any) {
       console.error('Supabase RSVP update failed:', err);

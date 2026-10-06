@@ -243,7 +243,7 @@ export const DateScratchCard: React.FC<DateScratchCardProps> = ({
         {revealed ? (
           <button
             onClick={handleDownloadCalendar}
-            className="mt-4 inline-flex items-center gap-1.5 text-xs font-label uppercase tracking-widest text-[#e79db0] hover:text-[#b05570] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#e08aa3] rounded-lg px-2 py-1"
+            className="mt-4 inline-flex items-center gap-1.5 text-xs font-label uppercase tracking-widest text-[#b05570] hover:text-[#8a334d] font-semibold transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#e08aa3] rounded-lg px-2 py-1"
           >
             <CalendarCheck className="w-3.5 h-3.5" />
             <span>Add to Calendar</span>
@@ -251,9 +251,9 @@ export const DateScratchCard: React.FC<DateScratchCardProps> = ({
         ) : (
           <button
             onClick={triggerReveal}
-            className="mt-4 inline-flex items-center gap-1.5 text-xs font-label uppercase tracking-widest text-[#e79db0] hover:text-[#b05570] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#e08aa3] rounded-lg px-2 py-1"
+            className="mt-4 inline-flex items-center gap-1.5 text-xs font-label uppercase tracking-widest text-[#b05570] hover:text-[#8a334d] font-semibold transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#e08aa3] rounded-lg px-2 py-1"
           >
-            <Sparkles className="w-3.5 h-3.5" />
+            <Sparkles className="w-3.5 h-3.5 text-[#e08aa3]" />
             <span>Or Tap to Reveal Date</span>
           </button>
         )}

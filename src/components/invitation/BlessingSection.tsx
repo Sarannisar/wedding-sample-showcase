@@ -1,6 +1,5 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Card3D } from '@/components/common/Card3D';
 import { useReveal } from '@/lib/useReveal';
 
 export const BlessingSection: React.FC = () => {
@@ -9,9 +8,9 @@ export const BlessingSection: React.FC = () => {
   return (
     <motion.section
       {...revealProps}
-      className="w-full max-w-xl mx-auto my-6 px-3"
+      className="w-full max-w-xl mx-auto my-4 sm:my-6 px-3"
     >
-      <Card3D className="text-center py-8 px-6 sm:px-10">
+      <div className="text-center py-6 sm:py-8 px-4 sm:px-8 relative rounded-3xl bg-white/35 backdrop-blur-[2px] border border-[#f2b8c6]/20 shadow-[0_4px_24px_rgba(242,184,198,0.12)]">
         {/* Subtle Decorative Arch Header */}
         <div className="flex items-center justify-center gap-3 mb-4">
           <div className="w-12 h-[1px] bg-gradient-to-r from-transparent to-[#e08aa3]" />
@@ -44,7 +43,7 @@ export const BlessingSection: React.FC = () => {
           <span className="text-[#b05570] text-xs">✦</span>
           <div className="w-12 h-[1px] bg-gradient-to-l from-transparent to-[#e08aa3]" />
         </div>
-      </Card3D>
+      </div>
     </motion.section>
   );
 };

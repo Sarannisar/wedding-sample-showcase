@@ -387,17 +387,17 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ invitee, onRsvpSuccess
             >
               <button
                 onClick={() => handleSelectOption('attending')}
-                className="py-4 px-5 rounded-xl border border-[#f2b8c6] bg-[#fff6f9] text-[#4a3038] hover:bg-[#f2b8c6]/20 active:scale-98 transition-all flex items-center justify-center gap-2.5 cursor-pointer shadow-xs font-serif text-sm font-medium focus-visible:ring-2 focus-visible:ring-[#e08aa3]"
+                className="py-4 px-5 rounded-xl border-2 border-[#e08aa3] bg-gradient-to-r from-[#fff2f6] to-[#ffebf2] text-[#4a3038] hover:border-[#b05570] hover:shadow-md active:scale-98 transition-all flex items-center justify-center gap-2.5 cursor-pointer shadow-xs font-serif text-sm font-semibold focus-visible:ring-2 focus-visible:ring-[#e08aa3]"
               >
-                <span>✨</span>
+                <span className="text-base">✨</span>
                 <span>Yes, with joy</span>
               </button>
 
               <button
                 onClick={() => handleSelectOption('declined')}
-                className="py-4 px-5 rounded-xl border border-[#f2b8c6] bg-[#fff6f9] text-[#4a3038] hover:bg-[#f2b8c6]/20 active:scale-98 transition-all flex items-center justify-center gap-2.5 cursor-pointer shadow-xs font-serif text-sm font-medium focus-visible:ring-2 focus-visible:ring-[#e08aa3]"
+                className="py-4 px-5 rounded-xl border border-[#f2b8c6]/60 bg-white/80 text-[#7a4d5d] hover:bg-[#fff6f9] hover:text-[#4a3038] active:scale-98 transition-all flex items-center justify-center gap-2.5 cursor-pointer shadow-xs font-serif text-sm font-medium focus-visible:ring-2 focus-visible:ring-[#e08aa3]"
               >
-                <span>🌸</span>
+                <span className="text-base opacity-80">🌸</span>
                 <span>Regretfully no</span>
               </button>
             </motion.div>
