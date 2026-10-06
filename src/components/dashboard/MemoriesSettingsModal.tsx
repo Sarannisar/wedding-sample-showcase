@@ -252,48 +252,110 @@ export const MemoriesSettingsModal: React.FC<MemoriesSettingsModalProps> = ({
             </div>
           </div>
 
-          {/* Limits */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-            <div>
-              <label className="block text-[11px] font-label uppercase tracking-wider text-[#7a4d5d] font-semibold mb-1">
-                Photo Limit (MB)
-              </label>
-              <input
-                type="number"
-                min={1}
-                max={100}
-                value={formData.photo_size_limit_mb}
-                onChange={(e) => setFormData({ ...formData, photo_size_limit_mb: Number(e.target.value) })}
-                className="w-full px-3 py-2 rounded-xl border border-[#e08aa3]/30 text-sm outline-none"
-              />
+          {/* Upload Limits (Customizable for R2) */}
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-label uppercase tracking-widest text-[#b05570] font-semibold">
+                Upload &amp; File Size Limits
+              </h3>
+              <span className="text-[10px] text-[#7a4d5d] bg-[#fff2f6] px-2 py-0.5 rounded-full border border-[#e08aa3]/20">
+                Powered by Cloudflare R2
+              </span>
             </div>
 
-            <div>
-              <label className="block text-[11px] font-label uppercase tracking-wider text-[#7a4d5d] font-semibold mb-1">
-                Video Limit (MB)
-              </label>
-              <input
-                type="number"
-                min={10}
-                max={2000}
-                value={formData.video_size_limit_mb}
-                onChange={(e) => setFormData({ ...formData, video_size_limit_mb: Number(e.target.value) })}
-                className="w-full px-3 py-2 rounded-xl border border-[#e08aa3]/30 text-sm outline-none"
-              />
-            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="p-3 rounded-2xl bg-[#fffafc] border border-[#e08aa3]/20">
+                <label className="block text-[11px] font-label uppercase tracking-wider text-[#7a4d5d] font-semibold mb-1 flex items-center justify-between">
+                  <span>Photo Limit (MB)</span>
+                  <span className="text-gray-400 font-normal">Max 500 MB</span>
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={500}
+                  value={formData.photo_size_limit_mb}
+                  onChange={(e) => setFormData({ ...formData, photo_size_limit_mb: Math.max(1, Number(e.target.value)) })}
+                  className="w-full px-3 py-2 rounded-xl border border-[#e08aa3]/30 text-sm font-semibold text-[#4a3038] outline-none bg-white focus:border-[#e08aa3]"
+                />
+                <div className="flex gap-1.5 mt-2">
+                  {[25, 50, 100, 250].map((mb) => (
+                    <button
+                      type="button"
+                      key={mb}
+                      onClick={() => setFormData({ ...formData, photo_size_limit_mb: mb })}
+                      className={`text-[10px] px-2 py-0.5 rounded-lg border transition ${
+                        formData.photo_size_limit_mb === mb
+                          ? 'bg-[#e08aa3] text-white border-[#e08aa3]'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-[#e08aa3]'
+                      }`}
+                    >
+                      {mb}MB
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-            <div>
-              <label className="block text-[11px] font-label uppercase tracking-wider text-[#7a4d5d] font-semibold mb-1">
-                Max Files / Batch
-              </label>
-              <input
-                type="number"
-                min={1}
-                max={200}
-                value={formData.max_files_per_batch}
-                onChange={(e) => setFormData({ ...formData, max_files_per_batch: Number(e.target.value) })}
-                className="w-full px-3 py-2 rounded-xl border border-[#e08aa3]/30 text-sm outline-none"
-              />
+              <div className="p-3 rounded-2xl bg-[#fffafc] border border-[#e08aa3]/20">
+                <label className="block text-[11px] font-label uppercase tracking-wider text-[#7a4d5d] font-semibold mb-1 flex items-center justify-between">
+                  <span>Video Limit (MB)</span>
+                  <span className="text-gray-400 font-normal">Max 10 GB</span>
+                </label>
+                <input
+                  type="number"
+                  min={10}
+                  max={10000}
+                  value={formData.video_size_limit_mb}
+                  onChange={(e) => setFormData({ ...formData, video_size_limit_mb: Math.max(10, Number(e.target.value)) })}
+                  className="w-full px-3 py-2 rounded-xl border border-[#e08aa3]/30 text-sm font-semibold text-[#4a3038] outline-none bg-white focus:border-[#e08aa3]"
+                />
+                <div className="flex gap-1.5 mt-2">
+                  {[500, 1000, 2000, 5000].map((mb) => (
+                    <button
+                      type="button"
+                      key={mb}
+                      onClick={() => setFormData({ ...formData, video_size_limit_mb: mb })}
+                      className={`text-[10px] px-2 py-0.5 rounded-lg border transition ${
+                        formData.video_size_limit_mb === mb
+                          ? 'bg-[#e08aa3] text-white border-[#e08aa3]'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-[#e08aa3]'
+                      }`}
+                    >
+                      {mb >= 1000 ? `${mb / 1000}GB` : `${mb}MB`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-[#fffafc] border border-[#e08aa3]/20">
+                <label className="block text-[11px] font-label uppercase tracking-wider text-[#7a4d5d] font-semibold mb-1 flex items-center justify-between">
+                  <span>Max Files / Batch</span>
+                  <span className="text-gray-400 font-normal">Max 1000</span>
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={1000}
+                  value={formData.max_files_per_batch}
+                  onChange={(e) => setFormData({ ...formData, max_files_per_batch: Math.max(1, Number(e.target.value)) })}
+                  className="w-full px-3 py-2 rounded-xl border border-[#e08aa3]/30 text-sm font-semibold text-[#4a3038] outline-none bg-white focus:border-[#e08aa3]"
+                />
+                <div className="flex gap-1.5 mt-2">
+                  {[50, 100, 250, 500].map((count) => (
+                    <button
+                      type="button"
+                      key={count}
+                      onClick={() => setFormData({ ...formData, max_files_per_batch: count })}
+                      className={`text-[10px] px-2 py-0.5 rounded-lg border transition ${
+                        formData.max_files_per_batch === count
+                          ? 'bg-[#e08aa3] text-white border-[#e08aa3]'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-[#e08aa3]'
+                      }`}
+                    >
+                      {count}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 

@@ -425,7 +425,7 @@ export const GuestMemoriesPage: React.FC = () => {
                   <span>•</span>
                   <span className="flex items-center gap-1">
                     <Video className="w-3.5 h-3.5 text-[#e08aa3]" />
-                    Max {event.video_size_limit_mb || 500}MB Videos
+                    Max {(event.video_size_limit_mb || 500) >= 1000 ? `${(event.video_size_limit_mb || 500) / 1000}GB` : `${event.video_size_limit_mb || 500}MB`} Videos
                   </span>
                 </div>
               </div>
