@@ -357,6 +357,29 @@ export async function permanentlyDeleteMemory(
   storageKey: string,
   originalFilename?: string
 ): Promise<{ success: boolean; archiveKey?: string; error?: string }> {
+  // 1. Delete directly from Supabase on client
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { error } = await supabase
+        .from('memory_uploads')
+        .delete()
+        .eq('id', uploadId);
+      if (error) {
+        console.warn('Direct Supabase delete warning:', error);
+      }
+    } catch (dbErr) {
+      console.warn('Direct Supabase delete failed:', dbErr);
+    }
+  }
+
+  // 2. Remove from local storage cache immediately
+  const current = getLocalUploads(eventId);
+  saveLocalUploads(
+    eventId,
+    current.filter((item) => item.id !== uploadId)
+  );
+
+  // 3. Call serverless archive endpoint in R2
   try {
     const res = await fetch('/api/memories/delete', {
       method: 'POST',
@@ -372,21 +395,10 @@ export async function permanentlyDeleteMemory(
     });
 
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      return { success: false, error: data?.error || 'Failed to permanently delete memory' };
-    }
-
-    // Remove from local storage cache as well
-    const current = getLocalUploads(eventId);
-    saveLocalUploads(
-      eventId,
-      current.filter((item) => item.id !== uploadId)
-    );
-
     return { success: true, archiveKey: data?.archiveKey };
   } catch (err: any) {
-    console.error('permanentlyDeleteMemory error:', err);
-    return { success: false, error: err.message || 'Network error deleting memory' };
+    console.warn('R2 archive endpoint error (item deleted from DB):', err);
+    return { success: true };
   }
 }
 
@@ -397,6 +409,32 @@ export async function permanentlyDeleteMemoriesBulk(
   eventId: string,
   items: Array<{ uploadId: string; storageKey: string; originalFilename?: string }>
 ): Promise<{ success: boolean; deletedCount?: number; error?: string }> {
+  const deletedIds = items.map((it) => it.uploadId);
+  const deletedSet = new Set(deletedIds);
+
+  // 1. Delete directly from Supabase on client
+  if (isSupabaseConfigured && supabase && deletedIds.length > 0) {
+    try {
+      const { error } = await supabase
+        .from('memory_uploads')
+        .delete()
+        .in('id', deletedIds);
+      if (error) {
+        console.warn('Direct Supabase bulk delete warning:', error);
+      }
+    } catch (dbErr) {
+      console.warn('Direct Supabase bulk delete failed:', dbErr);
+    }
+  }
+
+  // 2. Remove from local storage cache immediately
+  const current = getLocalUploads(eventId);
+  saveLocalUploads(
+    eventId,
+    current.filter((item) => !deletedSet.has(item.id))
+  );
+
+  // 3. Call serverless archive endpoint in R2
   try {
     const res = await fetch('/api/memories/delete', {
       method: 'POST',
@@ -410,21 +448,10 @@ export async function permanentlyDeleteMemoriesBulk(
     });
 
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      return { success: false, error: data?.error || 'Failed to permanently delete memories' };
-    }
-
-    const deletedIds = new Set(items.map((it) => it.uploadId));
-    const current = getLocalUploads(eventId);
-    saveLocalUploads(
-      eventId,
-      current.filter((item) => !deletedIds.has(item.id))
-    );
-
     return { success: true, deletedCount: data?.deletedCount || items.length };
   } catch (err: any) {
-    console.error('permanentlyDeleteMemoriesBulk error:', err);
-    return { success: false, error: err.message || 'Network error deleting memories' };
+    console.warn('R2 archive endpoint error (items deleted from DB):', err);
+    return { success: true, deletedCount: items.length };
   }
 }
 

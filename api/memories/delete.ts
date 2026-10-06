@@ -84,15 +84,19 @@ export default async function handler(req: any, res: any) {
       try {
         const query = uploadIds.length === 1
           ? `id=eq.${encodeURIComponent(uploadIds[0])}`
-          : `id=in.(${uploadIds.map((id) => `"${encodeURIComponent(id)}"`).join(',')})`;
+          : `id=in.(${uploadIds.map((id) => encodeURIComponent(id)).join(',')})`;
 
-        await fetch(`${supabaseUrl}/rest/v1/memory_uploads?${query}`, {
+        const delRes = await fetch(`${supabaseUrl}/rest/v1/memory_uploads?${query}`, {
           method: 'DELETE',
           headers: {
             apikey: supabaseKey,
             Authorization: `Bearer ${supabaseKey}`,
           },
         });
+        if (!delRes.ok) {
+          const errText = await delRes.text();
+          console.warn('Supabase delete non-ok response:', delRes.status, errText);
+        }
       } catch (dbErr) {
         console.warn('Supabase delete error:', dbErr);
       }
