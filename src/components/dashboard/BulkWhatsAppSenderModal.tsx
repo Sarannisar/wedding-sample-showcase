@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Invitee } from '@/lib/types';
 import { weddingConfig } from '@/config/weddingConfig';
-import { getShareableInviteUrl, getInviteUrl } from '@/lib/shareLinks';
+import { getShareableInviteUrl } from '@/lib/shareLinks';
 import { formatRelativeTime } from '@/lib/utils';
 import {
   Send,
@@ -9,19 +9,13 @@ import {
   Check,
   CheckCircle2,
   Copy,
-  ExternalLink,
-  MessageSquare,
-  Users,
   Search,
-  Filter,
   ArrowRight,
   Sparkles,
   Phone,
-  AlertCircle,
   Clock,
   CheckSquare,
   Square,
-  ChevronRight,
   Info,
 } from 'lucide-react';
 

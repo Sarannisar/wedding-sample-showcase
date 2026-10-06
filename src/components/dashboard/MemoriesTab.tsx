@@ -20,8 +20,6 @@ import {
   Square,
   X,
   Play,
-  Filter,
-  AlertTriangle,
 } from 'lucide-react';
 import { WeddingEvent, MemoryUpload, MemoriesStats, MemoriesFilter } from '@/lib/memoriesTypes';
 import {

@@ -87,12 +87,10 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
     setCurrentPage(1);
   };
 
-  // Selection & Queue State
+  // Selection State
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [copiedTextId, setCopiedTextId] = useState<string | null>(null);
-  const [queue, setQueue] = useState<Invitee[] | null>(null);
-  const [queueIndex, setQueueIndex] = useState(0);
 
   // Bulk WhatsApp Sender Modal State
   const [showBulkSenderModal, setShowBulkSenderModal] = useState(false);
@@ -460,25 +458,6 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
     notify.success(`Marked ${selectedIds.length} invitees as sent.`);
   };
 
-  const startQueue = () => {
-    const list = filteredInvitees.filter((i) => selectedIds.includes(i.id));
-    if (list.length === 0) return;
-    setQueue(list);
-    setQueueIndex(0);
-  };
-
-  const sendQueueCurrentAndAdvance = () => {
-    if (!queue) return;
-    openWhatsApp(queue[queueIndex]);
-    if (queueIndex + 1 >= queue.length) {
-      setQueue(null);
-      setQueueIndex(0);
-      setSelectedIds([]);
-    } else {
-      setQueueIndex((i) => i + 1);
-    }
-  };
-
   // Inline editing actions
   const startEditing = (invitee: Invitee) => {
     setEditingId(invitee.id);
@@ -698,13 +677,6 @@ export const AllInviteesTab: React.FC<AllInviteesTabProps> = ({
           setBulkSenderInitialIds(selectedIds);
           setShowBulkSenderModal(true);
         }}
-        queue={queue}
-        queueIndex={queueIndex}
-        onCancelQueue={() => {
-          setQueue(null);
-          setQueueIndex(0);
-        }}
-        onSendQueueCurrentAndAdvance={sendQueueCurrentAndAdvance}
       />
 
       {/* Main List Area */}

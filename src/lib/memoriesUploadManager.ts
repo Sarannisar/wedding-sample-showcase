@@ -1,5 +1,4 @@
 import { WeddingEvent, UploadBatchItem, MediaType, MemoryUpload } from './memoriesTypes';
-import { createMemoryUploadRecord, updateMemoryUpload } from './memoriesService';
 
 export const SUPPORTED_PHOTO_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif'];
 export const SUPPORTED_VIDEO_EXTENSIONS = ['.mp4', '.mov', '.webm'];
@@ -200,7 +199,7 @@ export async function uploadSingleMemory(
     }
 
     // 3. Obtain pre-extracted dimensions (already resolved in background during the upload transfer)
-    const dimensions = await dimensionsPromise.catch(() => ({}));
+    const dimensions: { width?: number; height?: number; duration?: number } = await dimensionsPromise.catch(() => ({}));
 
     // 4. Complete upload in DB
     const initialStatus = event.moderation_enabled ? 'pending' : 'ready';

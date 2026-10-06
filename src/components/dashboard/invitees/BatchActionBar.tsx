@@ -11,10 +11,10 @@ export interface BatchActionBarProps {
   onBulkMarkSent: () => void;
   onStartReminders: () => void;
   onStartQueue: () => void;
-  queue: Invitee[] | null;
-  queueIndex: number;
-  onCancelQueue: () => void;
-  onSendQueueCurrentAndAdvance: () => void;
+  queue?: Invitee[] | null;
+  queueIndex?: number;
+  onCancelQueue?: () => void;
+  onSendQueueCurrentAndAdvance?: () => void;
 }
 
 export const BatchActionBar: React.FC<BatchActionBarProps> = ({
@@ -26,8 +26,8 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
   onBulkMarkSent,
   onStartReminders,
   onStartQueue,
-  queue,
-  queueIndex,
+  queue = null,
+  queueIndex = 0,
   onCancelQueue,
   onSendQueueCurrentAndAdvance,
 }) => {

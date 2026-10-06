@@ -44,7 +44,7 @@ export const ClosingSection: React.FC = () => {
             {weddingConfig.couple.bride} & {weddingConfig.couple.groom}
           </span>
           <span className="font-label text-[10px] uppercase tracking-[0.25em] text-[#7a4d5d] mt-1 font-medium">
-            {weddingConfig.event.dateFormatted}
+            {weddingConfig.event.dayAndDate}
           </span>
         </div>
       </div>

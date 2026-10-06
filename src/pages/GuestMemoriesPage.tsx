@@ -4,7 +4,6 @@ import {
   Camera,
   Video,
   UploadCloud,
-  X,
   CheckCircle2,
   AlertCircle,
   RefreshCw,
@@ -21,6 +20,7 @@ import { validateFile, uploadSingleMemory } from '@/lib/memoriesUploadManager';
 import { MemoriesPasscodeModal } from '@/components/memories/MemoriesPasscodeModal';
 import { GuestGallery } from '@/components/memories/GuestGallery';
 import { notify } from '@/lib/notify';
+import { weddingConfig } from '@/config/weddingConfig';
 
 export const GuestMemoriesPage: React.FC = () => {
   const { eventSlug } = useParams<{ eventSlug: string }>();

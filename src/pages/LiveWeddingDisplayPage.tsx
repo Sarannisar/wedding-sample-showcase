@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { Sparkles, Heart, Camera, Video, Maximize, Play, Pause } from 'lucide-react';
 import { WeddingEvent, MemoryUpload } from '@/lib/memoriesTypes';
 import { fetchWeddingEvent, fetchApprovedMemories, resolveMediaUrl } from '@/lib/memoriesService';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import { formatRelativeTime } from '@/lib/utils';
 import { weddingConfig } from '@/config/weddingConfig';
 
 export const LiveWeddingDisplayPage: React.FC = () => {
@@ -53,7 +52,7 @@ export const LiveWeddingDisplayPage: React.FC = () => {
 
       const poll = setInterval(refreshData, 10000);
       return () => {
-        supabase.removeChannel(channel);
+        supabase?.removeChannel(channel);
         clearInterval(poll);
       };
     } else {

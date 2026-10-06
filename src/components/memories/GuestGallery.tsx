@@ -6,8 +6,6 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  Maximize2,
-  Calendar,
   User,
   Film,
 } from 'lucide-react';

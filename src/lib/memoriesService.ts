@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from './supabase';
-import { WeddingEvent, MemoryUpload, MemoriesStats, UploadStatus } from './memoriesTypes';
+import { WeddingEvent, MemoryUpload, MemoriesStats } from './memoriesTypes';
 import { weddingConfig } from '@/config/weddingConfig';
 
 const EVENTS_CACHE_KEY = 'wedding_memories_events_cache_v1';
@@ -346,6 +346,7 @@ export async function bulkUpdateMemories(
     eventId,
     current.map((item) => (idSet.has(item.id) ? { ...item, ...updatedPayload } : item))
   );
+  return true;
 }
 
 /**

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Save, Sliders, Shield, Camera, Video, Lock, Layers } from 'lucide-react';
+import { X, Save, Sliders } from 'lucide-react';
 import { WeddingEvent } from '@/lib/memoriesTypes';
 import { updateWeddingEvent } from '@/lib/memoriesService';
 import { notify } from '@/lib/notify';
