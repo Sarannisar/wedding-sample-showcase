@@ -244,36 +244,41 @@ export const GuestMemoriesPage: React.FC = () => {
       </div>
 
       {/* Top Bar */}
-      <header className="sticky top-0 z-30 bg-[#fffafc]/85 backdrop-blur-md border-b border-[#e08aa3]/20 px-4 py-3">
-        <div className="max-w-xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-xs font-label uppercase tracking-widest text-[#b05570]">
+      <header className="sticky top-0 z-30 bg-[#fffafc]/85 backdrop-blur-md border-b border-[#e08aa3]/20 px-4 py-2.5">
+        <div className="max-w-xl mx-auto relative flex items-center justify-between min-h-[40px]">
+          {/* Left Element */}
+          <div className="flex items-center gap-1.5 text-xs font-label uppercase tracking-widest text-[#b05570] z-10">
             <Camera className="w-4 h-4 text-[#e08aa3]" />
-            <span className="hidden sm:inline font-semibold">Wedding Memories</span>
+            <span className="hidden sm:inline font-semibold text-[11px]">Memories</span>
           </div>
 
-          <div className="text-center">
-            <span className="font-script text-lg sm:text-xl text-[#b05570] block leading-none">
+          {/* Truly Dead-Centered Title (Mathematically Centered) */}
+          <div className="absolute inset-x-0 mx-auto text-center pointer-events-none flex flex-col items-center justify-center">
+            <span className="font-script text-xl sm:text-2xl text-[#b05570] block leading-tight drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
               {weddingConfig.couple.bride} &amp; {weddingConfig.couple.groom}
             </span>
-            <span className="text-[10px] font-label uppercase tracking-widest text-[#b592a0]">
+            <span className="text-[9px] sm:text-[10px] font-label uppercase tracking-[0.28em] text-[#b592a0] block -mt-0.5">
               Memories Drop
             </span>
           </div>
 
-          {event.gallery_enabled ? (
-            <button
-              onClick={() => {
-                const el = document.getElementById('wedding-gallery-section');
-                el?.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#e08aa3]/30 bg-[#fff2f6]/80 hover:bg-[#fff2f6] text-xs font-label uppercase tracking-wider text-[#b05570] hover:text-[#4a3038] transition cursor-pointer"
-            >
-              <Images className="w-3.5 h-3.5 text-[#e08aa3]" />
-              <span>Gallery</span>
-            </button>
-          ) : (
-            <div className="w-16" />
-          )}
+          {/* Right Element */}
+          <div className="flex items-center justify-end z-10">
+            {event.gallery_enabled ? (
+              <button
+                onClick={() => {
+                  const el = document.getElementById('wedding-gallery-section');
+                  el?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#e08aa3]/30 bg-[#fff2f6]/80 hover:bg-[#fff2f6] text-xs font-label uppercase tracking-wider text-[#b05570] hover:text-[#4a3038] transition cursor-pointer shadow-xs active:scale-95"
+              >
+                <Images className="w-3.5 h-3.5 text-[#e08aa3]" />
+                <span>Gallery</span>
+              </button>
+            ) : (
+              <div className="w-6" />
+            )}
+          </div>
         </div>
       </header>
 
