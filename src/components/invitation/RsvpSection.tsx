@@ -531,7 +531,7 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ invitee, onRsvpSuccess
                   </h4>
                   <p className="font-serif text-xs text-[#6f5860] leading-relaxed">
                     We look forward to welcoming you and your family ({guestCount}{' '}
-                    {guestCount === 1 ? 'guest' : 'guests'}) on Saturday, 12th December 2026.
+                    {guestCount === 1 ? 'guest' : 'guests'}) on {weddingConfig.event.dayAndDate}.
                   </p>
                   {note && (
                     <div className="p-3 rounded-lg bg-white border border-[#f2b8c6]/20 text-xs font-serif italic text-[#a8808e]">

@@ -76,10 +76,10 @@ export const weddingConfig: WeddingConfig = {
   event: {
     type: 'Wedding Ceremony',
     label: 'Wedding Ceremony',
-    dayAndDate: 'Saturday, 12th December 2026',
-    hijriDate: '٣ رَجَب ١٤٤٨',
+    dayAndDate: 'Saturday, 26th December 2026',
+    hijriDate: '١٧ رَجَب ١٤٤٨ هـ',
     time: '12:30 PM onwards',
-    targetDate: '2026-12-12T12:30:00+05:30',
+    targetDate: '2026-12-26T12:30:00+05:30',
     venue: {
       name: 'Glen Reception Hall',
       address: '325 Attidiya Rd, Dehiwala-Mount Lavinia',
@@ -121,9 +121,9 @@ export const weddingConfig: WeddingConfig = {
 
   whatsapp: {
     messageTemplate:
-      "Assalamu Alaikum GUEST_NAME\n\nThe family of Mr. and Mrs. Illyas cordially invite you to their daughter Safiyya's Wedding Ceremony on Saturday 12th December 2026 at Glen Reception Hall from 12:30pm onwards.\n\nView your personal invitation here: GUEST_LINK",
+      "Assalamu Alaikum GUEST_NAME\n\nThe family of Mr. and Mrs. Illyas cordially invite you to their daughter Safiyya's Wedding Ceremony on Saturday 26th December 2026 at Glen Reception Hall from 12:30pm onwards.\n\nView your personal invitation here: GUEST_LINK",
     reminderTemplate:
-      "Assalamu Alaikum GUEST_NAME\n\nA gentle reminder about Safiyya & Sharrafuth's Wedding Ceremony on Saturday 12th December 2026 at Glen Reception Hall, 12:30pm onwards.\n\nWe would love to know if you can join us — please confirm here: GUEST_LINK",
+      "Assalamu Alaikum GUEST_NAME\n\nA gentle reminder about Safiyya & Sharrafuth's Wedding Ceremony on Saturday 26th December 2026 at Glen Reception Hall, 12:30pm onwards.\n\nWe would love to know if you can join us — please confirm here: GUEST_LINK",
     hostConfirmationAttendingTemplate:
       "Assalamu Alaikum! I have confirmed my RSVP for the Wedding Ceremony.\n\n👤 Guest: GUEST_NAME\n✅ Status: Attending (GUEST_COUNT)\n📝 Notes: NOTES\n\nLooking forward to celebrating with you insha Allah!",
     hostConfirmationDeclinedTemplate:

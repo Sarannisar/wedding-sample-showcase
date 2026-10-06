@@ -209,7 +209,7 @@ export const DateScratchCard: React.FC<DateScratchCardProps> = ({
               lang="ar"
               className="font-arabic text-base sm:text-lg text-[#b04362] font-medium mt-1 leading-normal drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]"
             >
-              {event.hijriDate || '٣ رَجَب ١٤٤٨'}
+              {event.hijriDate || '١٧ رَجَب ١٤٤٨ هـ'}
             </p>
 
             <p className="font-serif italic text-sm text-[#dd8ea5] font-semibold mt-0.5">

@@ -54,10 +54,10 @@ export function getHostRsvpWhatsAppUrl({
   const isAttending = rsvp === 'attending';
 
   const defaultAttending =
-    "Assalamu Alaikum! I have confirmed my RSVP for Safiyya & Sharrafuth's Wedding Ceremony on Saturday 12th December 2026.\n\n👤 Guest: GUEST_NAME\n✅ Status: Attending (GUEST_COUNT)\n📝 Notes: NOTES\n\nLooking forward to celebrating with you insha Allah!";
+    `Assalamu Alaikum! I have confirmed my RSVP for ${weddingConfig.couple.bride} & ${weddingConfig.couple.groom}'s Wedding Ceremony on ${weddingConfig.event.dayAndDate}.\n\n👤 Guest: GUEST_NAME\n✅ Status: Attending (GUEST_COUNT)\n📝 Notes: NOTES\n\nLooking forward to celebrating with you insha Allah!`;
 
   const defaultDeclined =
-    "Assalamu Alaikum! Regretfully I am unable to attend Safiyya & Sharrafuth's Wedding Ceremony on Saturday 12th December 2026.\n\n👤 Guest: GUEST_NAME\n❌ Status: Regretfully Declined\n📝 Notes: NOTES\n\nWishing you both immense blessings and happiness insha Allah!";
+    `Assalamu Alaikum! Regretfully I am unable to attend ${weddingConfig.couple.bride} & ${weddingConfig.couple.groom}'s Wedding Ceremony on ${weddingConfig.event.dayAndDate}.\n\n👤 Guest: GUEST_NAME\n❌ Status: Regretfully Declined\n📝 Notes: NOTES\n\nWishing you both immense blessings and happiness insha Allah!`;
 
   const rawTemplate = isAttending
     ? weddingConfig.whatsapp?.hostConfirmationAttendingTemplate || defaultAttending
