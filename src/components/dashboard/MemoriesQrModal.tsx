@@ -108,6 +108,10 @@ export const MemoriesQrModal: React.FC<MemoriesQrModalProps> = ({ event, onClose
             width: 88mm !important;
             height: 88mm !important;
           }
+          img {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
           .no-print {
             display: none !important;
           }
@@ -163,12 +167,16 @@ export const MemoriesQrModal: React.FC<MemoriesQrModalProps> = ({ event, onClose
               {weddingConfig.cultural?.bismillah?.arabic || 'بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ'}
             </p>
 
-            <div className="inline-flex items-center justify-center gap-2.5 my-1">
-              <span className="h-[1px] w-8 sm:w-10 print:w-[14mm] bg-gradient-to-r from-transparent to-[#e08aa3]" />
-              <div className="w-8 h-8 print:w-[9mm] print:h-[9mm] rounded-full border border-[#e08aa3]/60 bg-[#fff2f6] shadow-sm flex items-center justify-center text-[#b05570] font-script text-sm print:text-[11pt] font-bold">
-                {weddingConfig.couple.monogram || 'S & S'}
+            <div className="inline-flex items-center justify-center gap-2.5 sm:gap-3 my-1">
+              <span className="h-[1px] w-8 sm:w-12 print:w-[15mm] bg-gradient-to-r from-transparent to-[#e08aa3]" />
+              <div className="w-12 h-12 sm:w-14 sm:h-14 print:w-[15mm] print:h-[15mm] flex items-center justify-center">
+                <img
+                  src="/assets/logo_saad_sheen_crest.png"
+                  alt="Arabic Wedding Monogram Crest"
+                  className="w-full h-full object-contain drop-shadow-xs"
+                />
               </div>
-              <span className="h-[1px] w-8 sm:w-10 print:w-[14mm] bg-gradient-to-l from-transparent to-[#e08aa3]" />
+              <span className="h-[1px] w-8 sm:w-12 print:w-[15mm] bg-gradient-to-l from-transparent to-[#e08aa3]" />
             </div>
 
             <h1 className="font-display text-2xl sm:text-3xl print:text-[22pt] font-black tracking-tight text-[#4a3038] leading-tight">
