@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Images,
   Video,
-  Download,
   X,
   ChevronLeft,
   ChevronRight,
@@ -15,10 +14,9 @@ import { formatRelativeTime } from '@/lib/utils';
 
 interface GuestGalleryProps {
   eventId: string;
-  allowDownloads: boolean;
 }
 
-export const GuestGallery: React.FC<GuestGalleryProps> = ({ eventId, allowDownloads }) => {
+export const GuestGallery: React.FC<GuestGalleryProps> = ({ eventId }) => {
   const [memories, setMemories] = useState<MemoryUpload[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'photo' | 'video'>('all');
@@ -39,7 +37,7 @@ export const GuestGallery: React.FC<GuestGalleryProps> = ({ eventId, allowDownlo
     return m.media_type === filter;
   });
 
-  const getMediaUrl = (item: MemoryUpload, download = false) => resolveMediaUrl(item, download);
+  const getMediaUrl = (item: MemoryUpload) => resolveMediaUrl(item);
 
   const handleNext = () => {
     if (activeItemIndex === null) return;
@@ -187,16 +185,6 @@ export const GuestGallery: React.FC<GuestGalleryProps> = ({ eventId, allowDownlo
             </div>
 
             <div className="flex items-center gap-2">
-              {allowDownloads && (
-                <a
-                  href={getMediaUrl(activeItem, true)}
-                  download={activeItem.original_filename}
-                  className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
-                  title="Download Original"
-                >
-                  <Download className="w-5 h-5" />
-                </a>
-              )}
               <button
                 onClick={() => setActiveItemIndex(null)}
                 className="p-2 rounded-full bg-white/10 hover:bg-rose-600/80 text-white transition cursor-pointer"

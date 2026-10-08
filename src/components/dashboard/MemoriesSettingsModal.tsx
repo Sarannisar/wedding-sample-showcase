@@ -37,7 +37,7 @@ export const MemoriesSettingsModal: React.FC<MemoriesSettingsModalProps> = ({
         upload_enabled: formData.upload_enabled,
         gallery_enabled: formData.gallery_enabled,
         live_display_enabled: formData.live_display_enabled !== false,
-        guest_downloads_enabled: formData.guest_downloads_enabled,
+        guest_downloads_enabled: false,
         moderation_enabled: formData.moderation_enabled,
         passcode_enabled: formData.passcode_enabled,
         photo_size_limit_mb: Number(formData.photo_size_limit_mb) || 25,
@@ -184,22 +184,7 @@ export const MemoriesSettingsModal: React.FC<MemoriesSettingsModalProps> = ({
               </button>
             </div>
 
-            {/* Guest Downloads */}
-            <div className="flex items-center justify-between p-3.5 rounded-2xl bg-[#fffafc] border border-[#e08aa3]/20">
-              <div>
-                <p className="text-sm font-semibold text-[#4a3038]">Guest Downloads</p>
-                <p className="text-xs text-[#7a4d5d]">Allow guests to download photos from the gallery</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleToggle('guest_downloads_enabled')}
-                className={`w-12 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer ${
-                  formData.guest_downloads_enabled ? 'bg-[#e08aa3] justify-end' : 'bg-gray-300 justify-start'
-                }`}
-              >
-                <div className="bg-white w-4 h-4 rounded-full shadow-md transform" />
-              </button>
-            </div>
+
 
             {/* Moderation Enabled */}
             <div className="flex items-center justify-between p-3.5 rounded-2xl bg-[#fffafc] border border-[#e08aa3]/20">

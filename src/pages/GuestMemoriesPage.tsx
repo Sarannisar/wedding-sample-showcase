@@ -603,7 +603,6 @@ export const GuestMemoriesPage: React.FC = () => {
         {event.gallery_enabled && (
           <GuestGallery
             eventId={event.id}
-            allowDownloads={event.guest_downloads_enabled}
           />
         )}
       </main>
