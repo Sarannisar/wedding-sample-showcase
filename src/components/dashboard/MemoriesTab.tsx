@@ -349,6 +349,18 @@ export const MemoriesTab: React.FC<MemoriesTabProps> = ({ event, onEventUpdated 
     }
   };
 
+  const handleBulkUnhide = async () => {
+    const ids = Array.from(selectedIds);
+    const ok = await bulkUpdateMemories(ids, event.id, { is_visible: true });
+    if (ok) {
+      setUploads((prev) =>
+        prev.map((u) => (selectedIds.has(u.id) ? { ...u, is_visible: true } : u))
+      );
+      setSelectedIds(new Set());
+      notify.info(`Published ${ids.length} memories to guest gallery.`);
+    }
+  };
+
   const handleToggleLiveDisplay = async () => {
     const nextState = event.live_display_enabled === false ? true : false;
     const res = await updateWeddingEvent(event.id, { live_display_enabled: nextState });
@@ -359,6 +371,12 @@ export const MemoriesTab: React.FC<MemoriesTabProps> = ({ event, onEventUpdated 
   };
 
   const getMediaUrl = (item: MemoryUpload, download = false) => resolveMediaUrl(item, download);
+
+  // Selection state computation for dynamic toolbar actions
+  const selectedItems = uploads.filter((u) => selectedIds.has(u.id));
+  const hasUnapprovedSelected = selectedItems.some((u) => u.status === 'pending');
+  const hasVisibleSelected = selectedItems.some((u) => u.is_visible && !u.is_deleted);
+  const hasHiddenSelected = selectedItems.some((u) => !u.is_visible && !u.is_deleted);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -589,18 +607,30 @@ export const MemoriesTab: React.FC<MemoriesTabProps> = ({ event, onEventUpdated 
               </div>
             ) : (
               <>
-                <button
-                  onClick={handleBulkApprove}
-                  className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold transition cursor-pointer"
-                >
-                  Approve
-                </button>
-                <button
-                  onClick={handleBulkHide}
-                  className="px-2.5 py-1 rounded-lg bg-gray-600 hover:bg-gray-700 text-white text-[11px] font-semibold transition cursor-pointer"
-                >
-                  Hide
-                </button>
+                {hasUnapprovedSelected && (
+                  <button
+                    onClick={handleBulkApprove}
+                    className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold transition cursor-pointer"
+                  >
+                    Approve
+                  </button>
+                )}
+                {hasVisibleSelected && (
+                  <button
+                    onClick={handleBulkHide}
+                    className="px-2.5 py-1 rounded-lg bg-gray-600 hover:bg-gray-700 text-white text-[11px] font-semibold transition cursor-pointer"
+                  >
+                    Hide
+                  </button>
+                )}
+                {hasHiddenSelected && (
+                  <button
+                    onClick={handleBulkUnhide}
+                    className="px-2.5 py-1 rounded-lg bg-[#b05570] hover:bg-[#9a455f] text-white text-[11px] font-semibold transition cursor-pointer"
+                  >
+                    Unhide
+                  </button>
+                )}
                 <button
                   onClick={handleBulkDelete}
                   className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-semibold transition cursor-pointer"

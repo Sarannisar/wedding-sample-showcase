@@ -4,6 +4,7 @@ import { Readable } from 'stream';
 
 export const config = {
   runtime: 'nodejs',
+  maxDuration: 60,
 };
 
 const FILES_PER_PART = 50;
@@ -26,9 +27,11 @@ export default async function handler(req: any, res: any) {
         : (req.query?.token as string) || null;
 
     const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+    const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const supabaseApiKey = supabaseServiceKey || supabaseAnonKey;
 
-    if (!supabaseUrl || !supabaseKey) {
+    if (!supabaseUrl || !supabaseApiKey) {
       return res.status(500).json({ error: 'Supabase configuration missing' });
     }
 
@@ -37,7 +40,7 @@ export default async function handler(req: any, res: any) {
       try {
         const authCheck = await fetch(`${supabaseUrl}/auth/v1/user`, {
           headers: {
-            apikey: supabaseKey,
+            apikey: supabaseApiKey,
             Authorization: `Bearer ${token}`,
           },
         });
@@ -51,19 +54,43 @@ export default async function handler(req: any, res: any) {
       return res.status(401).json({ error: 'Unauthorized: Host authentication token required.' });
     }
 
-    // Fetch active memories
-    const dbRes = await fetch(
-      `${supabaseUrl}/rest/v1/memory_uploads?event_id=eq.${encodeURIComponent(eventId)}&is_deleted=eq.false&status=in.(ready,uploaded)&order=uploaded_at.asc`,
-      {
-        headers: {
-          apikey: supabaseKey,
-          Authorization: `Bearer ${supabaseKey}`,
-        },
+    // Database authorization bearer: prioritize service role key, then host user token, then anon key
+    const dbBearer = supabaseServiceKey || token || supabaseApiKey;
+    const dbHeaders = {
+      apikey: supabaseApiKey,
+      Authorization: `Bearer ${dbBearer}`,
+    };
+
+    // Resolve eventId if slug was supplied instead of UUID
+    let resolvedEventId = eventId;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId);
+    if (!isUuid) {
+      try {
+        const evRes = await fetch(
+          `${supabaseUrl}/rest/v1/wedding_events?slug=eq.${encodeURIComponent(eventId)}&select=id&limit=1`,
+          { headers: dbHeaders }
+        );
+        if (evRes.ok) {
+          const evRows = (await evRes.json()) as any[];
+          if (evRows && evRows[0]?.id) {
+            resolvedEventId = evRows[0].id;
+          }
+        }
+      } catch (evErr) {
+        console.warn('Could not resolve event slug to UUID in archive.ts:', evErr);
       }
+    }
+
+    // Fetch active memories (include ready, uploaded, and pending for host downloads)
+    const dbRes = await fetch(
+      `${supabaseUrl}/rest/v1/memory_uploads?event_id=eq.${encodeURIComponent(resolvedEventId)}&is_deleted=eq.false&status=in.(ready,uploaded,pending)&order=uploaded_at.asc`,
+      { headers: dbHeaders }
     );
 
     if (!dbRes.ok) {
-      return res.status(500).json({ error: 'Failed to fetch event memories' });
+      const errDetail = await dbRes.text().catch(() => '');
+      console.error('Failed to fetch event memories:', dbRes.status, errDetail);
+      return res.status(500).json({ error: 'Failed to fetch event memories from database' });
     }
 
     const uploads = (await dbRes.json()) as any[];
@@ -84,7 +111,7 @@ export default async function handler(req: any, res: any) {
           totalParts,
           fileCount: slice.length,
           totalBytes: partBytes,
-          downloadUrl: `/api/memories/archive?eventId=${encodeURIComponent(eventId)}&part=${p}${token ? `&token=${encodeURIComponent(token)}` : ''}`,
+          downloadUrl: `/api/memories/archive?eventId=${encodeURIComponent(resolvedEventId)}&part=${p}${token ? `&token=${encodeURIComponent(token)}` : ''}`,
           filename: `Wedding-Memories-Part-${String(p).padStart(2, '0')}.zip`,
         });
       }
@@ -131,6 +158,8 @@ export default async function handler(req: any, res: any) {
           accessKeyId: r2AccessKeyId,
           secretAccessKey: r2SecretAccessKey,
         },
+        requestChecksumCalculation: 'WHEN_REQUIRED',
+        responseChecksumValidation: 'WHEN_REQUIRED',
       });
     }
 

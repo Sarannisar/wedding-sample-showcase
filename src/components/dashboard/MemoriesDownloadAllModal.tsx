@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X, Download, Archive, CheckCircle, RefreshCw, FileArchive } from 'lucide-react';
 import { WeddingEvent } from '@/lib/memoriesTypes';
 import { formatBytes } from '@/lib/memoriesService';
@@ -27,34 +27,34 @@ export const MemoriesDownloadAllModal: React.FC<MemoriesDownloadAllModalProps> =
   const [error, setError] = useState<string | null>(null);
   const [downloadedParts, setDownloadedParts] = useState<Set<number>>(new Set());
 
-  useEffect(() => {
-    async function loadParts() {
-      setIsLoading(true);
-      setError(null);
+  const loadParts = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
 
-      try {
-        const session = await supabase?.auth.getSession();
-        const token = session?.data?.session?.access_token;
-        const queryUrl = `/api/memories/archive?eventId=${encodeURIComponent(event.id)}&action=parts${token ? `&token=${encodeURIComponent(token)}` : ''}`;
-        const res = await fetch(queryUrl, {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        });
-        if (res.ok) {
-          const json = await res.json();
-          setParts(json.parts || []);
-        } else {
-          const errJson = await res.json().catch(() => ({}));
-          setError(errJson.error || 'No memories found to archive.');
-        }
-      } catch (err: any) {
-        setError(err.message || 'Could not prepare download archives.');
-      } finally {
-        setIsLoading(false);
+    try {
+      const session = await supabase?.auth.getSession();
+      const token = session?.data?.session?.access_token;
+      const queryUrl = `/api/memories/archive?eventId=${encodeURIComponent(event.id)}&action=parts${token ? `&token=${encodeURIComponent(token)}` : ''}`;
+      const res = await fetch(queryUrl, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setParts(json.parts || []);
+      } else {
+        const errJson = await res.json().catch(() => ({}));
+        setError(errJson.error || 'No memories found to archive.');
       }
+    } catch (err: any) {
+      setError(err.message || 'Could not prepare download archives.');
+    } finally {
+      setIsLoading(false);
     }
-
-    void loadParts();
   }, [event.id]);
+
+  useEffect(() => {
+    void loadParts();
+  }, [loadParts]);
 
   const handleDownloadPart = async (part: ArchivePart) => {
     setDownloadedParts((prev) => new Set(prev).add(part.part));
@@ -105,16 +105,25 @@ export const MemoriesDownloadAllModal: React.FC<MemoriesDownloadAllModalProps> =
         ) : error ? (
           <div className="p-6 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-center">
             <p className="font-semibold text-sm">{error}</p>
-            <button
-              onClick={onClose}
-              className="mt-4 px-4 py-2 rounded-xl bg-white border border-rose-300 text-xs font-semibold cursor-pointer"
-            >
-              Close
-            </button>
+            <div className="flex items-center justify-center gap-2 mt-4">
+              <button
+                onClick={loadParts}
+                className="px-4 py-2 rounded-xl bg-[#e08aa3] hover:bg-[#d17e92] text-white text-xs font-semibold cursor-pointer flex items-center gap-1.5 transition"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Retry</span>
+              </button>
+              <button
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl bg-white border border-rose-300 text-rose-700 hover:bg-rose-100 text-xs font-semibold cursor-pointer transition"
+              >
+                Close
+              </button>
+            </div>
           </div>
         ) : parts.length === 0 ? (
           <div className="p-8 text-center text-xs text-[#7a4d5d]">
-            No approved memories are available for download yet.
+            No memories are available for download yet. Once guests upload photos or videos, they will appear here.
           </div>
         ) : (
           <div className="space-y-4">
