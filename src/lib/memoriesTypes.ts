@@ -86,6 +86,7 @@ export interface UploadBatchItem {
   mimeType: string;
   status: 'queued' | 'requesting_auth' | 'uploading' | 'completing' | 'ready' | 'failed' | 'cancelled';
   progress: number; // 0 to 100
+  loadedBytes?: number;
   error?: string;
   storageKey?: string;
   remoteId?: string;

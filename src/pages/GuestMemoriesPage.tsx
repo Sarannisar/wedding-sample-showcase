@@ -142,9 +142,9 @@ export const GuestMemoriesPage: React.FC = () => {
         prev.map((item) => (item.id === current.id ? { ...item, status: 'uploading', progress: 0 } : item))
       );
 
-      const result = await uploadSingleMemory(current, event, guestName, (percent) => {
+      const result = await uploadSingleMemory(current, event, guestName, (percent, loadedBytes) => {
         setSelectedFiles((prev) =>
-          prev.map((item) => (item.id === current.id ? { ...item, progress: percent } : item))
+          prev.map((item) => (item.id === current.id ? { ...item, progress: percent, loadedBytes } : item))
         );
       });
 
@@ -152,7 +152,11 @@ export const GuestMemoriesPage: React.FC = () => {
         successes++;
         setCompletedCount(successes);
         setSelectedFiles((prev) =>
-          prev.map((item) => (item.id === current.id ? { ...item, status: 'ready', progress: 100 } : item))
+          prev.map((item) =>
+            item.id === current.id
+              ? { ...item, status: 'ready', progress: 100, loadedBytes: item.fileSize }
+              : item
+          )
         );
       } else {
         failures++;
@@ -197,6 +201,13 @@ export const GuestMemoriesPage: React.FC = () => {
 
   // Calculation helpers
   const totalBytes = selectedFiles.reduce((acc, curr) => acc + curr.fileSize, 0);
+  const totalUploadedBytes = selectedFiles.reduce((acc, curr) => {
+    if (curr.status === 'ready') return acc + curr.fileSize;
+    if (curr.status === 'uploading') return acc + (curr.loadedBytes || 0);
+    return acc;
+  }, 0);
+  const overallPercent =
+    totalBytes > 0 ? Math.min(100, Math.round((totalUploadedBytes / totalBytes) * 100)) : 0;
   const photoCount = selectedFiles.filter((f) => f.mediaType === 'photo').length;
   const videoCount = selectedFiles.filter((f) => f.mediaType === 'video').length;
   const hasErrors = selectedFiles.some((f) => f.error);
@@ -449,15 +460,23 @@ export const GuestMemoriesPage: React.FC = () => {
 
                 {/* Progress Bar (When Uploading) */}
                 {isUploading && (
-                  <div className="mb-5 p-4 rounded-2xl bg-[#fff2f6] border border-[#e08aa3]/30 animate-pulse">
-                    <div className="flex items-center justify-between text-xs font-label uppercase tracking-wider font-semibold text-[#b05570] mb-1.5">
-                      <span>Uploading {uploadIndex} of {selectedFiles.length}</span>
-                      <span>{Math.round((completedCount / selectedFiles.length) * 100)}%</span>
+                  <div className="mb-5 p-4 sm:p-5 rounded-2xl bg-[#fff2f6] border border-[#e08aa3]/30 shadow-sm animate-fade-in">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs font-label uppercase tracking-wider font-semibold text-[#b05570] mb-2">
+                      <div className="flex items-center gap-2">
+                        <span>Uploading {uploadIndex} of {selectedFiles.length}</span>
+                        <span className="text-[#e08aa3]">•</span>
+                        <span className="font-mono font-bold text-[#4a3038] tracking-normal">
+                          {formatBytes(totalUploadedBytes)} of {formatBytes(totalBytes)}
+                        </span>
+                      </div>
+                      <span className="font-mono font-bold text-sm text-[#b05570] sm:text-right">
+                        {overallPercent}%
+                      </span>
                     </div>
-                    <div className="w-full h-2.5 rounded-full bg-white overflow-hidden">
+                    <div className="w-full h-3 rounded-full bg-white border border-[#e08aa3]/20 overflow-hidden shadow-inner p-0.5">
                       <div
-                        className="h-full bg-gradient-to-r from-[#e08aa3] to-[#b05570] transition-all duration-300 rounded-full"
-                        style={{ width: `${(completedCount / selectedFiles.length) * 100}%` }}
+                        className="h-full bg-gradient-to-r from-[#e08aa3] to-[#b05570] transition-all duration-200 rounded-full"
+                        style={{ width: `${overallPercent}%` }}
                       />
                     </div>
                   </div>
@@ -511,11 +530,17 @@ export const GuestMemoriesPage: React.FC = () => {
 
                         {/* Individual Item Progress */}
                         {item.status === 'uploading' && (
-                          <div className="w-full h-1.5 rounded-full bg-white mt-1.5 overflow-hidden">
-                            <div
-                              className="h-full bg-[#e08aa3] transition-all duration-150"
-                              style={{ width: `${item.progress}%` }}
-                            />
+                          <div className="mt-2 space-y-1">
+                            <div className="flex items-center justify-between text-[11px] font-mono text-[#b05570]">
+                              <span>{formatBytes(item.loadedBytes || 0)} / {formatBytes(item.fileSize)}</span>
+                              <span className="font-semibold">{item.progress}%</span>
+                            </div>
+                            <div className="w-full h-2 rounded-full bg-white border border-[#e08aa3]/20 overflow-hidden">
+                              <div
+                                className="h-full bg-gradient-to-r from-[#e08aa3] to-[#b05570] transition-all duration-150 rounded-full"
+                                style={{ width: `${item.progress}%` }}
+                              />
+                            </div>
                           </div>
                         )}
                       </div>

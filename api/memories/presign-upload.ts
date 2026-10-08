@@ -120,13 +120,14 @@ export default async function handler(req: any, res: any) {
           accessKeyId: r2AccessKeyId!,
           secretAccessKey: r2SecretAccessKey!,
         },
+        requestChecksumCalculation: 'WHEN_REQUIRED',
+        responseChecksumValidation: 'WHEN_REQUIRED',
       });
 
       const putCommand = new PutObjectCommand({
         Bucket: r2BucketName!,
         Key: storageKey,
         ContentType: mimeType,
-        ContentLength: fileSize,
       });
 
       // 15-minute expiration

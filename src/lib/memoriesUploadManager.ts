@@ -95,18 +95,38 @@ export async function extractVideoMetadata(
       const url = URL.createObjectURL(file);
       const video = document.createElement('video');
       video.preload = 'metadata';
+
+      const cleanup = () => {
+        try {
+          URL.revokeObjectURL(url);
+          video.removeAttribute('src');
+          video.load();
+        } catch {}
+      };
+
+      // 3-second safety timeout so large video metadata decoding never hangs the upload pipeline
+      const timer = setTimeout(() => {
+        cleanup();
+        resolve({});
+      }, 3000);
+
       video.onloadedmetadata = () => {
-        URL.revokeObjectURL(url);
-        resolve({
+        clearTimeout(timer);
+        const metadata = {
           width: video.videoWidth || undefined,
           height: video.videoHeight || undefined,
           duration: video.duration ? Math.round(video.duration * 10) / 10 : undefined,
-        });
+        };
+        cleanup();
+        resolve(metadata);
       };
+
       video.onerror = () => {
-        URL.revokeObjectURL(url);
+        clearTimeout(timer);
+        cleanup();
         resolve({});
       };
+
       video.src = url;
     } catch {
       resolve({});
@@ -121,7 +141,7 @@ export async function uploadSingleMemory(
   item: UploadBatchItem,
   event: WeddingEvent,
   guestName: string,
-  onProgress: (progress: number) => void
+  onProgress: (percent: number, loadedBytes: number, totalBytes: number) => void
 ): Promise<{ success: boolean; uploadRecord?: MemoryUpload; error?: string }> {
   let xhr: XMLHttpRequest | null = null;
 
@@ -177,8 +197,8 @@ export async function uploadSingleMemory(
 
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable) {
-            const percent = Math.round((event.loaded / event.total) * 100);
-            onProgress(percent);
+            const percent = Math.min(100, Math.round((event.loaded / event.total) * 100));
+            onProgress(percent, event.loaded, event.total);
           }
         };
 
