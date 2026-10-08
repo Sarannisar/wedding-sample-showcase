@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { FloralLoader } from '@/components/loader/FloralLoader';
 import { OpeningExperience } from '@/components/opening/OpeningExperience';
@@ -22,6 +22,7 @@ export const GuestInvitePage: React.FC = () => {
     typeof navigator !== 'undefined' ? !navigator.onLine : false
   );
   const [backOnlineToast, setBackOnlineToast] = useState(false);
+  const loggedSlugsRef = useRef<Set<string>>(new Set());
 
   // Offline / Online listeners
   useEffect(() => {
@@ -70,10 +71,19 @@ export const GuestInvitePage: React.FC = () => {
           setInvitee(data);
           setIsInvalidSlug(false);
 
-          // Log opened event once per session and ensure deadline anchor is saved
+          // Log opened event once per session and ensure deadline anchor is saved (FIND-SEC-27-01)
           const sessionKey = `invite_opened_${slug}`;
-          if (!sessionStorage.getItem(sessionKey)) {
-            sessionStorage.setItem(sessionKey, '1');
+          const isAlreadyLogged =
+            loggedSlugsRef.current.has(slug) ||
+            Boolean(sessionStorage.getItem(sessionKey));
+
+          if (!isAlreadyLogged) {
+            loggedSlugsRef.current.add(slug);
+            try {
+              sessionStorage.setItem(sessionKey, '1');
+            } catch {
+              // Ignore potential storage exceptions (e.g. private browsing restrictions)
+            }
             void logInviteeEvent(data.id, 'opened');
             void ensureFirstOpenedAt(data.id, slug);
           }

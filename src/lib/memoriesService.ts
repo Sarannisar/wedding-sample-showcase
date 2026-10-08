@@ -64,8 +64,31 @@ function saveLocalUploads(eventId: string, uploads: MemoryUpload[]): void {
   }
 }
 
+// Public columns for wedding_events excluding sensitive fields (passcode_hash)
+export const PUBLIC_EVENT_COLUMNS = [
+  'id',
+  'name',
+  'slug',
+  'event_date',
+  'welcome_message',
+  'upload_enabled',
+  'gallery_enabled',
+  'live_display_enabled',
+  'guest_downloads_enabled',
+  'moderation_enabled',
+  'passcode_enabled',
+  'photo_size_limit_mb',
+  'video_size_limit_mb',
+  'max_files_per_batch',
+  'allow_guest_name',
+  'upload_closing_at',
+  'gallery_closing_at',
+  'created_at',
+  'updated_at',
+].join(',');
+
 /**
- * Fetch wedding event by slug or ID
+ * Fetch wedding event by slug or ID (excludes passcode_hash from public payload)
  */
 export async function fetchWeddingEvent(identifier: string): Promise<WeddingEvent> {
   const normalized = identifier.trim().toLowerCase();
@@ -75,8 +98,8 @@ export async function fetchWeddingEvent(identifier: string): Promise<WeddingEven
       // Query by slug or by UUID if identifier looks like UUID
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(normalized);
       const query = isUuid
-        ? supabase.from('wedding_events').select('*').or(`slug.eq.${normalized},id.eq.${normalized}`).limit(1)
-        : supabase.from('wedding_events').select('*').eq('slug', normalized).limit(1);
+        ? supabase.from('wedding_events').select(PUBLIC_EVENT_COLUMNS).or(`slug.eq.${normalized},id.eq.${normalized}`).limit(1)
+        : supabase.from('wedding_events').select(PUBLIC_EVENT_COLUMNS).eq('slug', normalized).limit(1);
 
       const { data, error } = await query;
       if (!error && data && data.length > 0) {
@@ -103,6 +126,47 @@ export async function fetchWeddingEvent(identifier: string): Promise<WeddingEven
 }
 
 /**
+ * Securely verify wedding event passcode via RPC or hash comparison
+ */
+export async function verifyEventPasscode(eventId: string, passcode: string): Promise<boolean> {
+  const cleanPasscode = passcode.trim();
+  if (!cleanPasscode) return false;
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      // 1. Attempt server-side verification RPC if available
+      const { data, error } = await supabase.rpc('verify_event_passcode', {
+        p_event_id: eventId,
+        p_passcode: cleanPasscode,
+      });
+      if (!error && typeof data === 'boolean') {
+        return data;
+      }
+    } catch {
+      // Fallback if RPC is not deployed yet
+    }
+  }
+
+  // If Supabase RPC is not deployed or in local-only fallback mode,
+  // check cached event passcode hash if present
+  const cached = getLocalEvents()[eventId];
+  if (cached && cached.passcode_hash) {
+    try {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(cleanPasscode);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+      return cached.passcode_hash === hashHex || cached.passcode_hash === cleanPasscode;
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
+}
+
+/**
  * Update wedding event configuration (for Host Dashboard)
  */
 export async function updateWeddingEvent(
@@ -120,7 +184,7 @@ export async function updateWeddingEvent(
         .from('wedding_events')
         .update(updatedPayload)
         .eq('id', id)
-        .select()
+        .select(PUBLIC_EVENT_COLUMNS)
         .single();
 
       if (error) {

@@ -243,6 +243,7 @@ export const GuestMemoriesPage: React.FC = () => {
       {event.passcode_enabled && !isPasscodeVerified && (
         <MemoriesPasscodeModal
           eventName={event.name}
+          eventId={event.id}
           expectedHash={event.passcode_hash}
           onSuccess={() => setIsPasscodeVerified(true)}
         />

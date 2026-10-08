@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import { Lock, ArrowRight, ShieldAlert } from 'lucide-react';
+import { verifyEventPasscode } from '@/lib/memoriesService';
 
 interface MemoriesPasscodeModalProps {
   eventName: string;
+  eventId?: string;
   expectedHash?: string | null;
   onSuccess: () => void;
 }
 
 export const MemoriesPasscodeModal: React.FC<MemoriesPasscodeModalProps> = ({
   eventName,
+  eventId,
   expectedHash,
   onSuccess,
 }) => {
@@ -18,7 +21,8 @@ export const MemoriesPasscodeModal: React.FC<MemoriesPasscodeModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!passcode.trim()) {
+    const clean = passcode.trim();
+    if (!clean) {
       setError('Please enter the event passcode.');
       return;
     }
@@ -27,18 +31,30 @@ export const MemoriesPasscodeModal: React.FC<MemoriesPasscodeModalProps> = ({
     setError(null);
 
     try {
-      // If expectedHash is present, compute SHA-256 or match
-      const encoder = new TextEncoder();
-      const data = encoder.encode(passcode.trim());
-      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-
-      if (!expectedHash || expectedHash === passcode.trim() || expectedHash === hashHex) {
-        onSuccess();
-      } else {
-        setError('Incorrect passcode. Please check the wedding invitation or ask the hosts.');
+      // 1. Prioritize secure server-side verification if eventId provided
+      if (eventId) {
+        const isValid = await verifyEventPasscode(eventId, clean);
+        if (isValid) {
+          onSuccess();
+          return;
+        }
       }
+
+      // 2. Client-side hash check as fallback for offline/local mode
+      if (expectedHash) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(clean);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+
+        if (expectedHash === clean || expectedHash === hashHex) {
+          onSuccess();
+          return;
+        }
+      }
+
+      setError('Incorrect passcode. Please check the wedding invitation or ask the hosts.');
     } catch {
       setError('Could not verify passcode. Please try again.');
     } finally {

@@ -100,10 +100,20 @@ function saveLocalEvents(events: InviteeEvent[]): void {
 // Activity Event Trail
 // -------------------------------------------------------------
 
+// In-memory cache to debounce/deduplicate telemetry events (FIND-SEC-27-01)
+const loggedEventsCache = new Set<string>();
+
 export async function logInviteeEvent(
   inviteeId: string,
   type: InviteeEventType | string
 ): Promise<void> {
+  const cacheKey = `${inviteeId}_${type}`;
+  // Debounce 'opened' events to prevent redundant telemetry dispatches
+  if (type === 'opened' && loggedEventsCache.has(cacheKey)) {
+    return;
+  }
+  loggedEventsCache.add(cacheKey);
+
   const newEvent: InviteeEvent = {
     id:
       typeof crypto !== 'undefined' && crypto.randomUUID
