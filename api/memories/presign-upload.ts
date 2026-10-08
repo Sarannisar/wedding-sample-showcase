@@ -1,5 +1,6 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import crypto from 'crypto';
 
 export const config = {
   runtime: 'nodejs',
@@ -145,9 +146,6 @@ export default async function handler(req: any, res: any) {
     }
 
     // Insert pending row into Supabase memory_uploads
-    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-
     let uploadId = uniqueId;
 
     if (supabaseUrl && supabaseKey) {

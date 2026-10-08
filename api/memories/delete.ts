@@ -101,9 +101,6 @@ export default async function handler(req: any, res: any) {
     }
 
     // 2. Permanently delete records from Supabase memory_uploads
-    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-
     if (supabaseUrl && supabaseKey) {
       const uploadIds = itemsToDelete.map((it) => it.uploadId);
       try {

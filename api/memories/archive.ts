@@ -1,5 +1,5 @@
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
-import archiver from 'archiver';
+import { ZipArchive } from 'archiver';
 import { Readable } from 'stream';
 
 export const config = {
@@ -105,7 +105,7 @@ export default async function handler(req: any, res: any) {
       'Content-Disposition': `attachment; filename="${archiveName}"`,
     });
 
-    const archive = archiver('zip', {
+    const archive = new ZipArchive({
       zlib: { level: 4 },
     });
 
