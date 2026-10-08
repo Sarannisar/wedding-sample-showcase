@@ -37,6 +37,8 @@ import {
   LogOut,
   ShieldCheck,
   Camera,
+  Sun,
+  Moon,
 } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
@@ -51,6 +53,38 @@ export const DashboardPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<ChipFilter>('all');
   const [openReminderQueue, setOpenReminderQueue] = useState(false);
   const [openBulkSenderQueue, setOpenBulkSenderQueue] = useState(false);
+
+  // Dark Mode State (Theme Velvet & Rose Gold)
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('dashboard_theme') === 'dark';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleDarkMode = () => {
+    setIsDarkMode((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('dashboard_theme', next ? 'dark' : 'light');
+      } catch {
+        // Ignore storage exceptions
+      }
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.body.classList.add('dashboard-dark');
+    } else {
+      document.body.classList.remove('dashboard-dark');
+    }
+    return () => {
+      document.body.classList.remove('dashboard-dark');
+    };
+  }, [isDarkMode]);
 
   // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -406,7 +440,11 @@ export const DashboardPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#fffafc] flex flex-col text-[#4a3038]">
+    <div
+      className={`min-h-screen flex flex-col transition-colors duration-300 ${
+        isDarkMode ? 'dashboard-dark bg-[#482a3c] text-[#fff6f9]' : 'bg-[#fffafc] text-[#4a3038]'
+      }`}
+    >
       {/* Header Bar */}
       <header className="bg-[#b05570] text-white py-4 px-4 sm:px-8 shadow-md">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
@@ -457,6 +495,26 @@ export const DashboardPage: React.FC = () => {
               <ShieldCheck className="w-3.5 h-3.5 text-[#f7c1d0]" />
               <span>Host: <strong>{ADMIN_NAME}</strong></span>
             </div>
+
+            {/* Theme Toggle (Dark / Light Mode) */}
+            <button
+              onClick={toggleDarkMode}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 active:scale-95 text-white text-xs font-semibold transition cursor-pointer border border-white/20"
+              title={isDarkMode ? 'Switch to Light Theme' : 'Switch to Midnight Velvet Dark Theme'}
+              aria-label="Toggle theme mode"
+            >
+              {isDarkMode ? (
+                <>
+                  <Sun className="w-3.5 h-3.5 text-amber-300" />
+                  <span className="hidden sm:inline">Light</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="w-3.5 h-3.5 text-[#f7c1d0]" />
+                  <span className="hidden sm:inline">Dark</span>
+                </>
+              )}
+            </button>
 
             {/* 1-Click JSON Snapshot Backup */}
             <button

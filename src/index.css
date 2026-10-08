@@ -63,3 +63,184 @@ body {
   background: #eaa6ba;
 }
 
+/* =========================================================================
+   DASHBOARD DARK MODE ("Twilight Rose Velvet & Rose Gold")
+   Scoped strictly to .dashboard-dark and body.dashboard-dark
+   ========================================================================= */
+.dashboard-dark {
+  color-scheme: dark;
+}
+
+.dashboard-dark,
+body.dashboard-dark {
+  background-color: #482a3c !important;
+  color: #fff6f9 !important;
+}
+
+/* Dark Mode Scrollbars */
+.dashboard-dark ::-webkit-scrollbar-track,
+body.dashboard-dark ::-webkit-scrollbar-track {
+  background: #482a3c;
+}
+
+.dashboard-dark ::-webkit-scrollbar-thumb,
+body.dashboard-dark ::-webkit-scrollbar-thumb {
+  background: #91476b;
+}
+
+.dashboard-dark ::-webkit-scrollbar-thumb:hover,
+body.dashboard-dark ::-webkit-scrollbar-thumb:hover {
+  background: #b55d87;
+}
+
+/* Header */
+.dashboard-dark header {
+  background: linear-gradient(135deg, #7a2f54 0%, #612242 100%) !important;
+  border-bottom: 1px solid rgba(247, 193, 208, 0.45) !important;
+  box-shadow: 0 4px 20px -2px rgba(176, 85, 112, 0.35) !important;
+}
+
+/* Surfaces and Cards */
+.dashboard-dark .bg-white,
+.dashboard-dark [class*="bg-white"] {
+  background-color: #5c354d !important;
+  border-color: rgba(247, 193, 208, 0.38) !important;
+  box-shadow: 0 4px 20px -2px rgba(176, 85, 112, 0.18), 0 0 1px 1px rgba(247, 193, 208, 0.25) !important;
+}
+
+.dashboard-dark [class*="bg-[#fffafc]"] {
+  background-color: #482a3c !important;
+}
+
+.dashboard-dark [class*="bg-[#fff2f6]"] {
+  background-color: #6e405d !important;
+  border-color: rgba(247, 193, 208, 0.42) !important;
+}
+
+.dashboard-dark .bg-gray-50,
+.dashboard-dark .bg-gray-100 {
+  background-color: #532f45 !important;
+}
+
+/* Text Colors - Highlight theme colors */
+.dashboard-dark [class*="text-[#4a3038]"],
+.dashboard-dark .text-gray-900,
+.dashboard-dark .text-gray-800 {
+  color: #ffffff !important;
+}
+
+.dashboard-dark [class*="text-[#7a4d5d]"],
+.dashboard-dark [class*="text-[#7a5563]"],
+.dashboard-dark .text-gray-700,
+.dashboard-dark .text-gray-600 {
+  color: #ffe5ef !important;
+}
+
+.dashboard-dark [class*="text-[#b592a0]"],
+.dashboard-dark .text-gray-500,
+.dashboard-dark .text-gray-400 {
+  color: #f0ccda !important;
+}
+
+/* Theme Accent Highlights */
+.dashboard-dark [class*="text-[#e08aa3]"] {
+  color: #ffc2d4 !important;
+}
+
+.dashboard-dark [class*="text-[#b05570]"] {
+  color: #ffd4e2 !important;
+}
+
+/* Borders */
+.dashboard-dark [class*="border-[#e08aa3]"],
+.dashboard-dark .border-gray-100,
+.dashboard-dark .border-gray-200,
+.dashboard-dark .border-gray-300 {
+  border-color: rgba(247, 193, 208, 0.38) !important;
+}
+
+/* Navigation Tabs */
+.dashboard-dark .border-b {
+  border-color: rgba(247, 193, 208, 0.35) !important;
+}
+
+.dashboard-dark .border-b button:not([class*="bg-[#e08aa3]"]) {
+  color: #ffe5ef;
+  background-color: rgba(110, 64, 93, 0.45);
+}
+.dashboard-dark .border-b button:not([class*="bg-[#e08aa3]"]):hover {
+  background-color: #724260 !important;
+  color: #ffffff !important;
+  border-color: rgba(247, 193, 208, 0.5) !important;
+}
+
+/* Form Controls & Inputs */
+.dashboard-dark input:not([type="checkbox"]):not([type="radio"]),
+.dashboard-dark textarea,
+.dashboard-dark select {
+  background-color: #4e2c41 !important;
+  color: #ffffff !important;
+  border-color: rgba(247, 193, 208, 0.48) !important;
+}
+
+.dashboard-dark input:not([type="checkbox"]):not([type="radio"]):focus,
+.dashboard-dark textarea:focus,
+.dashboard-dark select:focus {
+  border-color: #ffc2d4 !important;
+  box-shadow: 0 0 0 2px rgba(255, 194, 212, 0.4) !important;
+}
+
+.dashboard-dark input::placeholder,
+.dashboard-dark textarea::placeholder {
+  color: #c99cb0 !important;
+}
+
+/* Tables & Rows */
+.dashboard-dark thead,
+.dashboard-dark thead th {
+  background-color: #633953 !important;
+  border-color: rgba(247, 193, 208, 0.38) !important;
+  color: #ffffff !important;
+}
+
+.dashboard-dark table tr {
+  border-color: rgba(247, 193, 208, 0.26) !important;
+}
+
+.dashboard-dark table tbody tr:hover {
+  background-color: #683d57 !important;
+}
+
+/* Hover States */
+.dashboard-dark [class*="hover:bg-white"]:hover,
+.dashboard-dark [class*="hover:bg-gray"]:hover {
+  background-color: #683d57 !important;
+}
+
+.dashboard-dark [class*="hover:bg-[#fff2f6]"]:hover {
+  background-color: #774665 !important;
+}
+
+.dashboard-dark [class*="hover:bg-[#fffafc]"]:hover {
+  background-color: #653b55 !important;
+}
+
+/* SVG Chart Elements */
+.dashboard-dark circle[stroke="#fff2f6"],
+.dashboard-dark circle[stroke="#fffafc"] {
+  stroke: #633953 !important;
+}
+
+/* Modals & Dialogs */
+.dashboard-dark [class*="bg-black/"],
+.dashboard-dark [class*="bg-[#4a3038]/"] {
+  background-color: rgba(45, 22, 36, 0.86) !important;
+}
+
+/* Footer */
+.dashboard-dark footer {
+  border-color: rgba(247, 193, 208, 0.3) !important;
+  color: #f0ccda !important;
+}
+
+
