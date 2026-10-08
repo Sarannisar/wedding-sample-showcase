@@ -75,7 +75,7 @@ export const GuestInvitePage: React.FC = () => {
           if (!sessionStorage.getItem(sessionKey)) {
             sessionStorage.setItem(sessionKey, '1');
             void logInviteeEvent(data.id, 'opened');
-            void ensureFirstOpenedAt(data.id);
+            void ensureFirstOpenedAt(data.id, slug);
           }
         } else {
           // Slug was provided but does not exist in records

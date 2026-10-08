@@ -18,11 +18,37 @@ export default async function handler(req: any, res: any) {
       return res.status(400).json({ error: 'Missing eventId' });
     }
 
+    // Authenticate host/admin request: require valid session token
+    const authHeader = req.headers?.authorization || req.headers?.Authorization;
+    const token =
+      authHeader && authHeader.startsWith('Bearer ')
+        ? authHeader.slice(7)
+        : (req.query?.token as string) || null;
+
     const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
       return res.status(500).json({ error: 'Supabase configuration missing' });
+    }
+
+    // Verify token against Supabase auth in all non-dev / production environments
+    if (token) {
+      try {
+        const authCheck = await fetch(`${supabaseUrl}/auth/v1/user`, {
+          headers: {
+            apikey: supabaseKey,
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!authCheck.ok) {
+          return res.status(401).json({ error: 'Unauthorized: Invalid admin session.' });
+        }
+      } catch (authErr) {
+        return res.status(401).json({ error: 'Authentication verification failed.' });
+      }
+    } else if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+      return res.status(401).json({ error: 'Unauthorized: Host authentication token required.' });
     }
 
     // Fetch active memories
@@ -58,7 +84,7 @@ export default async function handler(req: any, res: any) {
           totalParts,
           fileCount: slice.length,
           totalBytes: partBytes,
-          downloadUrl: `/api/memories/archive?eventId=${encodeURIComponent(eventId)}&part=${p}`,
+          downloadUrl: `/api/memories/archive?eventId=${encodeURIComponent(eventId)}&part=${p}${token ? `&token=${encodeURIComponent(token)}` : ''}`,
           filename: `Wedding-Memories-Part-${String(p).padStart(2, '0')}.zip`,
         });
       }

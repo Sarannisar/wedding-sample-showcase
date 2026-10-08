@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Download, Archive, CheckCircle, RefreshCw, FileArchive } from 'lucide-react';
 import { WeddingEvent } from '@/lib/memoriesTypes';
 import { formatBytes } from '@/lib/memoriesService';
+import { supabase } from '@/lib/supabase';
 
 interface MemoriesDownloadAllModalProps {
   event: WeddingEvent;
@@ -32,7 +33,12 @@ export const MemoriesDownloadAllModal: React.FC<MemoriesDownloadAllModalProps> =
       setError(null);
 
       try {
-        const res = await fetch(`/api/memories/archive?eventId=${encodeURIComponent(event.id)}&action=parts`);
+        const session = await supabase?.auth.getSession();
+        const token = session?.data?.session?.access_token;
+        const queryUrl = `/api/memories/archive?eventId=${encodeURIComponent(event.id)}&action=parts${token ? `&token=${encodeURIComponent(token)}` : ''}`;
+        const res = await fetch(queryUrl, {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
         if (res.ok) {
           const json = await res.json();
           setParts(json.parts || []);
@@ -50,9 +56,17 @@ export const MemoriesDownloadAllModal: React.FC<MemoriesDownloadAllModalProps> =
     void loadParts();
   }, [event.id]);
 
-  const handleDownloadPart = (part: ArchivePart) => {
+  const handleDownloadPart = async (part: ArchivePart) => {
     setDownloadedParts((prev) => new Set(prev).add(part.part));
-    window.location.href = part.downloadUrl;
+    let targetUrl = part.downloadUrl;
+    if (!targetUrl.includes('token=')) {
+      const session = await supabase?.auth.getSession();
+      const token = session?.data?.session?.access_token;
+      if (token) {
+        targetUrl += `${targetUrl.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`;
+      }
+    }
+    window.location.href = targetUrl;
   };
 
   return (

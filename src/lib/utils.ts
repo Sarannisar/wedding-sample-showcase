@@ -11,6 +11,14 @@ export function cn(...inputs: ClassValue[]) {
 export function generateRandomCode(length = 6): string {
   const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz';
   let result = '';
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    const bytes = new Uint8Array(length);
+    crypto.getRandomValues(bytes);
+    for (let i = 0; i < length; i++) {
+      result += chars.charAt(bytes[i] % chars.length);
+    }
+    return result;
+  }
   for (let i = 0; i < length; i++) {
     const randomIndex = Math.floor(Math.random() * chars.length);
     result += chars.charAt(randomIndex);

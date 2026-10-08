@@ -1,3 +1,5 @@
+import { S3Client, HeadObjectCommand } from '@aws-sdk/client-s3';
+
 export const config = {
   runtime: 'nodejs',
 };
@@ -21,7 +23,59 @@ export default async function handler(req: any, res: any) {
       return res.status(200).json({ success: true, message: 'Local simulation completed' });
     }
 
-    // Determine status (use passed status or query event moderation)
+    // 1. Fetch current upload record to get storage_key
+    const existingRes = await fetch(
+      `${supabaseUrl}/rest/v1/memory_uploads?id=eq.${encodeURIComponent(uploadId)}&select=id,storage_key,status&limit=1`,
+      {
+        headers: {
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
+        },
+      }
+    );
+
+    if (!existingRes.ok) {
+      return res.status(404).json({ error: 'Memory upload record not found' });
+    }
+
+    const existingRows = (await existingRes.json()) as any[];
+    if (!existingRows || existingRows.length === 0) {
+      return res.status(404).json({ error: 'Memory upload record not found' });
+    }
+
+    const uploadRecord = existingRows[0];
+
+    // 2. Verify object exists in Cloudflare R2 before marking completed
+    const r2AccountId = process.env.R2_ACCOUNT_ID;
+    const r2AccessKeyId = process.env.R2_ACCESS_KEY_ID;
+    const r2SecretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
+    const r2BucketName = process.env.R2_BUCKET_NAME;
+
+    if (r2AccountId && r2AccessKeyId && r2SecretAccessKey && r2BucketName && uploadRecord.storage_key) {
+      try {
+        const s3Client = new S3Client({
+          region: 'auto',
+          endpoint: `https://${r2AccountId}.r2.cloudflarestorage.com`,
+          credentials: {
+            accessKeyId: r2AccessKeyId,
+            secretAccessKey: r2SecretAccessKey,
+          },
+        });
+
+        await s3Client.send(
+          new HeadObjectCommand({
+            Bucket: r2BucketName,
+            Key: uploadRecord.storage_key,
+          })
+        );
+      } catch (s3Err: any) {
+        return res.status(400).json({
+          error: 'Uploaded media object was not found in storage. Upload incomplete or corrupted.',
+        });
+      }
+    }
+
+    // 3. Determine status (use passed status or query event moderation)
     let nextStatus = clientStatus === 'pending' || clientStatus === 'ready' ? clientStatus : 'ready';
     if (!clientStatus && eventId) {
       try {

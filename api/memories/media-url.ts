@@ -23,14 +23,16 @@ export default async function handler(req: any, res: any) {
     const isDebug = req.query.debug === 'true' || req.query.debug === '1';
 
     if (isDebug) {
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(403).json({ error: 'Debug mode disabled in production' });
+      }
       return res.status(200).json({
         configured: Boolean(r2AccountId && r2AccessKeyId && r2SecretAccessKey && r2BucketName),
         hasAccountId: Boolean(r2AccountId),
         hasAccessKeyId: Boolean(r2AccessKeyId),
         hasSecretAccessKey: Boolean(r2SecretAccessKey),
         hasBucketName: Boolean(r2BucketName),
-        bucketName: r2BucketName || null,
-        publicDomain: publicDomain || null,
+        publicDomainConfigured: Boolean(publicDomain),
         key,
       });
     }

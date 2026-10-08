@@ -208,12 +208,23 @@ export async function fetchInvitees(): Promise<Invitee[]> {
 export async function fetchInviteeBySlug(slug: string): Promise<Invitee | null> {
   if (isSupabaseConfigured && supabase) {
     try {
-      const { data, error } = await supabase
-        .from('invitees')
-        .select('*')
-        .eq('slug', slug)
-        .maybeSingle();
-      if (!error && data) return data as Invitee;
+      // 1. Prefer secure RPC function (isolated single-row fetch)
+      const { data: rpcData, error: rpcErr } = await supabase.rpc('get_invitee_by_slug', {
+        p_slug: slug,
+      });
+      if (!rpcErr && Array.isArray(rpcData) && rpcData.length > 0) {
+        return rpcData[0] as Invitee;
+      }
+
+      // 2. Fallback to direct query if RPC is not yet deployed or returned empty
+      if (rpcErr || !rpcData || rpcData.length === 0) {
+        const { data, error } = await supabase
+          .from('invitees')
+          .select('*')
+          .eq('slug', slug)
+          .maybeSingle();
+        if (!error && data) return data as Invitee;
+      }
     } catch (err) {
       console.error('Supabase slug fetch failed:', err);
     }
@@ -520,28 +531,59 @@ export async function updateRsvp(
         };
       }
 
-      // 2. Perform remote update
-      const { data, error } = await supabase
-        .from('invitees')
-        .update({
-          rsvp,
-          guest_count: rsvp === 'attending' ? guestCount : 0,
-          notes: notes || null,
-          responded_at: respondedAt,
-        })
-        .eq('slug', slug)
-        .select();
+      // 2. Perform remote update (prefer secure RPC function)
+      const cleanCount = rsvp === 'attending' ? guestCount : 0;
+      let updatedRow: Invitee | null = null;
 
-      if (error) {
-        return {
-          ok: false,
-          reason: 'rejected',
-          message: error.message || 'Could not update RSVP on server.',
-        };
+      try {
+        const { data: rpcRows, error: rpcErr } = await supabase.rpc('submit_guest_rsvp', {
+          p_slug: slug,
+          p_rsvp: rsvp,
+          p_guest_count: cleanCount,
+          p_notes: notes || null,
+        });
+
+        if (!rpcErr && Array.isArray(rpcRows) && rpcRows.length > 0) {
+          updatedRow = rpcRows[0] as Invitee;
+        } else if (rpcErr && rpcErr.code !== '42883' && !rpcErr.message?.includes('function')) {
+          // If RPC threw a real validation or business exception, return error
+          return {
+            ok: false,
+            reason: 'rejected',
+            message: rpcErr.message || 'Could not update RSVP on server.',
+          };
+        }
+      } catch (rpcCatch) {
+        // Fallback to direct update below
       }
 
-      if (data && data.length > 0) {
-        const updatedRow = data[0] as Invitee;
+      // Fallback: direct update if RPC was not available on remote DB
+      if (!updatedRow) {
+        const { data, error } = await supabase
+          .from('invitees')
+          .update({
+            rsvp,
+            guest_count: cleanCount,
+            notes: notes || null,
+            responded_at: respondedAt,
+          })
+          .eq('slug', slug)
+          .select();
+
+        if (error) {
+          return {
+            ok: false,
+            reason: 'rejected',
+            message: error.message || 'Could not update RSVP on server.',
+          };
+        }
+
+        if (data && data.length > 0) {
+          updatedRow = data[0] as Invitee;
+        }
+      }
+
+      if (updatedRow) {
         const local = getLocalInvitees();
         const index = local.findIndex((i) => i.slug.toLowerCase() === slug.toLowerCase());
         if (index !== -1) {
@@ -768,21 +810,29 @@ export async function deleteBulkInvitees(ids: string[]): Promise<boolean> {
   return true;
 }
 
-export async function ensureFirstOpenedAt(inviteeId: string): Promise<void> {
+export async function ensureFirstOpenedAt(inviteeId: string, slug?: string): Promise<void> {
   const nowIso = new Date().toISOString();
   if (isSupabaseConfigured && supabase) {
     try {
-      await supabase
-        .from('invitees')
-        .update({ first_opened_at: nowIso })
-        .eq('id', inviteeId)
-        .is('first_opened_at', null);
+      // 1. Try secure RPC function
+      const { error: rpcErr } = await supabase.rpc('record_invitee_opened', {
+        p_identifier: slug || inviteeId,
+      });
+
+      // 2. Fallback to direct update if RPC is missing
+      if (rpcErr) {
+        await supabase
+          .from('invitees')
+          .update({ first_opened_at: nowIso })
+          .eq('id', inviteeId)
+          .is('first_opened_at', null);
+      }
     } catch {
       // Non-fatal fire-and-forget
     }
   }
   const local = getLocalInvitees();
-  const index = local.findIndex((i) => i.id === inviteeId);
+  const index = local.findIndex((i) => i.id === inviteeId || (slug && i.slug === slug));
   if (index !== -1 && !local[index].first_opened_at) {
     local[index].first_opened_at = nowIso;
     saveLocalInvitees(local);
