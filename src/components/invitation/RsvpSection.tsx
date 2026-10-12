@@ -318,13 +318,13 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ invitee, onRsvpSuccess
                   'RSVP is now closed. Please contact the family directly for any changes.'}
               </p>
               <a
-                href="https://wa.me/94772257533?text=Assalamu%20Alaikum%20Illyas%2C%20regarding%20my%20RSVP..."
+                href={`https://wa.me/${(weddingConfig.admin.whatsappNotificationNumber || '+94770001122').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Assalamu Alaikum ${weddingConfig.hosts.primary}, regarding my RSVP...`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#25D366] text-white font-label text-xs uppercase tracking-wider font-semibold shadow-sm hover:brightness-105 transition-all cursor-pointer"
               >
                 <Phone className="w-3.5 h-3.5" />
-                <span>Contact Illyas (0772257533)</span>
+                <span>Contact Host ({weddingConfig.hosts.primary})</span>
               </a>
             </div>
           </div>

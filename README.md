@@ -67,20 +67,20 @@ Every invited guest receives a personalized, shareable URL formatted as `https:/
 
 ### 2. Personalized Hero & Islamic Calligraphy
 - **Sacred Invocations**: Features authentic Arabic calligraphic rendering of *Bismillahir Rahmanir Raheem* (بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيْمِ) with its English translation.
-- **Personalized Guest Salutation**: The guest's exact name is dynamically injected into the invitation text (e.g., *"Dear Dr. Farhan & Family, the family of Mr. and Mrs. Ilyas cordially invite you..."*).
-- **Couple Presentation**: Features the names **Safiyya Ilyas & Sharrafuth Najiullah** set in elegant typography with cultural inscriptions (*Insha Allah* / إِنْ شَاءَ اللَّهُ).
+- **Personalized Guest Salutation**: The guest's exact name is dynamically injected into the invitation text (e.g., *"Dear Guest & Family, the family of Mr. and Mrs. Tariq Mansoor cordially invite you..."*).
+- **Couple Presentation**: Features the names **Aaliyah Mansoor & Farhan Zaheer** set in elegant typography with cultural inscriptions (*Insha Allah* / إِنْ شَاءَ اللَّهُ).
 
 ### 3. Live Countdown Clock
-- Real-time countdown clock displaying remaining **Days**, **Hours**, **Minutes**, and **Seconds** until Saturday, 12th December 2026, 12:30 PM.
+- Real-time countdown clock displaying remaining **Days**, **Hours**, **Minutes**, and **Seconds** until Sunday, 15th August 2027, 11:30 AM.
 - Automatically updates in real time and transforms into a celebration banner once the event commences.
 
 ### 4. Event & Venue Details with Google Maps
 - **Ceremony Card**:
-  - **Date**: Saturday, 12th December 2026 (٣ رَجَب ١٤٤٨)
-  - **Time**: 12:30 PM onwards
-  - **Venue**: Glen Reception Hall, 325 Attidiya Rd, Dehiwala-Mount Lavinia
+  - **Date**: Sunday, 15th August 2027 (١٢ صَفَر ١٤٤٩)
+  - **Time**: 11:30 AM onwards
+  - **Venue**: Grand Pearl Ballroom, 75 Lotus Road, Colombo 01
 - **One-Tap Actions**:
-  - **Get Directions**: Opens Google Maps directly pinned to Glen Reception Hall with coordinates.
+  - **Get Directions**: Opens Google Maps directly pinned to Grand Pearl Ballroom.
   - **Add to Calendar**: Generates an `.ics` calendar invite compatible with Apple Calendar, Google Calendar, and Microsoft Outlook.
 
 ### 5. Smart 3-Step RSVP Engine
@@ -96,7 +96,7 @@ An intuitive multi-step form built into a 3D perspective card:
 
 ### 6. 1-Tap WhatsApp Host RSVP Nudge
 - Immediately upon completing their RSVP, guests see a dedicated card:
-  > **Quick Update for Host (Safiyya)**
+  > **Quick Update for Host (Aaliyah)**
   > `[ Send Confirmation to Host on WhatsApp ]`
 - **How It Works**:
   - Tapping this button opens WhatsApp directly addressed to the host's phone number (`HOST_WHATSAPP_NUMBER`).
@@ -121,7 +121,7 @@ The host dashboard allows the bride and family to oversee RSVPs, manage invitees
 
 ### 1. Bridal Authentication & Security
 - **Access Route**: `/dashboard`
-- **Password-Only Login**: Designed specifically for the bride (**Safiyya**). She never has to type her email on mobile or desktop — `safiyya@mywedding.com` is automatically used.
+- **Password-Only Login**: Designed specifically for the host (**Aaliyah**). She never has to type her email on mobile or desktop — `admin@mywedding.com` is automatically used.
 - **Press-and-Hold Reveal**: To prevent shoulder-surfing, the password reveal button only reveals the password while actively being held down, automatically re-masking when released.
 - **Flexible Session Management**:
   - **Default**: Session is remembered for **5 days** before requiring re-entry.
@@ -244,7 +244,7 @@ All ceremony details, cultural texts, and templates are centrally organized in [
 
 | Variable | Description | Example |
 |---|---|---|
-| `HOST_WHATSAPP_NUMBER` | Host phone number for 1-tap WhatsApp RSVP confirmations | `"+966551467155"` |
+| `HOST_WHATSAPP_NUMBER` | Host phone number for 1-tap WhatsApp RSVP confirmations | `"+94770001122"` |
 | `VITE_SUPABASE_URL` | Supabase Project API URL | `"https://xxxx.supabase.co"` |
 | `VITE_SUPABASE_ANON_KEY` | Supabase Public Anonymous API Key | `"eyJhbGciOi..."` |
 | `VITE_SUPABASE_PROJECT_ID` | Supabase Project Identifier | `"jrzdhsteifzkgvmwkdwt"` |
@@ -257,34 +257,34 @@ To modify ceremony dates, couple names, venue, or WhatsApp messages, simply upda
 ```typescript
 export const weddingConfig: WeddingConfig = {
   couple: {
-    bride: 'Safiyya',
-    groom: 'Sharrafuth',
-    brideFull: 'Safiyya Ilyas',
-    groomFull: 'Sharrafuth Najiullah',
+    bride: 'Aaliyah',
+    groom: 'Farhan',
+    brideFull: 'Aaliyah Mansoor',
+    groomFull: 'Farhan Zaheer',
   },
   event: {
     type: 'Wedding Ceremony',
     label: 'Wedding Ceremony',
-    dayAndDate: 'Saturday, 12th December 2026',
-    hijriDate: '٣ رَجَب ١٤٨',
-    time: '12:30 PM onwards',
-    targetDate: '2026-12-12T12:30:00+05:30',
+    dayAndDate: 'Sunday, 15th August 2027',
+    hijriDate: '١٢ صَفَر ١٤٤٩',
+    time: '11:30 AM onwards',
+    targetDate: '2027-08-15T11:30:00+05:30',
     venue: {
-      name: 'Glen Reception Hall',
-      address: '325 Attidiya Rd, Dehiwala-Mount Lavinia',
-      mapsUrl: 'https://maps.app.goo.gl/edSeLip4NdWWpk4X9',
+      name: 'Grand Pearl Ballroom',
+      address: '75 Lotus Road, Colombo 01',
+      mapsUrl: 'https://maps.google.com/?q=Grand+Pearl+Ballroom+Colombo',
     },
   },
   admin: {
-    email: 'safiyya@mywedding.com',
-    name: 'Safiyya',
+    email: 'admin@mywedding.com',
+    name: 'Aaliyah',
     defaultSessionDays: 5,
     rememberMeSessionDays: 30,
-    whatsappNotificationNumber: import.meta.env.HOST_WHATSAPP_NUMBER || '+94772257533',
+    whatsappNotificationNumber: import.meta.env.HOST_WHATSAPP_NUMBER || '+94770001122',
   },
   whatsapp: {
-    messageTemplate: "Assalamu Alaikum GUEST_NAME\n\nThe family of Mr. and Mrs. Ilyas cordially invite you...",
-    reminderTemplate: "Assalamu Alaikum GUEST_NAME\n\nA gentle reminder about Safiyya & Sharrafuth's Wedding Ceremony...",
+    messageTemplate: "Assalamu Alaikum GUEST_NAME\n\nThe family of Mr. and Mrs. Tariq Mansoor cordially invite you...",
+    reminderTemplate: "Assalamu Alaikum GUEST_NAME\n\nA gentle reminder about Aaliyah & Farhan's Wedding Ceremony...",
   },
 };
 ```
@@ -300,8 +300,8 @@ export const weddingConfig: WeddingConfig = {
 ### Installation
 ```bash
 # Clone the repository
-git clone https://github.com/Sarannisar/invitation-bloom.git
-cd invitation-bloom
+git clone https://github.com/Sarannisar/wedding-sample-showcase.git
+cd wedding-sample-showcase
 
 # Install dependencies
 npm install
@@ -332,4 +332,4 @@ npm run preview
 
 ## License & Credits
 
-Designed and customized with elegance for **Safiyya & Sharrafuth's Wedding**. All rights reserved © 2026.
+Designed and customized with elegance for **Aaliyah & Farhan's Wedding Sample Showcase**. All rights reserved © 2027.

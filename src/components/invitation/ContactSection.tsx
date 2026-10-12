@@ -5,8 +5,8 @@ import { useReveal } from '@/lib/useReveal';
 import { Navigation, Phone } from 'lucide-react';
 
 const CONTACTS = [
-  { name: 'Illyas', phone: '0772257533' },
-  { name: 'Samiha', phone: '0767962881' },
+  { name: 'Tariq (Host)', phone: '0770001122' },
+  { name: 'Zaheer (Coordinator)', phone: '0710003344' },
 ];
 
 export const ContactSection: React.FC = () => {

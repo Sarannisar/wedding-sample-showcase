@@ -139,7 +139,7 @@ export const weddingConfig: WeddingConfig = {
     name: 'Aaliyah',
     defaultSessionDays: 5,
     rememberMeSessionDays: 30,
-    whatsappNotificationNumber: import.meta.env.HOST_WHATSAPP_NUMBER || '+94772257533',
+    whatsappNotificationNumber: import.meta.env.HOST_WHATSAPP_NUMBER || '+94770001122',
   },
   theme: {
     name: 'Baby Pink Pastel',
