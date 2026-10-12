@@ -13,6 +13,7 @@ import { ClosingSection } from './ClosingSection';
 import { FloralDivider } from '@/components/common/FloralDivider';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { Invitee, RsvpStatus } from '@/lib/types';
+import { weddingConfig } from '@/config/weddingConfig';
 
 interface InvitationSuiteProps {
   invitee: Invitee | null;
