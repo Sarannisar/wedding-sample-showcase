@@ -41,13 +41,18 @@ export default async function handler(req: Request): Promise<Response> {
     }
   }
 
+  const BRIDE = 'Aaliyah';
+  const GROOM = 'Farhan';
+  const BRIDE_FULL = 'Aaliyah Mansoor';
+  const GROOM_FULL = 'Farhan Zaheer';
+
   const title = guestName
-    ? `Invitation for ${guestName} — Safiyya & Sharrafuth`
-    : `Safiyya & Sharrafuth — Wedding Invitation`;
+    ? `Invitation for ${guestName} — ${BRIDE} & ${GROOM}`
+    : `${BRIDE} & ${GROOM} — Wedding Invitation`;
 
   const description = guestName
-    ? `${guestName}, you are cordially invited to the wedding ceremony of Safiyya & Sharrafuth.`
-    : `You are cordially invited to the wedding ceremony of Safiyya Illyas and Sharrafuth Najiullah.`;
+    ? `${guestName}, you are cordially invited to the wedding ceremony of ${BRIDE} & ${GROOM}.`
+    : `You are cordially invited to the wedding ceremony of ${BRIDE_FULL} and ${GROOM_FULL}.`;
 
   const inviteUrl = slug ? `${origin}/invite/${encodeURIComponent(slug)}` : origin;
   const imageUrl = `${origin}/assets/invite_card_bg_poster.webp`;
@@ -63,7 +68,7 @@ export default async function handler(req: Request): Promise<Response> {
   <meta property="og:title" content="${escapeHtml(title)}" />
   <meta property="og:description" content="${escapeHtml(description)}" />
   <meta property="og:image" content="${imageUrl}" />
-  <meta property="og:image:alt" content="Safiyya &amp; Sharrafuth Wedding Celebration" />
+  <meta property="og:image:alt" content="${BRIDE} &amp; ${GROOM} Wedding Celebration" />
   <meta property="og:url" content="${inviteUrl}" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${escapeHtml(title)}" />

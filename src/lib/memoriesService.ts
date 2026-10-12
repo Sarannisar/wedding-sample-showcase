@@ -9,7 +9,7 @@ const UPLOADS_CACHE_KEY = 'wedding_memories_uploads_cache_v1';
 export const DEFAULT_FALLBACK_EVENT: WeddingEvent = {
   id: '00000000-0000-0000-0000-000000000001',
   name: `${weddingConfig.couple.bride} & ${weddingConfig.couple.groom}'s Celebration`,
-  slug: 'safiyya-sharrafuth',
+  slug: weddingConfig.defaultEventSlug,
   event_date: weddingConfig.event.targetDate,
   welcome_message: 'Capture and share your favourite photos & videos from our special wedding celebration. Thank you for celebrating with us!',
   upload_enabled: true,
@@ -119,7 +119,7 @@ export async function fetchWeddingEvent(identifier: string): Promise<WeddingEven
   // Fallback default
   const fallback = {
     ...DEFAULT_FALLBACK_EVENT,
-    slug: normalized || 'safiyya-sharrafuth',
+    slug: normalized || weddingConfig.defaultEventSlug,
   };
   saveLocalEvent(fallback);
   return fallback;

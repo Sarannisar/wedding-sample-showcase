@@ -610,7 +610,7 @@ export const GuestMemoriesPage: React.FC = () => {
 
       {/* Footer */}
       <footer className="py-6 border-t border-[#e08aa3]/10 text-center text-xs text-[#b592a0] font-body mt-10">
-        <p>Safiyya &amp; Sharrafuth Wedding Memories • With Love</p>
+        <p>{weddingConfig.couple.bride} &amp; {weddingConfig.couple.groom} Wedding Memories • With Love</p>
       </footer>
     </div>
   );

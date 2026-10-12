@@ -153,7 +153,7 @@ export const InvitationSuite: React.FC<InvitationSuiteProps> = ({
       {/* Artisan Colophon & Direct WhatsApp Inquiry */}
       <footer className="w-full flex flex-col items-center justify-center pt-8 pb-3 text-center">
         <a
-          href="https://wa.me/94721125255?text=Hi%20BIZZIMAX%2C%20I%20saw%20Safiyya%20%26%20Sharrafuth%27s%20wedding%20invitation%20and%20would%20like%20to%20inquire%20about%20a%20digital%20invitation."
+          href={`https://wa.me/94721125255?text=${encodeURIComponent(`Hi BIZZIMAX, I saw ${weddingConfig.couple.bride} & ${weddingConfig.couple.groom}'s digital wedding invitation sample and would like to inquire about creating one for our wedding.`)}`}
           target="_blank"
           rel="noopener noreferrer"
           className="group inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-[#e08aa3]/20 bg-white/40 hover:bg-white/80 hover:border-[#e08aa3]/40 transition-all duration-300 shadow-xs"

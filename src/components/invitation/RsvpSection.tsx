@@ -461,7 +461,7 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ invitee, onRsvpSuccess
                   id="rsvp-note-input"
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  placeholder="Share a warm wish, dua, dietary requirement, or message for Safiyya & Sharrafuth..."
+                  placeholder={`Share a warm wish, dua, dietary requirement, or message for ${weddingConfig.couple.bride} & ${weddingConfig.couple.groom}...`}
                   rows={3}
                   className="w-full p-3 rounded-lg border border-[#f2b8c6]/30 bg-white text-xs font-serif text-[#4a3038] placeholder:text-[#b592a0]/60 focus:outline-none focus:border-[#f2b8c6] resize-none"
                 />
@@ -548,7 +548,7 @@ export const RsvpSection: React.FC<RsvpSectionProps> = ({ invitee, onRsvpSuccess
                     Thank You for Your Blessings
                   </h4>
                   <p className="font-serif text-xs text-[#6f5860] leading-relaxed">
-                    Your thoughtful wishes and prayers for Safiyya & Sharrafuth are deeply cherished.
+                    Your thoughtful wishes and prayers for {weddingConfig.couple.bride} &amp; {weddingConfig.couple.groom} are deeply cherished.
                   </p>
                   {note && (
                     <div className="p-3 rounded-lg bg-white border border-[#f2b8c6]/20 text-xs font-serif italic text-[#a8808e]">

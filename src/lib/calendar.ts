@@ -34,7 +34,7 @@ export function downloadCalendarIcs(): void {
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     'BEGIN:VEVENT',
-    `UID:${dateOnly}-safiyya-sharrafuth-wedding@whisper-rsvp`,
+    `UID:${dateOnly}-${weddingConfig.defaultEventSlug}-wedding@whisper-rsvp`,
     `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z`,
     `DTSTART:${start}`,
     `DTEND:${end}`,
@@ -55,7 +55,7 @@ export function downloadCalendarIcs(): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `safiyya-sharrafuth-wedding-${dateOnly}.ics`;
+  a.download = `${weddingConfig.defaultEventSlug}-wedding-${dateOnly}.ics`;
   a.click();
   URL.revokeObjectURL(url);
 }

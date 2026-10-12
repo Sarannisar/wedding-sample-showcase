@@ -2,8 +2,8 @@
 // forwards real visitors to the invitation page.
 
 const DEFAULT_ORIGIN = "https://whisper-rsvp.lovable.app";
-const BRIDE = "Safiyya";
-const GROOM = "Sharrafuth";
+const BRIDE = "Aaliyah";
+const GROOM = "Farhan";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

@@ -205,7 +205,7 @@ export function printGuestList(invitees: Invitee[], filter: 'all' | 'attending' 
       </table>
 
       <div class="footer">
-        Generated on ${new Date().toLocaleDateString()} • Safiyya & Sharrafuth Wedding Invitation Dashboard
+        Generated on ${new Date().toLocaleDateString()} • ${weddingConfig.couple.bride} & ${weddingConfig.couple.groom} Wedding Invitation Dashboard
       </div>
 
       <script>

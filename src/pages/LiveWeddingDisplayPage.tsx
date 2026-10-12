@@ -90,7 +90,7 @@ export const LiveWeddingDisplayPage: React.FC = () => {
         <div className="w-16 h-16 rounded-3xl bg-white/10 border border-white/20 flex items-center justify-center text-[#f7c1d0] mb-4">
           <Heart className="w-8 h-8 fill-[#e08aa3] text-[#e08aa3]" />
         </div>
-        <h1 className="font-display text-3xl sm:text-4xl font-bold mb-2">Safiyya &amp; Sharrafuth</h1>
+        <h1 className="font-display text-3xl sm:text-4xl font-bold mb-2">{weddingConfig.couple.bride} &amp; {weddingConfig.couple.groom}</h1>
         <p className="font-script text-xl text-[#f7c1d0] mb-6">Live Wedding Showcase</p>
         <div className="p-6 rounded-2xl bg-white/5 border border-white/10 max-w-md backdrop-blur-md">
           <p className="font-display text-lg font-bold text-white mb-1">Live Display Paused</p>
@@ -118,7 +118,7 @@ export const LiveWeddingDisplayPage: React.FC = () => {
           </div>
           <div>
             <h1 className="font-display text-2xl font-bold tracking-wide text-white">
-              Safiyya &amp; Sharrafuth
+              {weddingConfig.couple.bride} &amp; {weddingConfig.couple.groom}
             </h1>
             <p className="font-label text-xs uppercase tracking-widest text-[#f7c1d0]/80">
               Live Wedding Memories Drop

@@ -256,7 +256,7 @@ export const DashboardLogin: React.FC<DashboardLoginProps> = ({ onLoginSuccess }
 
         {/* Brand footer line */}
         <p className="text-center font-display italic text-xs text-[#b592a0] mt-4">
-          Safiyya &amp; Sharrafuth · Wedding Celebration
+          {weddingConfig.couple.bride} &amp; {weddingConfig.couple.groom} · Wedding Celebration
         </p>
       </motion.div>
     </div>

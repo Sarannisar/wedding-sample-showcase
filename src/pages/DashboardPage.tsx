@@ -733,7 +733,7 @@ export const DashboardPage: React.FC = () => {
 
       {/* Dashboard Footer */}
       <footer className="py-4 border-t border-[#e08aa3]/10 text-center text-xs text-[#b592a0] font-body">
-        Wedding Invitation Management System • Safiyya & Sharrafuth
+        Wedding Invitation Management System • {weddingConfig.couple.bride} &amp; {weddingConfig.couple.groom}
       </footer>
     </div>
   );

@@ -72,33 +72,33 @@ export interface WeddingConfig {
 }
 
 export const weddingConfig: WeddingConfig = {
-  defaultEventSlug: 'safiyya-sharrafuth',
+  defaultEventSlug: 'aaliyah-farhan',
   event: {
     type: 'Wedding Ceremony',
     label: 'Wedding Ceremony',
-    dayAndDate: 'Saturday, 26th December 2026',
-    hijriDate: '١٧ رَجَب ١٤٤٨ هـ',
-    time: '12:30 PM onwards',
-    targetDate: '2026-12-26T12:30:00+05:30',
+    dayAndDate: 'Sunday, 15th August 2027',
+    hijriDate: '١٢ صَفَر ١٤٤٩ هـ',
+    time: '11:30 AM onwards',
+    targetDate: '2027-08-15T11:30:00+05:30',
     venue: {
-      name: 'Glen Reception Hall',
-      address: '325 Attidiya Rd, Dehiwala-Mount Lavinia',
-      mapsUrl: 'https://maps.app.goo.gl/edSeLip4NdWWpk4X9',
+      name: 'Grand Pearl Ballroom',
+      address: '75 Lotus Road, Colombo 01',
+      mapsUrl: 'https://maps.google.com/?q=Grand+Pearl+Ballroom+Colombo',
     },
   },
   hosts: {
-    primary: 'Mr. and Mrs. Illyas',
+    primary: 'Mr. and Mrs. Tariq Mansoor',
     relationText:
-      'With great joy and blessings, the family of Mr. and Mrs. Illyas request the pleasure of your company at the wedding ceremony of their beloved daughter',
+      'With great joy and blessings, the family of Mr. and Mrs. Tariq Mansoor request the pleasure of your company at the wedding ceremony of their beloved daughter',
   },
   couple: {
-    bride: 'Safiyya',
-    groom: 'Sharrafuth',
-    brideFullName: 'Safiyya Illyas',
-    groomFullName: 'Sharrafuth Najiullah',
-    groomParents: 'Mr. and Mrs. Najiullah',
+    bride: 'Aaliyah',
+    groom: 'Farhan',
+    brideFullName: 'Aaliyah Mansoor',
+    groomFullName: 'Farhan Zaheer',
+    groomParents: 'Mr. and Mrs. Zaheer Rahman',
     connector: 'with',
-    monogram: 'S & S',
+    monogram: 'A & F',
   },
   cultural: {
     bismillah: {
@@ -121,9 +121,9 @@ export const weddingConfig: WeddingConfig = {
 
   whatsapp: {
     messageTemplate:
-      "Assalamu Alaikum GUEST_NAME\n\nThe family of Mr. and Mrs. Illyas cordially invite you to their daughter Safiyya's Wedding Ceremony on Saturday 26th December 2026 at Glen Reception Hall from 12:30pm onwards.\n\nView your personal invitation here: GUEST_LINK",
+      "Assalamu Alaikum GUEST_NAME\n\nThe family of Mr. and Mrs. Tariq Mansoor cordially invite you to their daughter Aaliyah's Wedding Ceremony on Sunday 15th August 2027 at Grand Pearl Ballroom from 11:30am onwards.\n\nView your personal invitation here: GUEST_LINK",
     reminderTemplate:
-      "Assalamu Alaikum GUEST_NAME\n\nA gentle reminder about Safiyya & Sharrafuth's Wedding Ceremony on Saturday 26th December 2026 at Glen Reception Hall, 12:30pm onwards.\n\nWe would love to know if you can join us — please confirm here: GUEST_LINK",
+      "Assalamu Alaikum GUEST_NAME\n\nA gentle reminder about Aaliyah & Farhan's Wedding Ceremony on Sunday 15th August 2027 at Grand Pearl Ballroom, 11:30am onwards.\n\nWe would love to know if you can join us — please confirm here: GUEST_LINK",
     hostConfirmationAttendingTemplate:
       "Assalamu Alaikum! I have confirmed my RSVP for the Wedding Ceremony.\n\n👤 Guest: GUEST_NAME\n✅ Status: Attending (GUEST_COUNT)\n📝 Notes: NOTES\n\nLooking forward to celebrating with you insha Allah!",
     hostConfirmationDeclinedTemplate:
@@ -135,8 +135,8 @@ export const weddingConfig: WeddingConfig = {
     lockedMessage: 'RSVP is now closed. Please contact the family directly for any changes.',
   },
   admin: {
-    email: 'safiyya@mywedding.com',
-    name: 'Safiyya',
+    email: 'admin@mywedding.com',
+    name: 'Aaliyah',
     defaultSessionDays: 5,
     rememberMeSessionDays: 30,
     whatsappNotificationNumber: import.meta.env.HOST_WHATSAPP_NUMBER || '+94772257533',

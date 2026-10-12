@@ -48,7 +48,7 @@ export const BulkWhatsAppSenderModal: React.FC<BulkWhatsAppSenderModalProps> = (
   // Custom message template option
   const defaultTemplate =
     weddingConfig?.whatsapp?.messageTemplate ||
-    "Assalamu Alaikum GUEST_NAME\n\nYou are cordially invited to Safiyya & Sharrafuth's Wedding Ceremony!\n\nView your invitation here: GUEST_LINK";
+    `Assalamu Alaikum GUEST_NAME\n\nYou are cordially invited to ${weddingConfig.couple.bride} & ${weddingConfig.couple.groom}'s Wedding Ceremony!\n\nView your invitation here: GUEST_LINK`;
   const [customTemplate, setCustomTemplate] = useState<string>(defaultTemplate);
   const [showTemplateEditor, setShowTemplateEditor] = useState(false);
 

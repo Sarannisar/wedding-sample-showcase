@@ -1,6 +1,6 @@
-# 🌸 Safiyya & Sharrafuth — Wedding Invitation & Host Dashboard
+# 🌸 Wedding Invitation & Host Dashboard (Sample Showcase)
 
-A bespoke, production-ready, full-stack digital wedding invitation platform and administrative management suite built for **Safiyya & Sharrafuth's Wedding Ceremony** on **Saturday, 12th December 2026** at **Glen Reception Hall, Dehiwala**.
+A bespoke, production-ready, full-stack digital wedding invitation platform and administrative management suite demo built for **Aaliyah & Farhan's Wedding Ceremony** on **Sunday, 15th August 2027** at **Grand Pearl Ballroom, Colombo**.
 
 Built with **React 18**, **TypeScript**, **Vite**, **Tailwind CSS**, **Framer Motion**, and **Supabase** (PostgreSQL, Row-Level Security, and Edge Functions).
 

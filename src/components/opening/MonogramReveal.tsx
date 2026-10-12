@@ -41,11 +41,11 @@ export const MonogramReveal: React.FC<MonogramRevealProps> = ({ visible }) => {
 
         {/* Couple Names in Kaushan Script */}
         <h1 className="font-kaushan text-2xl sm:text-3xl text-[#6b2436] font-normal leading-snug">
-          {weddingConfig.couple.brideFullName || 'Safiyya Illyas'}
+          {weddingConfig.couple.brideFullName || 'Aaliyah Mansoor'}
           <span className="block font-serif italic text-base sm:text-lg text-[#7a4d5d] my-1.5 sm:my-2">
             and
           </span>
-          {weddingConfig.couple.groomFullName || 'Sharrafuth Najiullah'}
+          {weddingConfig.couple.groomFullName || 'Farhan Zaheer'}
         </h1>
 
         {/* Golden Divider */}

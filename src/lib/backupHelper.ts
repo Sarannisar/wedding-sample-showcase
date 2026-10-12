@@ -36,7 +36,7 @@ export function exportDatabaseSnapshot(invitees: Invitee[]): void {
     const dateStr = now.toISOString().split('T')[0];
 
     const backupData: WeddingBackupFile = {
-      app: 'safiyya-sharrafuth-wedding',
+      app: `${weddingConfig.defaultEventSlug}-wedding`,
       version: '1.0',
       exportedAt: now.toISOString(),
       metadata: {

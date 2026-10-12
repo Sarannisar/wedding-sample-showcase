@@ -153,7 +153,7 @@ export const FloralLoader: React.FC<FloralLoaderProps> = ({ onComplete, guestNam
           >
             <img
               src="/assets/logo_saad_sheen_crest.png"
-              alt="Safiyya & Sharrafuth Logo"
+              alt={`${weddingConfig.couple.bride} & ${weddingConfig.couple.groom} Logo`}
               className="w-full h-full object-contain filter drop-shadow-lg"
             />
           </motion.div>
@@ -170,7 +170,7 @@ export const FloralLoader: React.FC<FloralLoaderProps> = ({ onComplete, guestNam
             Wedding Celebration
           </span>
           <h2 className="font-display text-2xl sm:text-3xl text-[#4a3038] font-medium tracking-wide">
-            Safiyya & Sharrafuth
+            {weddingConfig.couple.bride} &amp; {weddingConfig.couple.groom}
           </h2>
           {guestName && (
             <p className="font-body italic text-xs text-[#b05570] pt-0.5">
